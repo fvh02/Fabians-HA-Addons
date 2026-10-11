@@ -1,0 +1,6 @@
+Ausgaben einfach per Foto erfassen.
+
+- Kassenbon fotografieren und per iMessage an den Assistenten schicken
+- Betrag, Laden, Datum und Kategorie werden automatisch erkannt
+- Übersicht und Diagramme in der Seitenleiste: Monat, Kategorien, Läden
+- Fragen per iMessage: „Wie viel habe ich diesen Monat für Lebensmittel ausgegeben?“

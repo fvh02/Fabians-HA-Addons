@@ -1,0 +1,6 @@
+Rezepte sammeln, die Woche planen und automatisch einkaufen.
+
+- Rezepte per Link oder Foto an den Assistenten schicken, er liest Zutaten und Schritte aus
+- Wochenplan per Drag-and-drop, Vorschläge nach Vorräten und Saison
+- Zutaten landen automatisch auf der Einkaufsliste
+- Kochmodus fürs Tablet: große Schrift, Schritt für Schritt, Timer

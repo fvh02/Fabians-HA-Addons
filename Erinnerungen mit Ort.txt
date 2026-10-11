@@ -1,0 +1,6 @@
+Erinnerungen, die zur richtigen Zeit am richtigen Ort kommen.
+
+- „Erinner mich an Milch, wenn ich am Supermarkt bin“
+- „Erinner mich beim Nachhausekommen an den Müll“
+- Nutzt den Standort der Home-Assistant-App am Handy und Zonen in Home Assistant
+- Die Erinnerung kommt per iMessage
