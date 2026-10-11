@@ -1,0 +1,6 @@
+Überwacht die Home-Assistant-Backups und sichert sie zusätzlich extern.
+
+- Prüft, ob regelmäßig Backups erstellt werden und ob sie vollständig sind
+- Kopiert Backups automatisch auf ein NAS, einen USB-Stick oder in die Cloud
+- Hält nur eine einstellbare Anzahl alter Backups vor
+- iMessage, wenn ein Backup fehlt, fehlschlägt oder der Speicher knapp wird

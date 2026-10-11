@@ -1,0 +1,6 @@
+Überblick über alle Geräte im Heimnetz.
+
+- Liste aller Geräte im WLAN mit Name, IP und Hersteller in der Seitenleiste
+- iMessage, wenn ein neues, unbekanntes Gerät ins Netz kommt
+- Optional: Anwesenheit erkennen, wer nach Hause kommt oder geht (über die Handys)
+- Abfrage per iMessage („Wer ist gerade zu Hause?“)

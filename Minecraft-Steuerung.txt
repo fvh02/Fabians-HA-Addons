@@ -1,0 +1,7 @@
+Steuerung des Minecraft-Servers (z. B. minecraft-vanilla unter /share) über Home Assistant und per iMessage über den Assistenten.
+
+- Server per Nachricht starten, stoppen und neu starten („Starte den Minecraft-Server“)
+- Abfragen, wer gerade online ist („Ist jemand auf dem Server?“)
+- Benachrichtigung per iMessage, wenn ein Freund joint oder den Server verlässt
+- Backups der Welt auf Knopfdruck oder automatisch nach Zeitplan
+- Weboberfläche in der Seitenleiste mit Spielerliste, Serverstatus, Konsole und Backup-Übersicht (modernes oder Terminal-Design wie beim Downloader)

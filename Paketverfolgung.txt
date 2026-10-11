@@ -1,0 +1,7 @@
+Sendungen von DHL, DPD, Hermes, GLS, UPS usw. automatisch verfolgen.
+
+- Sendungsnummer per iMessage an den Assistenten schicken oder in der Weboberfläche eintragen
+- Das Add-on erkennt den Paketdienst und prüft den Status regelmäßig
+- iMessage bei wichtigen Änderungen, z. B. „Paket kommt heute“ oder „Paket liegt in der Packstation“
+- Übersicht aller laufenden Sendungen in der Home-Assistant-Seitenleiste
+- Optional: Sendungsnummern automatisch aus Versand-E-Mails übernehmen
