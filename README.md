@@ -1,0 +1,1 @@
+# HA-Addon-Ideas
