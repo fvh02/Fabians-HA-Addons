@@ -1,0 +1,313 @@
+"""Ledger, brokers (paper and live) and the hard risk rules.
+
+The add-on keeps its own ledger: cash and coins that belong to the trader. It never spends more than
+that, and in live mode also never more than is really on the exchange account.
+"""
+
+import csv
+import json
+import logging
+import time
+from dataclasses import dataclass, replace
+from pathlib import Path
+
+import ccxt
+
+log = logging.getLogger("trader")
+
+MIN_ORDER_EUR = 10.0
+# Large, liquid coins; everything else counts as a small coin with a lower position limit.
+BIG = {"BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "TRX", "LINK", "AVAX", "DOT", "LTC", "BCH", "XLM", "TON", "BNB"}
+
+
+class TradeError(Exception):
+    pass
+
+
+@dataclass
+class Rules:
+    budget: float
+    max_trade_pct: float      # one buy at most this share of the total value
+    max_position_pct: float   # one coin at most this share of the total value
+    min_cash_pct: float       # always keep this share in cash
+    stop_loss_pct: float      # sell a coin that fell this far below its average buy price
+    max_drawdown_pct: float   # stop everything when the total fell this far below the start
+    fee_pct: float            # paper trading: fee per trade
+    max_small_pct: float = 10.0   # one small coin at most this share of the total value
+    max_orders_day: int = 12
+
+
+# Risk levels the owner picks in the dashboard. "ausgewogen" keeps the values from the add-on options;
+# the loss limit for the whole portfolio (max_drawdown_pct) always comes from the options.
+RISK_LEVELS = {
+    "vorsichtig": {"max_trade_pct": 15, "max_position_pct": 30, "max_small_pct": 5, "min_cash_pct": 30, "stop_loss_pct": 8},
+    "ausgewogen": {},
+    "mutig": {"max_trade_pct": 35, "max_position_pct": 50, "max_small_pct": 20, "min_cash_pct": 5, "stop_loss_pct": 18},
+}
+RISK_HINTS = {
+    "vorsichtig": "The owner chose CAUTIOUS: prefer large coins, few and small trades, keep plenty of cash, cut losers early.",
+    "ausgewogen": "The owner chose BALANCED: weigh chances and risks evenly.",
+    "mutig": "The owner chose BOLD: larger positions and small coins with strong momentum are welcome, but still no blind gambling.",
+}
+
+
+def rules_for(base: Rules, level: str) -> Rules:
+    return replace(base, **RISK_LEVELS.get(level, {}))
+
+
+# -- ledger ------------------------------------------------------------------------
+class Ledger:
+    def __init__(self, folder: Path):
+        self.folder = folder
+        self.file = folder / "krypto.json"
+        self.csv = folder / "trades.csv"
+        self.data: dict = {}
+        if self.file.exists():
+            try:
+                self.data = json.loads(self.file.read_text())
+            except ValueError:
+                log.error("Ledger beschädigt – wird neu angelegt")
+
+    def fresh(self, mode: str, budget: float, prices: dict[str, float]) -> None:
+        risk = self.data.get("risk", "ausgewogen")
+        if self.data:
+            archive = self.folder / f"krypto-{self.data.get('mode', 'alt')}-{int(time.time())}.json"
+            archive.write_text(json.dumps(self.data))
+        self.data = {
+            "mode": mode, "started": time.time(), "start_value": budget, "cash": budget, "positions": {},
+            "halted": False, "halt_reason": "", "last_decision": "", "bench": dict(prices),
+            "history": [], "decisions": [], "trades_today": {"day": "", "count": 0},
+            "risk": risk, "locked": 0.0, "tags": [],
+        }
+        self.save()
+
+    def save(self) -> None:
+        tmp = self.file.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.data, indent=1))
+        tmp.replace(self.file)
+
+    @property
+    def ready(self) -> bool:
+        return bool(self.data)
+
+    @property
+    def locked(self) -> float:
+        """Tagged profit in EUR: never used again, counted as profit when the trader is finally stopped."""
+        return self.data.get("locked") or 0.0
+
+    def value(self, prices: dict[str, float]) -> float:
+        """What the trader works with: cash and coins, without the tagged profit."""
+        return self.data["cash"] - self.locked + sum(p["qty"] * prices.get(c, 0) for c, p in self.data["positions"].items())
+
+    def total(self, prices: dict[str, float]) -> float:
+        """Everything: what the trader works with plus the tagged profit."""
+        return self.value(prices) + self.locked
+
+    def lock(self, eur: float, coin: str, pct: float, t: float) -> None:
+        self.data["locked"] = round(self.locked + eur, 2)
+        self.data.setdefault("tags", []).append({"t": t, "coin": coin, "eur": round(eur, 2), "pct": pct})
+
+    def record_trade(self, fill: dict) -> None:
+        new = not self.csv.exists()
+        with self.csv.open("a", newline="") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            if new:
+                writer.writerow(["Zeit", "Modus", "Aktion", "Coin", "Menge", "Kurs EUR", "Betrag EUR", "Gebühr EUR", "Grund"])
+            writer.writerow([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(fill["t"])), self.data["mode"],
+                             "Kauf" if fill["side"] == "buy" else "Verkauf", fill["coin"],
+                             f"{fill['qty']:.8f}", f"{fill['price']:.4f}", f"{fill['eur']:.2f}", f"{fill['fee']:.2f}",
+                             fill.get("reason", "")])
+
+    def apply(self, fill: dict) -> None:
+        pos = self.data["positions"].setdefault(fill["coin"], {"qty": 0.0, "cost": 0.0})
+        cash_fee = fill.get("cash_fee", fill["fee"])
+        if fill["side"] == "buy":
+            self.data["cash"] -= fill["eur"] + cash_fee
+            pos["qty"] += fill["qty"]
+            pos["cost"] += fill["eur"] + cash_fee
+        else:
+            share = min(1.0, fill["qty"] / pos["qty"]) if pos["qty"] else 1.0
+            pos["cost"] *= 1 - share
+            pos["qty"] -= fill["qty"]
+            self.data["cash"] += fill["eur"] - cash_fee
+            if pos["qty"] <= 1e-10:
+                del self.data["positions"][fill["coin"]]
+        self.data["cash"] = round(self.data["cash"], 2)
+        if fill.get("locked_eur"):
+            self.lock(fill["locked_eur"], fill["coin"], fill.get("locked_pct", 0.0), fill["t"])
+        self.record_trade(fill)
+        self.save()
+
+
+# -- brokers -------------------------------------------------------------------------
+class PaperBroker:
+    """Fills at the current market price plus slippage and the configured fee."""
+
+    def __init__(self, fee_pct: float, slippage_pct: float = 0.1):
+        self.fee = fee_pct / 100
+        self.slip = slippage_pct / 100
+
+    def buy(self, coin: str, eur: float, price: float) -> dict:
+        fill_price = price * (1 + self.slip)
+        fee = eur * self.fee
+        net = eur - fee
+        return {"side": "buy", "coin": coin, "qty": net / fill_price, "price": fill_price, "eur": round(net, 2), "fee": round(fee, 2)}
+
+    def sell(self, coin: str, qty: float, price: float) -> dict:
+        fill_price = price * (1 - self.slip)
+        gross = qty * fill_price
+        return {"side": "sell", "coin": coin, "qty": qty, "price": fill_price, "eur": round(gross, 2), "fee": round(gross * self.fee, 2)}
+
+    def free(self, asset: str) -> float | None:
+        return None  # no exchange behind it
+
+
+class LiveBroker:
+    """Real market orders through ccxt. The API key should be allowed to trade, never to withdraw."""
+
+    def __init__(self, exchange, quote: str = "EUR"):
+        self.ex = exchange
+        self.quote = quote
+        self.ex.load_markets()
+
+    def free(self, asset: str) -> float:
+        balance = self.ex.fetch_balance()
+        return float((balance.get("free") or {}).get(asset) or 0)
+
+    def _fill(self, order: dict, side: str, coin: str, fallback_qty: float, fallback_price: float) -> dict:
+        try:
+            if order.get("id"):
+                time.sleep(1.5)
+                order = self.ex.fetch_order(order["id"], f"{coin}/{self.quote}") or order
+        except ccxt.BaseError:
+            pass
+        qty = float(order.get("filled") or fallback_qty)
+        price = float(order.get("average") or order.get("price") or fallback_price)
+        cost = float(order.get("cost") or qty * price)
+        fee_quote = fee_base = 0.0
+        for f in order.get("fees") or ([order["fee"]] if order.get("fee") else []):
+            if not f or not f.get("cost"):
+                continue
+            if f.get("currency") == coin:
+                fee_base += float(f["cost"])
+            else:
+                fee_quote += float(f["cost"])
+        if side == "buy":
+            qty -= fee_base  # coins actually received
+        return {"side": side, "coin": coin, "qty": qty, "price": price, "eur": round(cost, 2),
+                "fee": round(fee_quote + fee_base * price, 2), "cash_fee": round(fee_quote, 2), "order_id": order.get("id")}
+
+    def buy(self, coin: str, eur: float, price: float) -> dict:
+        symbol = f"{coin}/{self.quote}"
+        try:
+            if self.ex.has.get("createMarketBuyOrderWithCost"):
+                order = self.ex.create_market_buy_order_with_cost(symbol, float(self.ex.cost_to_precision(symbol, eur)))
+            else:
+                amount = float(self.ex.amount_to_precision(symbol, eur / price))
+                order = self.ex.create_order(symbol, "market", "buy", amount)
+        except ccxt.BaseError as err:
+            raise TradeError(f"Kauf {coin} abgelehnt: {err}") from err
+        return self._fill(order, "buy", coin, eur / price, price)
+
+    def sell(self, coin: str, qty: float, price: float) -> dict:
+        symbol = f"{coin}/{self.quote}"
+        try:
+            amount = float(self.ex.amount_to_precision(symbol, qty))
+            order = self.ex.create_order(symbol, "market", "sell", amount)
+        except ccxt.BaseError as err:
+            raise TradeError(f"Verkauf {coin} abgelehnt: {err}") from err
+        return self._fill(order, "sell", coin, qty, price)
+
+
+# -- risk rules + execution ------------------------------------------------------------
+def profit_lock(received: float, cost: float, step_pct: float) -> tuple[float, float]:
+    """Of a sale's profit only whole steps stay in use; the rest is tagged and never used again.
+
+    +12 % → 10 % stay in use, 2 % are tagged; +27 % → 20 % / 7 %. Returns (tagged EUR, tagged %)."""
+    if step_pct <= 0 or cost <= 0 or received <= cost:
+        return 0.0, 0.0
+    profit_pct = round((received / cost - 1) * 100, 6)  # 50 € → 70 € is exactly +40 %
+    counted = int(profit_pct // step_pct) * step_pct
+    locked = round(received - cost * (1 + counted / 100), 2)
+    return (locked, round(profit_pct - counted, 2)) if locked >= 0.01 else (0.0, 0.0)
+
+
+def execute(ledger: Ledger, broker, rules: Rules, orders: list[dict], prices: dict[str, float], allowed: list[str],
+            emergency: bool = False, step_pct: float = 0.0) -> tuple[list[dict], list[str]]:
+    """Check every order against the hard rules, then execute sells before buys.
+
+    Returns the fills and notes about orders that were cut down or refused."""
+    data = ledger.data
+    notes: list[str] = []
+    fills: list[dict] = []
+    if data["halted"] and not emergency:
+        return [], ["Trading ist gestoppt – keine Orders ausgeführt"]
+    today = time.strftime("%Y-%m-%d")
+    counter = data.setdefault("trades_today", {"day": today, "count": 0})
+    if counter["day"] != today:
+        counter.update(day=today, count=0)
+
+    sells = [o for o in orders if o.get("action") == "sell"]
+    buys = [o for o in orders if o.get("action") == "buy"]
+    for order in sells + buys:
+        coin = str(order.get("coin", "")).upper()
+        reason = str(order.get("reason", ""))[:300]
+        held_coin = coin in data["positions"]
+        if coin not in prices or (order["action"] == "buy" and coin not in allowed) or (order["action"] == "sell" and not held_coin and coin not in allowed):
+            notes.append(f"{coin}: nicht erlaubt oder kein Kurs")
+            continue
+        # Stop-loss and emergency sells never count towards (or wait for) the daily limit.
+        if not emergency and counter["count"] >= rules.max_orders_day:
+            notes.append(f"{coin}: höchstens {rules.max_orders_day} Orders pro Tag")
+            continue
+        price = prices[coin]
+        try:
+            if order["action"] == "sell":
+                held = data["positions"].get(coin, {}).get("qty", 0.0)
+                fraction = max(0.0, min(1.0, float(order.get("fraction") or 1.0)))
+                qty = held if fraction >= .98 else held * fraction
+                free = broker.free(coin)
+                if free is not None:
+                    qty = min(qty, free)
+                if qty <= 0 or qty * price < MIN_ORDER_EUR / 2:
+                    notes.append(f"{coin}: nichts zu verkaufen")
+                    continue
+                pos = data["positions"][coin]
+                fill = broker.sell(coin, qty, price)
+                cost = pos["cost"] * min(1.0, fill["qty"] / pos["qty"])
+                fill["locked_eur"], fill["locked_pct"] = profit_lock(fill["eur"] - fill.get("cash_fee", fill["fee"]), cost, step_pct)
+            else:
+                total = ledger.value(prices)
+                eur = float(order.get("eur") or 0)
+                cash_free = data["cash"] - ledger.locked - total * rules.min_cash_pct / 100
+                exchange_cash = broker.free("EUR")
+                if exchange_cash is not None:
+                    cash_free = min(cash_free, exchange_cash * 0.995 - ledger.locked)
+                held_value = data["positions"].get(coin, {}).get("qty", 0.0) * price
+                position_pct = rules.max_position_pct if coin in BIG else min(rules.max_position_pct, rules.max_small_pct)
+                limit = min(cash_free, total * rules.max_trade_pct / 100, total * position_pct / 100 - held_value)
+                if eur > limit:
+                    notes.append(f"{coin}: Kauf von {eur:.0f} € auf {max(0, limit):.0f} € begrenzt (Regeln)")
+                    eur = limit
+                if eur < MIN_ORDER_EUR:
+                    notes.append(f"{coin}: Kauf zu klein oder kein Spielraum mehr")
+                    continue
+                fill = broker.buy(coin, round(eur, 2), price)
+        except (TradeError, ValueError, TypeError) as err:
+            notes.append(str(err))
+            continue
+        fill.update(t=time.time(), reason=reason)
+        ledger.apply(fill)
+        fills.append(fill)
+        if not emergency:
+            counter["count"] += 1
+    ledger.save()
+    return fills, notes
+
+
+def sell_all(ledger: Ledger, broker, prices: dict[str, float], reason: str, step_pct: float = 0.0) -> list[dict]:
+    """Sell every position (profit is tagged like with any sale)."""
+    orders = [{"action": "sell", "coin": c, "fraction": 1, "reason": reason} for c in ledger.data["positions"]]
+    fills, _ = execute(ledger, broker, Rules(0, 0, 0, 0, 0, 0, 0), orders, prices, list(prices), emergency=True,
+                       step_pct=step_pct)
+    return fills

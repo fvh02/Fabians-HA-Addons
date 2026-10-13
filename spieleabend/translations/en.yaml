@@ -1,0 +1,6 @@
+configuration:
+  theme:
+    name: Color scheme
+    description: Dark or light mode.
+network:
+  8098/tcp: Games for players without Home Assistant access (home network or tunnel)

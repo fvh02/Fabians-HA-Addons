@@ -1,0 +1,25 @@
+configuration:
+  claude_ai_login:
+    name: Use claude.ai login
+    description: Uses an imported claude.ai login (for your claude.ai connectors), see docs. Turning it off deletes it and the OAuth token is used again.
+  reply_language:
+    name: Reply language
+    description: Language Claude replies in. If you write in another language or send a file in another language, Claude replies in that one. "Automatisch" = no preference.
+  icloud_ai_calendar:
+    name: Calendar for AI events
+    description: Every event Claude creates goes into this calendar. It must exist in the Calendar app. Empty = Claude picks the calendar.
+  voice_transcription:
+    name: Voice messages
+    description: Whisper model used to transcribe voice messages. tiny/base = fast, small = good balance, medium/turbo = more accurate but slower and more RAM. "aus" = off.
+  project_dir:
+    name: Working directory
+    description: Directory Claude works in. Under /share it is also reachable via Samba.
+  voice_ai:
+    name: Voice AI
+    description: Set up voice calls. Only useful if the identity has a phone number.
+  claude_model:
+    name: Claude model
+    description: Optional. Leave empty for the default model.
+  addon_management:
+    name: Manage add-ons
+    description: Claude may list add-ons and repositories and – after you confirm by message – add/remove repositories and install, update and uninstall add-ons.
