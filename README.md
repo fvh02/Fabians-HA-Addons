@@ -11,12 +11,15 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | Add-on | Was es macht |
 |---|---|
 | [Fabians-HA-Master](master/DOCS.md) | Alle Schlüssel an einem Ort, Brücke für iMessage, Claude und den Assistenten. **Zuerst installieren.** |
-| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Kalender, Downloads, eBay, 3D-Druck, Krypto, Add-ons |
+| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Kalender, Downloads, eBay, Pakete, Stundenplan, 3D-Druck, Krypto, Add-ons |
 | [Fabians-HA-Krypto-Trader](krypto/DOCS.md) | Claude handelt Krypto mit festem Budget und Verlustgrenzen, zuerst auf Papier |
 | [Fabians-HA-3D-Druck](druck3d/DOCS.md) | Modelle auf Printables finden, slicen und auf dem Bambu Lab P1S drucken |
 | [Fabians-HA-Downloader](downloader/DOCS.md) | Warteschlange für Datei-Downloads |
-| [Fabians-HA-Video-Downloader](videodownloader/DOCS.md) | YouTube und andere Videos herunterladen, mit Mediathek |
-| [Fabians-HA-Spieleabend](spieleabend/DOCS.md) | 18 Spiele im Browser – Karten-, Zeichen-, Wort-, Quiz-, Party- und Trinkspiele |
+| [Fabians-HA-Video-Downloader](videodownloader/DOCS.md) | YouTube und Videos von beliebigen Webseiten herunterladen, mit Mediathek, optional über Proton VPN |
+| [Fabians-HA-Spieleabend](spieleabend/README.md) | 27 Spiele im Browser – Karten-, Zeichen-, Wort-, Quiz-, Party- und Trinkspiele, mit Konten |
+| [Fabians-HA-Bestenliste](bestenliste/DOCS.md) | Monatsrangliste, Achievements und Ruhmeshalle für den Spieleabend |
+| [Fabians-HA-Urlaub](urlaub/DOCS.md) | Urlaub gemeinsam planen: Unterkünfte vergleichen, Geheimtipps, Kassenzettel aufteilen |
+| [Fabians-HA-Browser](browser/DOCS.md) | Google Chrome in Home Assistant, am PC und Handy bedienbar (nur amd64) |
 
 ## So geht's
 
@@ -25,11 +28,12 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
    alten Add-ons übernehmen.
 3. Die gewünschten Add-ons installieren und starten. Sie holen sich ihre Schlüssel selbst.
 
-**Umzug von den alten Repositories** (fabiaiagent, HA-downloader-Addon, HA-Games-Addon): Die neuen
+**Umzug von den alten Repositories** (fabiaiagent, HA-downloader-Addon, HA-Games-Addon, HA-Urlaub-Addon): Die neuen
 Add-ons laufen neben den alten. Erst Schlüssel übernehmen, dann das alte Add-on stoppen und das
 neue starten – beim Assistenten unbedingt in dieser Reihenfolge, zwei Gateways mit derselben
 Inkbox-Identität stören sich. Daten in den alten Add-ons (Krypto-Verlauf, Download-Liste,
-eBay-Preisalarme, claude.ai-Anmeldung) ziehen nicht automatisch mit.
+eBay-Preisalarme, claude.ai-Anmeldung, Spieleabend-Konten und Bestenliste, Urlaube) ziehen nicht
+automatisch mit.
 
 Schlüssel gehören ausschließlich in den Master, nie in dieses Repository.
 Das Internet-Setup (Cloudflare Tunnel) steht in [TUNNEL.md](TUNNEL.md).

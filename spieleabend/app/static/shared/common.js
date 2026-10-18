@@ -86,20 +86,19 @@
       <a class="home" href="../">← Alle Spiele</a>
       <div class="logo">${G.art && window.ART ? `<div class="fan artfan">${window.ART[G.art]}</div>` : `<div class="fan">${G.fan}</div>`}<h1>${G.title}</h1></div>
       <div class="panel glass">
-        <p class="label">Dein Name</p>
-        <input id="name" maxlength="20" placeholder="z. B. Alex" autocomplete="nickname" style="width:100%">
+        <input id="name" maxlength="20" placeholder="Dein Name, z. B. Alex" aria-label="Dein Name" autocomplete="nickname" style="width:100%">
+        <p class="acct" id="acct"><a href="../konto/?zurueck=${G.kind}">🔑 Anmelden</a> – für Punkte und Achievements</p>
       </div>
       <div class="panel glass">
         <h2>Neues Spiel</h2>
         <div class="row">${select("new")}<button class="btn" id="create">Spiel erstellen</button></div>
       </div>
       <div class="panel glass">
-        <h2>Spiel beitreten</h2>
-        <div class="row">
-          <input id="joinCode" maxlength="4" placeholder="Code, z. B. KXAB" style="text-transform:uppercase">
-          <button class="btn" id="join">Beitreten</button>
-        </div>
-        <ul class="games" id="games" style="margin-top:12px"></ul>
+        <h2 id="joinTitle">Offene Spiele</h2>
+        <div class="row invited hidden" id="inviteRow"><span class="code" id="inviteCode"></span><span class="who">Du wurdest eingeladen</span>
+          <button class="btn" id="join">Beitreten</button></div>
+        <ul class="games" id="games"></ul>
+        <p class="hint" id="codeHint">Mit einem Code trittst du auf der <a href="../">Startseite</a> bei.</p>
       </div>
     </section>
     <section id="room" class="page hidden">
@@ -138,7 +137,8 @@
   $("name").value = store.get("spiele-name") || "";
   // Invitation links carry the room code: ?code=ABCD
   const invited = (new URLSearchParams(location.search).get("code") || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
-  if (invited) $("joinCode").value = invited;
+  let autoJoin = !!invited;
+  if (invited) { $("inviteCode").textContent = invited; $("inviteRow").classList.remove("hidden"); $("joinTitle").textContent = "Einladung"; }
   $("name").addEventListener("input", () => store.set("spiele-name", $("name").value.trim()));
   const settingsFrom = prefix => Object.fromEntries(G.settings.map(s => [s.key, +$(`${prefix}-${s.key}`).value]));
 
@@ -158,7 +158,7 @@
 
   let celebrated = null;
   function handle(msg) {
-    if (msg.t === "hello") { Shell.token = msg.token; store.set(G.kind + "-token", msg.token); }
+    if (msg.t === "hello") { Shell.token = msg.token; store.set(G.kind + "-token", msg.token); account(msg.account); }
     else if (msg.t === "error") { Shell.toast(msg.msg); if (G.onError) G.onError(); }
     else if (msg.t !== "game" && msg.t !== "lobby" && G.onMessage) G.onMessage(msg);
     else if (msg.t === "lobby") { Shell.game = Shell.prev = Shell.me = null; showLobby(msg.games); }
@@ -189,6 +189,20 @@
   }
   Shell.show = show;
 
+  // Logged in: the account name is used and stats are collected; otherwise a hint to log in.
+  function account(acc) {
+    Shell.account = acc || null;
+    const el = $("acct");
+    if (!el) return;
+    if (acc) {
+      $("name").value = acc.name;
+      $("name").readOnly = true;
+      el.innerHTML = `✓ Angemeldet als <b>${Shell.esc(acc.name)}</b> · <a href="../konto/?zurueck=${G.kind}">Konto</a>`;
+    } else {
+      $("name").readOnly = false;
+    }
+  }
+
   function myName() {
     const n = $("name").value.trim();
     if (!n) { Shell.toast("Bitte gib zuerst deinen Namen ein"); $("name").focus(); }
@@ -198,19 +212,23 @@
   // ---------- lobby ----------
   function showLobby(games) {
     show("lobby");
-    const open = games.filter(g => g.state === "lobby" && !g.full);
+    const open = games.filter(g => g.state === "lobby" && !g.full && g.code !== invited).slice(0, 3);
+    // An invitation (link or code from the start page): join right away when the name is already known.
+    if (autoJoin) {
+      autoJoin = false;
+      const name = ($("name").value || "").trim();
+      if (name) { Shell.send({ t: "join", name, code: invited }); return; }
+      $("name").focus();
+    }
+    $("codeHint").classList.toggle("hidden", open.length > 0 || !!invited);
     $("games").innerHTML = open.length ? open.map(g => `
       <li><span class="code">${Shell.esc(g.code)}</span>
         <span class="who">${Shell.esc(g.players.join(", "))}</span>
         <button class="btn ghost" data-join="${Shell.esc(g.code)}" style="padding:7px 14px">Beitreten</button></li>`).join("")
-      : `<li class="empty">Gerade gibt es keine offenen Spiele.</li>`;
+      : invited ? "" : `<li class="empty">Gerade gibt es keine offenen Spiele.</li>`;
   }
   $("create").onclick = () => { const name = myName(); if (name) Shell.send({ t: "create", name, settings: settingsFrom("new") }); };
-  $("join").onclick = () => {
-    const name = myName(), code = $("joinCode").value.trim().toUpperCase();
-    if (name && code) Shell.send({ t: "join", name, code });
-  };
-  $("joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("join").click(); });
+  $("join").onclick = () => { const name = myName(); if (name && invited) Shell.send({ t: "join", name, code: invited }); };
   $("games").onclick = e => {
     const b = e.target.closest("[data-join]");
     if (b) { const name = myName(); if (name) Shell.send({ t: "join", name, code: b.dataset.join }); }
@@ -222,6 +240,7 @@
     const { game, me } = Shell;
     const host = game.host === me;
     $("roomCode").textContent = game.code;
+    $("roomPlayers").classList.toggle("many", game.players.length > 6);
     $("roomPlayers").innerHTML = game.players.map(p => `
       <li>${Shell.avatar(p)}<span class="name">${Shell.esc(p.name)}${p.id === me ? " (du)" : ""}</span>
         ${p.id === game.host ? '<span class="tag host">Gastgeber</span>' : p.bot ? '<span class="tag">Computer</span>' : ""}

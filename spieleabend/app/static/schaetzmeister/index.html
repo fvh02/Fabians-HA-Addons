@@ -10,12 +10,16 @@
   <script src="../static/art.js"></script>
   <script src="../static/party.js"></script>
   <style>
+    .cat { font-size: .78rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
     .unit { font-size: .9rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); }
     .line { position: relative; width: 100%; height: 118px; margin: 6px 0 2px; }
     .line .axis { position: absolute; left: 4%; right: 4%; top: 74px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); opacity: .5; }
     .line .pin { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; animation: drop .6s cubic-bezier(.2,.9,.3,1.3) both; }
     .line .pin .avatar { width: 30px; height: 30px; font-size: .75rem; }
-    .line .pin i { width: 2px; height: 30px; background: var(--muted); opacity: .5; }
+    .line .pin { top: calc(var(--k) * 18px); }
+    .line .pin i { width: 2px; height: calc(40px - var(--k) * 18px); background: var(--muted); opacity: .5; }
+    .pstage .line .pin { top: calc(var(--k) * 13px); }
+    .pstage .line .pin i { height: calc(30px - var(--k) * 13px); }
     .line .pin small { font-size: .7rem; font-weight: 750; white-space: nowrap; }
         .line .goal { position: absolute; top: 46px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; z-index: 2; animation: popin .7s .5s cubic-bezier(.2,.9,.3,1.3) both; }
     .line .goal b { width: 22px; height: 22px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 30%, transparent); display: grid; place-items: center; color: #fff; font-size: .8rem; }
@@ -28,11 +32,41 @@
     .rank .val { font-variant-numeric: tabular-nums; font-weight: 700; }
     .rank .off { font-size: .78rem; color: var(--muted); min-width: 70px; text-align: right; }
     .rank .pts { font-weight: 850; color: var(--ok); min-width: 32px; text-align: right; }
-    .tvmain .line { height: 18vh; } .tvmain .rank .r { font-size: clamp(1rem, 1.6vw, 1.8rem); }
+    /* one phone screen: compact number line, one list with round result and total */
+    .pstage h2 { font-size: clamp(1.15rem, min(4.6vw, 3.4vh), 1.75rem); }
+    .pstage .q { font-size: .86rem; line-height: 1.3; }
+    .pstage .note { font-size: .8rem; line-height: 1.3; }
+    .pstage .pbig { font-size: clamp(1.8rem, min(9vw, 6.5vh), 3.6rem); }
+    .pstage .line { height: 84px; margin: 0; }
+    .pstage .line .axis { top: 58px; }
+    .pstage .line .pin .avatar { width: 24px; height: 24px; font-size: .62rem; }
+    .pstage .line .goal { top: 47px; }
+    .pstage .line .goal span { margin-top: 3px; }
+    .pstage .rank { gap: 4px; }
+    .pstage .rank .r { padding: 3px 10px 3px 4px; gap: 7px; border-radius: 999px; font-size: .88rem; }
+    .pstage .rank .avatar { width: 24px; height: 24px; font-size: .65rem; }
+    .pstage .rank .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pstage .rank .off { min-width: 0; font-size: .72rem; }
+    .pstage .rank .pts { min-width: 26px; }
+    .pstage .rank:has(> .r:nth-child(7)) { gap: 3px; }
+    .pstage .rank:has(> .r:nth-child(7)) .r { padding-top: 1px; padding-bottom: 1px; font-size: .84rem; }
+    .pstage .rank:has(> .r:nth-child(7)) .avatar { width: 21px; height: 21px; font-size: .6rem; }
+    .rank .tot { font-weight: 850; min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+    .rank .r.me { box-shadow: 0 0 0 2px var(--accent); }
+    .rank .r.top.me { box-shadow: 0 0 0 2px var(--ok), 0 0 0 4px var(--accent); }
+    .rank .head { background: none; border: 0; padding-top: 0; padding-bottom: 0; font-size: .66rem !important; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; animation: none; }
+    .tvmain .line { height: 18vh; }
+    .tvmain { gap: 1.4vh; }
+    .tvmain .pbig { font-size: clamp(2.2rem, 9vh, 5rem); }
+    .tvmain .rank { gap: .8vh; }
+    .tvmain .rank .r { padding: .6vh 1vw; }
+    .tvmain .rank:has(> .r:nth-child(5)) { display: grid; grid-template-columns: 1fr 1fr; gap: .8vh 1vw; }
+    .tvmain .rank:has(> .r:nth-child(5)) .r { font-size: clamp(.9rem, 1.3vw, 1.5rem); }
+    .tvmain .rank:has(> .r:nth-child(5)) .off { min-width: 0; } .tvmain .rank .r { font-size: clamp(1rem, 1.6vw, 1.8rem); }
   </style>
 </head>
 <body>
-  <section id="table" class="hidden">
+  <section id="table" class="hidden pfit">
     <div class="topbar glass">
       <span class="title">Schätzmeister</span>
       <span class="code" id="tableCode"></span>
@@ -55,7 +89,7 @@
       const x = v => 4 + 92 * (Math.min(max, Math.max(min, v)) - min) / (max - min);
       return `<div class="line"><div class="axis"></div>
         ${g.ranking.map((r, i) => { const p = g.players.find(q => q.id === r.id) || { name: "?" };
-          return `<div class="pin" style="left:${x(r.value)}%;top:${(i % 3) * 18}px;animation-delay:${i * 90}ms" title="${esc(p.name)}: ${Party.num(r.value)}">${Shell.avatar(p)}<i style="height:${40 - (i % 3) * 18}px"></i></div>`; }).join("")}
+          return `<div class="pin" style="left:${x(r.value)}%;--k:${i % 3};animation-delay:${i * 90}ms" title="${esc(p.name)}: ${Party.num(r.value)}">${Shell.avatar(p)}<i></i></div>`; }).join("")}
         <div class="goal" style="left:${x(a)}%"><b>✓</b><span>${fmt(a, g.unit)}</span></div></div>`;
     }
 
@@ -72,21 +106,26 @@
       settings: [
         { key: "rounds", label: "Runden", options: [[8, "8 Fragen"], [5, "5 Fragen"], [10, "10 Fragen"], [15, "15 Fragen"]] },
         { key: "seconds", label: "Zeit", options: [[45, "45 Sekunden"], [30, "30 Sekunden"], [60, "60 Sekunden"], [0, "Ohne Zeitlimit"]] },
+        { key: "category", label: "Kategorie", options: [[0, "Allgemeinwissen gemischt"], [1, "Erde, Länder & Weltall"],
+          [2, "Geschichte & Jahreszahlen"], [3, "Mensch & Alltag"], [4, "🔩 Metallbau (Ausbildung)"]] },
       ],
       build(g, ctx) {
         editing = false;
-        if (g.phase === "guess") return `<h2>${esc(g.question)}</h2>${g.unit ? `<span class="unit">Antwort in ${esc(g.unit)}</span>` : ""}
+        if (g.phase === "guess") return `<span class="cat">${esc(g.category || "")}</span><h2>${esc(g.question)}</h2>${g.unit ? `<span class="unit">Antwort in ${esc(g.unit)}</span>` : ""}
           <div id="mine" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px"></div>
           <div data-status></div>${ctx.tv ? "<p>Schätzt auf euren Handys!</p>" : ""}`;
-        const top = g.ranking[0];
-        return `<p>${esc(g.question)}</p><div class="pbig">${esc(fmt(g.answer, g.unit))}</div>${g.note ? `<p>${esc(g.note)}</p>` : ""}
+        // Phones: one list – the round (closest first) plus everyone's total, so it fits on one screen.
+        // The TV keeps the separate ranking in its side bar.
+        const tipped = new Set(g.ranking.map(r => r.id));
+        const rest = ctx.tv ? [] : g.players.filter(p => !p.screen && !tipped.has(p.id));
+        const total = id => (g.players.find(q => q.id === id) || {}).score;
+        return `<p class="q">${esc(g.question)}</p><div class="pbig">${esc(fmt(g.answer, g.unit))}</div>${g.note ? `<p class="note">${esc(g.note)}</p>` : ""}
           ${g.ranking.length ? line(g) : ""}
-          <div class="rank">${g.ranking.map((r, i) => { const p = g.players.find(q => q.id === r.id) || { name: "?" };
+          <div class="rank pfill">${ctx.tv ? "" : `<div class="r head"><span class="n">Tipps</span><span class="pts">+</span><span class="tot">Σ</span></div>`}${g.ranking.map((r, i) => { const p = g.players.find(q => q.id === r.id) || { name: "?" };
             const off = g.answer ? (r.value - g.answer) / Math.abs(g.answer) * 100 : 0;
-            return `<div class="r ${r.rank === 1 ? "top" : ""}" style="animation-delay:${i * 60}ms">${Shell.avatar(p)}<span class="n">${esc(p.name)}${r.exact ? " 🎯" : ""}</span>
+            return `<div class="r ${r.rank === 1 ? "top" : ""} ${!ctx.tv && r.id === Shell.me ? "me" : ""}" style="animation-delay:${i * 60}ms">${Shell.avatar(p)}<span class="n">${esc(p.name)}${r.exact ? " 🎯" : ""}</span>
               <span class="val">${Party.num(r.value)}</span><span class="off">${r.exact ? "Volltreffer!" : (off > 0 ? "+" : "") + Party.num(Math.round(off)) + " %"}</span>
-              <span class="pts">${r.points ? "+" + r.points : ""}</span></div>`; }).join("") || "<p>Niemand hat getippt.</p>"}</div>
-          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${Party.ranking(g, { gained: true })}`}`;
+              <span class="pts">${r.points ? "+" + r.points : ""}</span>${ctx.tv ? "" : `<span class="tot">${total(r.id)}</span>`}</div>`; }).join("")}${rest.map(p => `<div class="r ${p.id === Shell.me ? "me" : ""}">${Shell.avatar(p)}<span class="n">${esc(p.name)}</span><span class="off">kein Tipp</span><span class="pts"></span><span class="tot">${p.score}</span></div>`).join("")}${!g.ranking.length && ctx.tv ? "<p>Niemand hat getippt.</p>" : ""}</div>`;
       },
       celebrate: (g, ctx) => g.ranking.some(r => r.exact) || (g.ranking[0] && g.ranking[0].id === Shell.me),
       update(g, ctx) {

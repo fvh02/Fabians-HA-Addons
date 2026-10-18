@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import random
+import re
 import secrets
 import string
 import time
@@ -32,20 +33,46 @@ import tiefpunkt
 import trinklotto
 import wahrheit
 import werwuerde
+import blindmaler
+import buzzer
+import codewoerter
+import filmoji
+import schwimmen
+import sortierfix
+import spion
+import stadtlandfluss
+import werwolf
+import accounts
 import fabians_master
+import stats
 from common import RuleError
 
-OPTIONS_FILE = Path("/data/options.json")
+OPTIONS_FILE = Path(os.environ.get("SPIELE_OPTIONS", "/data/options.json"))
 STATIC_DIR = Path(__file__).parent / "static"
 PORT = int(os.environ.get("SPIELE_PORT", "8098"))
 BOT_DELAY = float(os.environ.get("SPIELE_BOT_DELAY", "0.9"))
+def addon_version() -> str:
+    """Version from the add-on's config.yaml (copied into the image), written to the log at start."""
+    for path in (Path(__file__).parent / "addon-config.yaml", Path(__file__).parent.parent / "config.yaml"):
+        try:
+            found = re.search(r'^version:\s*"?([^"\n]+)"?', path.read_text(encoding="utf-8"), re.M)
+        except OSError:
+            continue
+        if found:
+            return found.group(1).strip()
+    return "?"
+
+
+VERSION = addon_version()
 BOT_NAMES = ["Robo", "Karla", "Bitty", "Otto", "Zora", "Pixel", "Toni", "Mops"]
 GAME_TTL = 6 * 3600  # remove games nobody has touched for this long
 
 GAMES = {"stapeljagd": stapeljagd, "tiefpunkt": tiefpunkt, "kritzelpost": kritzelpost, "farbrausch": farbrausch, "schnellmaler": schnellmaler,
          "galgenraten": galgenraten, "imposter": imposter, "schaetzmeister": schaetzmeister, "werwuerde": werwuerde,
          "luegenbaron": luegenbaron, "punchline": punchline, "nochnie": nochnie, "wahrheit": wahrheit, "ringoffire": ringoffire,
-         "trinklotto": trinklotto, "pyramide": pyramide, "pferderennen": pferderennen}
+         "trinklotto": trinklotto, "pyramide": pyramide, "pferderennen": pferderennen,
+         "buzzer": buzzer, "sortierfix": sortierfix, "spion": spion, "codewoerter": codewoerter, "werwolf": werwolf,
+         "blindmaler": blindmaler, "stadtlandfluss": stadtlandfluss, "schwimmen": schwimmen}
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("spieleabend")
@@ -62,10 +89,12 @@ OPTIONS = load_options()
 THEME = os.environ.get("SPIELE_THEME") or OPTIONS.get("theme") or "dark"
 if THEME not in ("dark", "light"):
     THEME = "dark"
-# Optional code that people outside Home Assistant enter once (e.g. when the games are on the internet).
-# The access code comes from Fabians-HA-Master; without one, requests from the internet are refused.
+# The access code and the e-mail server come from Fabians-HA-Master; without a code, requests from
+# the internet are refused.
+KEYS = {} if "SPIELE_ACCESS_CODE" in os.environ else fabians_master.keys(wait=90)
+OPTIONS.update({k: v for k, v in KEYS.items() if k.startswith("smtp_") and v and (k != "smtp_port" or str(v).isdigit())})
 ACCESS_CODE = str(os.environ["SPIELE_ACCESS_CODE"] if "SPIELE_ACCESS_CODE" in os.environ
-                  else fabians_master.keys(wait=90).get("games_code") or "").strip()
+                  else KEYS.get("games_code") or "").strip()
 CODE_COOKIE = "spieleabend_zugang"
 CODE_TOKEN = hashlib.sha256(f"spieleabend:{ACCESS_CODE}".encode()).hexdigest() if ACCESS_CODE else ""
 # Home Assistant's Ingress proxy: the person is already logged in to Home Assistant.
@@ -92,6 +121,8 @@ class Hub:
         self.bot_tasks: dict[str, asyncio.Task] = {}
         self.timers: dict[str, float] = {}  # room code -> deadline a timer task waits for
         self.timer_tasks: set[asyncio.Task] = set()  # keep references so tasks aren't collected
+        self.reported: set[str] = set()  # rooms whose finished game went to the Bestenliste
+        self.accounts: dict[web.WebSocketResponse, dict] = {}  # browser → logged-in account (id, name)
 
     # -- sending -------------------------------------------------------------
     @staticmethod
@@ -130,6 +161,27 @@ class Hub:
         if code:
             self.schedule_bots(code)
             self.schedule_timer(code)
+            self.schedule_report(code)
+
+    # -- Bestenliste ---------------------------------------------------------
+    def schedule_report(self, code: str) -> None:
+        game = self.games.get(code)
+        if not game or game.state != "finished":
+            self.reported.discard(code)      # a rematch is reported again when it ends
+            return
+        if code in self.reported:
+            return
+        self.reported.add(code)
+        task = asyncio.create_task(self.report(code, game))
+        self.timer_tasks.add(task)
+        task.add_done_callback(self.timer_tasks.discard)
+
+    async def report(self, code: str, game) -> None:
+        notes = await reporter.report(stats.result(self.module.__name__, game))
+        if notes and self.games.get(code) is game:
+            for note in notes:
+                game.note(note)
+            await self.broadcast(code)
 
     # -- bots ----------------------------------------------------------------
     def schedule_bots(self, code: str) -> None:
@@ -176,7 +228,8 @@ class Hub:
         letters = string.ascii_uppercase.replace("O", "").replace("I", "")
         while True:
             code = "".join(random.choices(letters, k=4))
-            if code not in self.games:
+            # unique across all games, so a code alone (start page) finds its game
+            if all(code not in hub.games for hub in hubs.values()):
                 return code
 
     def leave(self, token: str) -> str | None:
@@ -194,7 +247,9 @@ class Hub:
             player.name += " (Bot)"
             game.note(f"{player.name} spielt jetzt für den Spieler weiter")
             if game.host_id == player_id:
-                game.host_id = next((p.id for p in game.players if not p.is_bot), None)
+                # Hand over to a real player – the TV screen cannot press buttons.
+                game.host_id = next((p.id for p in game.players if not p.is_bot and not getattr(p, "screen", False)),
+                                    next((p.id for p in game.players if not p.is_bot), None))
         else:
             game.remove_player(player_id)
         if not any(not p.is_bot for p in game.players):
@@ -207,11 +262,15 @@ class Hub:
         seat = self.seats.get(token)
         game = self.games.get(seat[0]) if seat else None
         me = seat[1] if seat else None
-        name = str(msg.get("name", "")).strip()[:20]
+        account = self.accounts.get(ws)
+        # Logged in: play under the account name, so points and achievements go to the account.
+        name = account["name"] if account else str(msg.get("name", "")).strip()[:20]
 
         if kind in ("create", "join"):
             if not name:
                 raise RuleError("Bitte gib deinen Namen ein")
+            if not account and konten.name_taken(name):
+                raise RuleError(f"„{name}“ gehört zu einem Konto – melde dich an oder nimm einen anderen Namen")
             if seat:
                 self.leave(token)
             if kind == "create":
@@ -225,6 +284,7 @@ class Hub:
                 if not game:
                     raise RuleError("Dieses Spiel gibt es nicht")
             player = game.new_player(name)
+            player.account = account["id"] if account else None
             game.add_player(player)
             self.seats[token] = (game.code, player.id)
             await self.broadcast(game.code)
@@ -298,7 +358,29 @@ class Hub:
 
 
 hubs = {kind: Hub(module) for kind, module in GAMES.items()}
+reporter = stats.Reporter()
+konten = accounts.Accounts(OPTIONS, lambda request: client_ip(request), on_delete=stats.forget)
 routes = web.RouteTableDef()
+
+
+@routes.get("/konto")
+async def konto_slash(_: web.Request) -> web.Response:
+    raise web.HTTPFound("konto/")
+
+
+@routes.get("/konto/")
+async def konto_page(_: web.Request) -> web.Response:
+    return page(STATIC_DIR / "konto.html", "../")
+
+
+@routes.get("/bestenliste")
+async def bestenliste_slash(_: web.Request) -> web.Response:
+    raise web.HTTPFound("bestenliste/")
+
+
+@routes.get("/bestenliste/{path:.*}")
+async def bestenliste(request: web.Request) -> web.Response:
+    return await stats.proxy(request, request.match_info["path"])
 
 
 def page(path: Path, root: str = "") -> web.Response:
@@ -454,6 +536,21 @@ async def summary(_: web.Request) -> web.Response:
     return web.json_response(data)
 
 
+@routes.get("/api/code/{code}")
+async def find_code(request: web.Request) -> web.Response:
+    """Which game a code belongs to (joining from the start page)."""
+    code = request.match_info["code"].strip().upper()
+    for kind, hub in hubs.items():
+        game = hub.games.get(code)
+        if game and game.players:
+            if game.state != "lobby":
+                return web.json_response({"error": "Dieses Spiel läuft schon – warte auf die nächste Runde"}, status=409)
+            if len(game.players) >= hub.module.MAX_PLAYERS:
+                return web.json_response({"error": "Dieses Spiel ist schon voll"}, status=409)
+            return web.json_response({"kind": kind, "code": code})
+    return web.json_response({"error": "Zu diesem Code gibt es kein Spiel"}, status=404)
+
+
 # Wortgitter is a single-player game that runs in the browser; the server only hands out the words.
 WORDS_DIR = Path(__file__).parent / "data"
 
@@ -481,6 +578,40 @@ async def wortgitter_words(_: web.Request) -> web.Response:
     return web.json_response(WORTGITTER, headers={"Cache-Control": "max-age=86400"})
 
 
+@routes.get("/filmoji")
+async def filmoji_redirect(_: web.Request) -> web.Response:
+    raise web.HTTPFound("filmoji/")
+
+
+@routes.get("/filmoji/")
+async def filmoji_page(_: web.Request) -> web.Response:
+    return page(STATIC_DIR / "filmoji" / "index.html", "../")
+
+
+@routes.get("/filmoji/filme.json")
+async def filmoji_films(_: web.Request) -> web.Response:
+    return web.json_response(filmoji.puzzles(), headers={"Cache-Control": "no-cache"})
+
+
+@routes.post("/filmoji/pruefen")
+async def filmoji_check(request: web.Request) -> web.Response:
+    """A guess for one film: right or wrong (the title is only sent back when it is right)."""
+    data = await request.json()
+    answer = filmoji.title(data.get("id"))
+    if answer is None:
+        raise web.HTTPBadRequest(text="Unbekannter Film")
+    ok = filmoji.check(data["id"], str(data.get("guess") or ""))
+    return web.json_response({"ok": ok, "title": answer if ok else None})
+
+
+@routes.post("/filmoji/loesung")
+async def filmoji_solution(request: web.Request) -> web.Response:
+    answer = filmoji.title((await request.json()).get("id"))
+    if answer is None:
+        raise web.HTTPBadRequest(text="Unbekannter Film")
+    return web.json_response({"title": answer})
+
+
 @routes.get("/{kind}")
 async def no_slash(request: web.Request) -> web.Response:
     kind = request.match_info["kind"]
@@ -505,6 +636,7 @@ async def websocket(request: web.Request) -> web.WebSocketResponse:
     ip = client_ip(request)
     if sockets_per_ip.get(ip, 0) >= MAX_SOCKETS_PER_IP:
         raise web.HTTPTooManyRequests(text="Zu viele Verbindungen")
+    user = konten.user(request)
     ws = web.WebSocketResponse(heartbeat=25, max_msg_size=2 * 1024 * 1024)
     await ws.prepare(request)
     sockets_per_ip[ip] = sockets_per_ip.get(ip, 0) + 1
@@ -532,7 +664,9 @@ async def websocket(request: web.Request) -> web.WebSocketResponse:
                 if len(token) < 16:
                     token = secrets.token_urlsafe(16)
                 hub.sockets[ws] = token
-                await hub.send(ws, {"t": "hello", "token": token})
+                if user:
+                    hub.accounts[ws] = {"id": user["id"], "name": user["name"]}
+                await hub.send(ws, {"t": "hello", "token": token, "account": hub.accounts.get(ws)})
                 await hub.send_view(ws)
                 continue
             try:
@@ -543,6 +677,7 @@ async def websocket(request: web.Request) -> web.WebSocketResponse:
                 await hub.send(ws, {"t": "error", "msg": "Ungültige Eingabe"})
     finally:
         hub.sockets.pop(ws, None)
+        hub.accounts.pop(ws, None)
         sockets_per_ip[ip] -= 1
         if not sockets_per_ip[ip]:
             sockets_per_ip.pop(ip)
@@ -561,14 +696,24 @@ async def cleanup_loop() -> None:
 
 async def on_startup(app: web.Application) -> None:
     app["cleanup"] = asyncio.create_task(cleanup_loop())
-    log.info("Spieleabend läuft auf Port %s%s", PORT, " (mit Zugangscode)" if ACCESS_CODE else "")
+    log.info("Spieleabend %s läuft auf Port %s%s", VERSION, PORT, " (mit Zugangscode)" if ACCESS_CODE else "")
+    if not konten.mail.enabled:
+        log.warning("Keine E-Mail eingerichtet (smtp_host): Bestätigungscodes stehen nur hier im Protokoll")
     if not ACCESS_CODE:
         log.info("Kein Zugangscode gesetzt: Aufrufe über Cloudflare werden abgewiesen, das Heimnetz ist offen.")
 
 
+async def revalidate_static(request: web.Request, response: web.StreamResponse) -> None:
+    # Scripts and styles are checked with the server on every load, so an update is used right away.
+    if request.path.startswith("/static/") and "Cache-Control" not in response.headers:
+        response.headers["Cache-Control"] = "no-cache"
+
+
 def main() -> None:
     app = web.Application(middlewares=[access_middleware])
+    app.on_response_prepare.append(revalidate_static)
     app.router.add_static("/static/", STATIC_DIR / "shared")
+    app.add_routes(konten.routes())
     app.add_routes(routes)
     app.on_startup.append(on_startup)
     web.run_app(app, host=None, port=PORT, print=None, access_log=None)

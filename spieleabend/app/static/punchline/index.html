@@ -15,13 +15,57 @@
     .pchoice.mine { border-style: dashed; }
     .pchoice .votes { display: inline-block; margin-top: 8px; font-size: .8rem; font-weight: 850; padding: 3px 10px; border-radius: 999px; background: var(--glass); }
     .pchoice.best .votes { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; }
+    /* one phone screen: compact entries in two columns */
+    .pstage .prompt { font-size: clamp(1.08rem, min(4.8vw, 3.3vh), 1.8rem); line-height: 1.3; }
+    .pstage .prompt.small { font-size: clamp(1rem, min(4.4vw, 2.9vh), 1.6rem); }
+    .pstage .pchoices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 6px; }
+    .pstage .pchoice { padding: 7px 9px; min-height: 44px; border-radius: 14px; font-size: .88rem; line-height: 1.25; }
+    .pstage .pchoice small { margin-top: 2px; }
+    .pstage .rev .pchoice { padding: 5px 8px; font-size: .82rem; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+    .rev .meta { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; font-size: .72rem; font-weight: 650; color: var(--muted); }
+    .rev .meta .by { margin: 0; font-size: inherit; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pstage .rev .pchoice .votes { margin: 0; flex: none; font-size: .68rem; padding: 1px 7px; }
+    .pstage .rule { font-size: .74rem; }
+    .pstage .pchoices.long { grid-template-columns: 1fr; gap: 5px; }
+    .pstage .pchoices.long .pchoice { padding: 3px 10px; min-height: 40px; font-size: .84rem; line-height: 1.2; }
+    .pstage .pchoices.long .pchoice small { display: inline; margin: 0 0 0 6px; }
+    @media (max-height: 700px) { .pstage:has(.pchoices.long > :nth-child(7)) > .ask { display: none; } }
+    .pstage:has(.pchoices > :nth-child(7)) .pstatus .avatar { width: 24px; height: 24px; font-size: .62rem; }
+    .pstage .rev.long .pchoice { flex-direction: row; justify-content: space-between; text-align: left; gap: 8px; min-height: 0; padding: 4px 8px 4px 10px; }
+    .pstage .rev.long .pchoice > span:first-child { flex: 1; min-width: 0; }
+    .pstage .rev.long .meta { flex: none; max-width: 42%; gap: 5px; }
+    .pstage .rev.long .pchoice { font-size: .8rem; }
+    .pstage .rev.long .meta { display: contents; }
+    .pstage .rev.long .meta .by { display: none; }
+    .rev .inby { display: none; }
+    .pstage .rev.long .inby { display: inline; color: var(--muted); font-size: .72rem; font-weight: 650; white-space: nowrap; }
+    .pstage .rev.long .vl { display: none; }
+    .pstage .rev.long .votes::before { content: "👍 "; }
+    .overlay .hall small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* many answers on a small phone: the (always same) scoring hint makes room */
+    @media (max-height: 700px) { .pstage:has(.rev > :nth-child(8)) .rule { display: none; } }
+    .overlay .hall { gap: 4px; margin-top: 8px; max-height: 24dvh; overflow-y: auto; }
+    /* with the hall of fame underneath: slimmer ranking rows so the buttons stay on screen */
+    .overlay .pscore:has(+ .hall) { gap: 4px; }
+    .overlay .pscore:has(+ .hall) .ps { padding: 3px 10px 3px 6px; }
+    .overlay .pscore:has(+ .hall) .avatar { width: 24px; height: 24px; font-size: .66rem; }
+    @media (max-height: 700px) { .overlay:has(.hall) .trophy { font-size: 2.4rem; } .overlay:has(.hall) h3 { font-size: 1.5rem; } }
+    .overlay .hall div { padding: 6px 10px; font-size: .82rem; line-height: 1.3; }
+    .tvmain { gap: 1.2vw; }
+    .tvmain .prompt { font-size: clamp(1.6rem, min(3.2vw, 5.4vh), 4.6rem); margin-top: 2.4vw; }
+    .tvmain .pchoices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 17vw), 1fr)); gap: .8vw; }
+    .tvmain .pchoices:has(> :nth-child(7)) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .tvmain .pchoices:has(> :nth-child(7)) .pchoice { font-size: clamp(.9rem, min(1.3vw, 2.4vh), 1.7rem); }
+    .tvmain .pchoice { font-size: clamp(1rem, min(1.6vw, 2.8vh), 2rem); padding: .8vw 1vw; }
+    .tvmain .rev .meta { font-size: clamp(.8rem, 1.2vw, 1.4rem); }
+    .tvmain .rule { font-size: clamp(.8rem, 1.2vw, 1.4rem); }
     .hall { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 12px; text-align: left; }
     .hall div { padding: 10px 12px; border-radius: 14px; background: var(--glass-strong); font-size: .9rem; line-height: 1.35; }
     .hall small { display: block; color: var(--muted); font-size: .75rem; margin-bottom: 2px; }
   </style>
 </head>
 <body>
-  <section id="table" class="hidden">
+  <section id="table" class="hidden pfit">
     <div class="topbar glass">
       <span class="title">Punchline</span>
       <span class="code" id="tableCode"></span>
@@ -40,6 +84,8 @@
       return Party.form("jokeForm", "Deine Pointe", "Abschicken", 80);
     }
     const bindForm = () => Party.onForm("jokeForm", v => { editing = false; Shell.send({ t: "write", text: v }); });
+    // long punchlines: one per row (two narrow columns would make them very tall)
+    const long = g => g.entries.some(e => e.text.length > 36);
     const hall = g => g.hall.length ? `<div class="hall">${g.hall.map(h => `<div><small>${esc(h.prompt)}</small>„${esc(h.text)}“ – <b>${esc(h.name)}</b></div>`).join("")}</div>` : "";
 
     Party.start({
@@ -55,18 +101,18 @@
           <p>${ctx.tv ? "Alle schreiben ihre lustigste Pointe …" : "Schreib die lustigste Ergänzung – anonym, abgestimmt wird danach."}</p>
           <div id="mine" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px"></div><div data-status></div>`;
         if (g.phase === "vote") return `<div class="prompt">${Party.gap(g.prompt)}</div>
-          <p>Welche Pointe ist die beste?</p>
-          <div class="pchoices">${g.entries.map((e, i) => ctx.tv
+          <p class="ask">Welche Pointe ist die beste?</p>
+          <div class="pchoices pfill ${long(g) ? "long" : ""}">${g.entries.map((e, i) => ctx.tv
             ? `<div class="pchoice" style="animation-delay:${i * 70}ms">${esc(e.text)}</div>`
             : `<button class="pchoice ${e.mine ? "mine" : ""}" data-vote="${e.id}" ${e.mine ? "disabled" : ""} style="animation-delay:${i * 70}ms">${esc(e.text)}${e.mine ? "<small>deine Pointe</small>" : ""}</button>`).join("")}</div>
           <div data-status></div>`;
         const list = [...g.entries].sort((a, b) => b.votes - a.votes);
-        return `<div class="prompt">${Party.gap(g.prompt)}</div>
-          ${list.length ? `<div class="pchoices">${list.map((e, i) => `<div class="pchoice ${e.best ? "best" : ""}" style="animation-delay:${i * 120}ms">
-            ${e.best ? "😂 " : ""}${esc(e.text)}<span class="by">${esc(Party.nameOf(g, e.author))}</span>
-            <span class="votes">${e.votes} Stimme${e.votes === 1 ? "" : "n"}</span></div>`).join("")}</div>` : "<p>Diesmal hat niemand etwas geschrieben.</p>"}
-          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${Party.ranking(g, { gained: true })}`}
-          <p class="pmuted">100 Punkte pro Stimme · +100 für die allein beste Pointe</p>`;
+        return `<div class="prompt small">${Party.gap(g.prompt)}</div>
+          ${list.length ? `<div class="pchoices rev pfill ${long(g) ? "long" : ""}">${list.map((e, i) => `<div class="pchoice ${e.best ? "best" : ""}" style="animation-delay:${i * 120}ms">
+            <span>${e.best ? "😂 " : ""}${esc(e.text)} <span class="inby">– ${esc(Party.nameOf(g, e.author))}</span></span><span class="meta"><span class="by">${esc(Party.nameOf(g, e.author))}</span>
+            <span class="votes">${e.votes}<span class="vl"> Stimme${e.votes === 1 ? "" : "n"}</span></span></span></div>`).join("")}</div>` : "<p>Diesmal hat niemand etwas geschrieben.</p>"}
+          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${Party.ranking(g, { gained: true, compact: true })}`}
+          <p class="pmuted rule">100 Punkte pro Stimme · +100 für die allein beste Pointe</p>`;
       },
       celebrate: g => g.entries.some(e => e.best && e.author === Shell.me),
       bind(g) {

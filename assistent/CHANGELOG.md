@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0
+
+- **Paketverfolgung:** Sendungsnummern, Links, Screenshots oder weitergeleitete
+  Versandbestätigungen – der Assistent meldet „in Zustellung“, „zur Abholung bereit“, „zugestellt“
+  und Probleme per iMessage. 17TRACK- und DHL-Schlüssel kommen aus **Fabians-HA-Master**.
+- **Stundenplan (WebUntis):** bis zu zwei Stundenpläne (im Master), Änderungen wie Ausfall,
+  Vertretung oder Raumwechsel kommen per iMessage; Fragen wie „Was hab ich morgen?“ gehen auch.
+
 ## 0.13.0
 
 - Umgezogen nach **Fabians-HA-Addons** und umbenannt in **Fabians-HA-Assistent**.

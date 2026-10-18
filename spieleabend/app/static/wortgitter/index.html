@@ -76,6 +76,22 @@
     .toast { bottom: auto; top: calc(86px + env(safe-area-inset-top)); transform: translateX(-50%) translateY(-12px); }
     .toast.show { transform: translateX(-50%); }
     @media (max-width: 380px) { .key { height: 50px; font-size: .95rem; } .krow { gap: 4px; } }
+    /* ---------- one screen, no scrolling: the board gets the height that is left ---------- */
+    .wrap { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; gap: clamp(6px, 1.4vh, 12px); padding-top: clamp(8px, 1.6vh, 14px); padding-bottom: clamp(8px, 1.6vh, 18px); }
+    .wrap > * { flex: none; }
+    .wrap > .board { flex: 1 1 0; min-height: 0; width: 100%; margin: 0 auto; container-type: size; align-content: center; gap: clamp(4px, 1.1cqh, 7px); }
+    .brow { --t: clamp(32px, min(14.5vw, calc((100cqh - 36px) / 6)), 64px); gap: clamp(4px, 1.1cqh, 7px); }
+    .modes button { padding: clamp(5px, 1vh, 8px) 16px; }
+    .sub { margin-top: -2px; }
+    .key { height: clamp(42px, 7.4vh, 56px); }
+    .keys { gap: clamp(5px, 1vh, 7px); margin-top: 0; }
+    .overlay .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    @media (max-height: 700px) {
+      .help p { margin: 5px 0; line-height: 1.4; font-size: .92rem; }
+      .ex { --t: 32px; margin: 4px 0; }
+      .stats { margin: 8px 0; }
+      .overlay .trophy { font-size: 2.6rem; }
+    }
   </style>
 </head>
 <body>

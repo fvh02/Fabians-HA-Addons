@@ -23,6 +23,9 @@ class Player:
         self.pick = None     # what this player chose in a vote/pick phase
 
 
+HOST_GRACE = 20   # seconds after which everyone may start the next round if the host doesn't
+
+
 class PartyGame:
     KIND = ""
     NO_BOTS = True
@@ -88,12 +91,21 @@ class PartyGame:
         if self.host_id is None:
             self.host_id = player.id
 
+    def leaders(self) -> list[str]:
+        """Who may move the game on: the host – or every player at the table if the host is the TV screen,
+        a computer player or gone, or hasn't moved on for HOST_GRACE seconds (otherwise everyone waits)."""
+        host = self.player(self.host_id)
+        if host and not host.screen and not host.is_bot and not self.host_waits_too_long():
+            return [host.id]
+        return [p.id for p in self.players if not p.screen and not p.is_bot]
+
     def remove_player(self, player_id: str) -> None:
         player = self.player(player_id)
         if player:
             self.players.remove(player)
         if self.host_id == player_id:
-            self.host_id = next((p.id for p in self.players if not p.is_bot), None)
+            self.host_id = next((p.id for p in self.players if not p.is_bot and not p.screen),
+                                next((p.id for p in self.players if not p.is_bot), None))
 
     def start(self) -> None:
         if len(self.gamers) < self.MIN_PLAYERS:
@@ -123,9 +135,29 @@ class PartyGame:
         self.phase = phase
         self.phase_end = time.time() + self.seconds if timed and self.seconds else 0.0
 
+    def __setattr__(self, name, value) -> None:
+        # Remember when the phase changed – also in games that set self.phase directly.
+        if name == "phase" and value != getattr(self, "phase", None):
+            object.__setattr__(self, "phase_since", time.time())
+        object.__setattr__(self, name, value)
+
+    def host_waits_too_long(self) -> bool:
+        """The results have been up for a while and the host hasn't moved on (e.g. phone locked)."""
+        return self.phase == "reveal" and time.time() - getattr(self, "phase_since", 0.0) >= HOST_GRACE
+
     @property
     def deadline(self) -> float | None:
-        return self.phase_end if self.state == "playing" and self.phase_end else None
+        if self.state != "playing":
+            return None
+        if self.phase_end:
+            return self.phase_end
+        host = self.player(self.host_id)
+        host_present = bool(host and not host.screen and not host.is_bot)
+        if self.phase == "reveal" and host_present and type(self).on_deadline is PartyGame.on_deadline:
+            # (only games without their own timer handling – theirs would move on by themselves)
+            # wake up once the grace time is over, so everyone gets the "next round" button
+            return getattr(self, "phase_since", time.time()) + HOST_GRACE + 0.1
+        return None
 
     def on_deadline(self) -> None:
         if self.state == "playing" and self.phase in self.INPUT_PHASES:
@@ -161,11 +193,13 @@ class PartyGame:
             return
         if self.state != "playing":
             raise RuleError("Gerade nicht möglich")
+        # The TV screen is the shared device in the room: it may steer the game like the host.
+        is_host = is_host or player.id in self.leaders() or player.screen
         if kind == "next":
-            if not is_host:
-                raise RuleError("Nur der Gastgeber geht weiter")
+            # Everyone at the table (and the TV) may move on once the results are shown, so a game can
+            # never get stuck waiting for one device.
             if self.phase != "reveal":
-                raise RuleError("Die Runde läuft noch")
+                return        # someone else was quicker – nothing to do
             if self.round >= self.rounds:
                 self.finish()
             else:
@@ -213,7 +247,7 @@ class PartyGame:
         attr = self.phase_attr() if self.phase in self.INPUT_PHASES else None
         view = {
             "kind": self.KIND, "code": self.code, "state": self.state, "phase": self.phase,
-            "host": self.host_id, "settings": self.settings_view(), "round": self.round, "rounds": self.rounds,
+            "host": self.host_id, "leaders": self.leaders(), "settings": self.settings_view(), "round": self.round, "rounds": self.rounds,
             "screen": self.screen.id if self.screen else None,
             "players": [{"id": p.id, "name": p.name, "bot": p.is_bot, "screen": p.screen, "score": p.score, "gained": p.gained,
                          "done": bool(attr) and getattr(p, attr) is not None} for p in self.players],

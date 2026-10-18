@@ -1,0 +1,6 @@
+configuration:
+  model:
+    name: Claude-Modell
+    description: Standard claude-opus-5-5 (beste Erkennung). Günstiger, etwas weniger genau – claude-sonnet-5-5.
+network:
+  8100/tcp: Port für Mitreisende ohne Home-Assistant-Zugang

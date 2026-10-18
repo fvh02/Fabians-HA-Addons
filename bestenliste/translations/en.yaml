@@ -1,0 +1,6 @@
+configuration:
+  theme:
+    name: Theme
+    description: Dark or light mode.
+network:
+  8091/tcp: Leaderboard on the home network (or through a tunnel)

@@ -16,9 +16,10 @@
 
   Party.ranking = (g, opts = {}) => {
     const list = g.players.filter(p => !p.screen).sort((a, b) => b.score - a.score);
-    return `<div class="pscore">${list.map((p, i) => `
+    // opts.compact: small chips in a grid (for result screens that have to fit on one phone screen)
+    return `<div class="pscore${opts.compact ? " compact" : ""}">${list.map((p, i) => `
       <div class="ps ${p.id === Shell.me ? "me" : ""}" style="animation-delay:${i * 40}ms"><span class="pos">${i + 1}</span>${Shell.avatar(p)}
-        <span class="n">${esc(p.name)}</span>${opts.gained && p.gained ? `<span class="plus">+${p.gained}</span>` : ""}<span class="pts">${p.score}</span></div>`).join("")}</div>`;
+        <span class="n">${esc(p.name)}</span>${opts.gained && p.gained ? `<span class="plus">${p.gained > 0 ? "+" + p.gained : "−" + Math.abs(p.gained)}</span>` : ""}<span class="pts">${p.score}</span></div>`).join("")}</div>`;
   };
 
   Party.status = g => `<div class="pstatus">${g.players.filter(p => !p.screen).map(p =>
@@ -51,23 +52,28 @@
 
     function ctxFor(g) {
       const me = g.players.find(p => p.id === Shell.me);
-      return { tv: !!(me && me.screen), host: g.host === Shell.me, me, hasTv: !!g.screen };
+      // "leaders": who may move on – the host, or everyone at the table if the host is the TV screen.
+      // The TV screen steers like the host (it is the shared device everyone can reach).
+      const host = g.host === Shell.me || !!(me && me.screen) || (g.leaders || []).includes(Shell.me);
+      return { tv: !!(me && me.screen), host, me, hasTv: !!g.screen };
     }
 
     function frame(g, ctx, inner) {
       const input = !!(cfg.inputPhases || []).includes(g.phase);
       const last = cfg.isLast ? cfg.isLast(g) : g.round >= g.rounds;
-      const canNext = ctx.host || (cfg.canNext && cfg.canNext(g, ctx));
+      // Everyone may move on after the results (unless a game has its own rule, e.g. Wahrheit oder Trinken).
+      const canNext = ctx.host || (cfg.canNext ? cfg.canNext(g, ctx) : true);
       const next = `<button class="btn" data-pact="next">${last ? "Zum Endergebnis 🏆" : (cfg.nextLabel || "Nächste Runde →")}</button>`;
       const controls = g.phase === "reveal"
         ? (ctx.host ? `<div class="row pctl"><button class="btn ghost" data-pact="end_game">Spiel beenden</button>${next}</div>`
-          : canNext && !ctx.tv ? `<div class="row pctl">${next}</div>`
+          : canNext ? `<div class="row pctl">${next}</div>`
           : !ctx.tv ? `<p class="pmuted">Der Gastgeber startet die nächste Runde.</p>` : "")
         : ctx.host && input ? `<div class="row pctl">${cfg.endAnytime ? '<button class="btn ghost small" data-pact="end_game">Spiel beenden</button>' : ""}
             <button class="btn ghost small" data-pact="skip">${cfg.skipLabel || "⏭ Nicht mehr warten"}</button></div>` : "";
       const head = `<div class="phead"><span class="pround">${cfg.head ? cfg.head(g) : `Runde ${g.round} / ${g.rounds}`}</span><span class="ptimer hidden" id="ptimer"></span></div>`;
       if (ctx.tv) {
-        return `<div class="tvgrid"><div class="tvmain glass">${head}${inner}</div>
+        // The TV gets the buttons too (it may be a tablet or laptop someone can tap).
+        return `<div class="tvgrid"><div class="tvmain glass">${head}${inner}${controls}</div>
           <aside class="tvside"><div class="glass"><h3 class="plabel">Punkte</h3><div id="tvRank"></div></div>
           <div class="glass tvcode"><span>Mitspielen:</span> <b>${esc(g.code)}</b></div></aside></div>`;
       }
@@ -133,7 +139,7 @@
     Shell.start(window.GAME);
     if (cfg.drink) {
       const logo = document.querySelector("#lobby .logo");
-      if (logo) logo.insertAdjacentHTML("beforeend", `<p class="drinknote">🍻 Trinkspiel ab 18 – klappt genauso mit Wasser, Saft oder Limo. Trinkt verantwortungsvoll und niemand muss.</p>`);
+      if (logo) logo.insertAdjacentHTML("beforeend", `<p class="drinknote">🍻 Ab 18 – geht genauso mit Wasser oder Saft. Niemand muss trinken.</p>`);
     }
   };
 })();

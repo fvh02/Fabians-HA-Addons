@@ -48,6 +48,29 @@
     .ready-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
     .ready-dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 
+    /* one screen on phones: cards sized by the screen height too */
+    @media (max-width: 560px) {
+      .opp { min-width: 0; }
+      .opp .head { margin-bottom: 5px; }
+      .opp .grid { --cw: clamp(15px, 2.4vh, 26px); --gap: 3px; }
+      .opp .grid .card.mini, .opp .grid .slot.mini { --w: var(--cw); }
+      .opp .sums { margin-top: 3px; font-size: .7rem; gap: 8px; }
+      .felt { padding: 8px 6px; }
+      .center { --cw: clamp(44px, min(16vw, 8vh), 90px); }
+      .status { line-height: 1.25; font-size: .86rem; padding: 6px 12px; }
+      .pile { gap: 3px; }
+      .log { -webkit-line-clamp: 1; }
+      .me .head { margin-bottom: 6px; }
+      .me .grid { --cw: clamp(38px, min(18vw, 5.8vh), 78px); --gap: clamp(5px, 1vh, 12px); }
+    }
+
+    /* tall phones: use the height for bigger cards instead of an empty felt */
+    @media (max-width: 560px) and (min-height: 760px) {
+      .opp .grid { --cw: clamp(15px, 2.8vh, 26px); }
+      .center { --cw: clamp(44px, min(17vw, 9vh), 90px); }
+      .me .grid { --cw: clamp(38px, min(18vw, 7vh), 78px); }
+    }
+
     /* round summary */
     .scores { width: 100%; border-collapse: collapse; margin: 10px 0 4px; font-size: .95rem; }
     .scores th { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; padding: 6px; text-align: right; }

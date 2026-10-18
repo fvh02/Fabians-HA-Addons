@@ -98,7 +98,14 @@
     .scores th:first-child, .scores td:first-child { text-align: left; }
     .scores td { padding: 8px 6px; border-top: 1px solid var(--glass-border); text-align: right; }
     .scores tr.best td { font-weight: 800; }
-    @media (max-width: 560px) { .hand { --overlap: -.42; } }
+    @media (max-width: 560px) {
+      .hand { --overlap: -.42; padding: 14px 8px 6px; }
+      /* one screen: cards grow with the screen height instead of leaving an empty felt */
+      .center { --cw: clamp(56px, min(24vw, 12vh), 110px); }
+      .hand { --cw: clamp(52px, min(20vw, 10vh), 90px); }
+      .me .head { margin-bottom: 4px; }
+      .opp .mini-fan { height: 36px; }
+    }
   </style>
 </head>
 <body>

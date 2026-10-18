@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Stadt-Land-Fluss</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <script>
+    // Lobby illustration (until art.js has an entry for this game).
+    window.ART = window.ART || {};
+    if (!ART.stadtlandfluss) ART.stadtlandfluss = `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="sl1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#5b21b6"/></linearGradient><linearGradient id="sl2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ef4444"/></linearGradient><filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><g transform="rotate(-3 118 62)"><g filter="url(#sh)"><rect x="50" y="14" width="156" height="94" rx="10" fill="#fff"/></g><g font-family="Inter,system-ui,sans-serif" font-weight="800" font-size="9" fill="#7c3aed" letter-spacing=".5"><text x="60" y="32">STADT</text><text x="112" y="32">LAND</text><text x="164" y="32">FLUSS</text></g><path d="M58 38 H198 M106 22 V100 M158 22 V100" stroke="#c4b5fd" stroke-width="1.5"/><path d="M58 64 H198" stroke="#e9e5ff" stroke-width="1.5"/><g font-family="'Comic Sans MS','Segoe Print',cursive" font-weight="700" font-size="10" fill="#1e1b3a"><text x="60" y="56">Rom</text><text x="109" y="56">Rumänien</text><text x="162" y="56">Rhein</text><text x="60" y="84">Rostock</text><text x="110" y="84">Russland</text></g><path d="M162 80 l14 0" stroke="#1e1b3a" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"/></g><g transform="translate(10 30) rotate(-8 26 26)" filter="url(#sh)"><rect width="52" height="52" rx="14" fill="url(#sl1)"/><text x="26" y="38" text-anchor="middle" font-size="34" font-weight="900" fill="#fff" font-family="Inter,system-ui,sans-serif">R</text></g><g transform="translate(172 78) rotate(10 22 16)" filter="url(#sh)"><rect width="46" height="30" rx="15" fill="url(#sl2)"/><text x="23" y="20" text-anchor="middle" font-size="12" font-weight="900" fill="#fff" font-family="Inter,system-ui,sans-serif">STOPP</text></g></svg>`;
+  </script>
+  <style>
+    /* the letter of the round */
+    .letter { width: 108px; height: 108px; border-radius: 30px; display: grid; place-items: center; font-size: 4.2rem; font-weight: 900; color: #fff;
+      background: linear-gradient(145deg, var(--accent), var(--accent-2)); box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 2px 0 rgba(255,255,255,.35);
+      animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; font-family: Inter, system-ui, sans-serif; }
+    .letter.rolling { animation: shake .12s linear infinite; filter: saturate(.7); }
+    .letter.small { width: 54px; height: 54px; border-radius: 16px; font-size: 2rem; }
+    @keyframes shake { 50% { transform: translateY(-3px) rotate(-3deg); } }
+    .tvmain .letter { width: 22vh; height: 22vh; font-size: 15vh; border-radius: 5vh; }
+    .tvmain .letter.small { width: 10vh; height: 10vh; font-size: 6.5vh; border-radius: 2.6vh; }
+    .lhead { display: flex; align-items: center; gap: 14px; justify-content: center; }
+    .lhead p { text-align: left; }
+
+    /* input fields */
+    .fields { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
+    .fld { display: flex; flex-direction: column; gap: 4px; text-align: left; animation: rise .35s ease both; }
+    .fld span { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-left: 4px; display: flex; justify-content: space-between; }
+    .fld span i { font-style: normal; color: var(--danger); text-transform: none; letter-spacing: 0; font-weight: 700; }
+    .fld input { width: 100%; font-size: 1.08rem; padding: 12px 14px; }
+    .fld.ok input { border-color: color-mix(in srgb, var(--ok) 70%, transparent); }
+    .fld.bad input { border-color: var(--danger); }
+    @media (min-width: 600px) { .fields { grid-template-columns: 1fr 1fr; } }
+    .btn.stop { width: 100%; padding: 16px; font-size: 1.25rem; font-weight: 900; letter-spacing: .02em;
+      background: linear-gradient(135deg, #f97316, #ef4444); box-shadow: 0 10px 26px rgba(239, 68, 68, .35); }
+    .btn.stop:not(:disabled) { animation: pulse 1.4s ease-in-out infinite; }
+    .stopban { width: 100%; padding: 12px 16px; border-radius: 18px; font-weight: 850; color: #fff; background: linear-gradient(135deg, #f97316, #ef4444);
+      box-shadow: 0 10px 28px rgba(239, 68, 68, .35); animation: popin .45s cubic-bezier(.2,.9,.3,1.3) both; }
+    .tvmain .stopban { font-size: clamp(1.4rem, 3vw, 3rem); padding: 1.4vw 2vw; border-radius: 2vw; }
+    .catlist { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .catlist span { padding: 8px 16px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 750; animation: rise .4s ease both; }
+    .tvmain .catlist span { font-size: clamp(1rem, 2vw, 2.2rem); padding: .4em 1em; }
+
+    /* review */
+    .hint { font-size: .85rem; }
+    .rv { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .rvcat { border-radius: 20px; padding: 12px; background: var(--glass); border: 1px solid var(--glass-border); text-align: left; animation: rise .4s ease both; }
+    .rvcat h3 { margin: 0 0 8px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .rrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--glass-border); }
+    .rrow:first-of-type { border-top: 0; }
+    .rrow .avatar { width: 26px; height: 26px; font-size: .7rem; }
+    .rrow .ans { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 700; }
+    .rrow .ans small { display: block; font-weight: 600; font-size: .72rem; color: var(--muted); }
+    .rrow.off .ans b { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .6; }
+    .pts { font-weight: 850; font-size: .82rem; padding: 3px 9px; border-radius: 999px; white-space: nowrap; background: var(--glass-strong); border: 1px solid var(--glass-border); }
+    .pts.s20 { color: #fff; border: 0; background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .pts.s10 { color: #fff; border: 0; background: linear-gradient(135deg, #10b981, #059669); }
+    .pts.s5 { color: #fff; border: 0; background: linear-gradient(135deg, #60a5fa, #4f46e5); }
+    .pts.s0 { color: var(--muted); }
+    .vote { border: 1px solid var(--glass-border); background: var(--glass-strong); border-radius: 12px; padding: 5px 9px; font-weight: 800; font-size: .82rem; white-space: nowrap; transition: transform .15s, background .2s; }
+    .vote:hover { transform: translateY(-1px); }
+    .vote.on { background: linear-gradient(135deg, #fb7185, #e11d48); color: #fff; border-color: transparent; }
+    .vote[disabled] { opacity: .35; cursor: default; }
+    .vote.spacer { visibility: hidden; }
+
+    /* TV review table */
+    .rtable { width: 100%; border-collapse: separate; border-spacing: .5vw; font-size: clamp(.9rem, 1.4vw, 1.6rem); }
+    .rtable th { font-size: .75em; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 800; text-align: left; padding: 0 .4vw; }
+    .rtable td { background: var(--glass-strong); border: 1px solid var(--glass-border); border-radius: 1vw; padding: .5vw .7vw; text-align: left; vertical-align: middle; animation: rise .4s ease both; }
+    .rtable td.who { background: none; border: 0; font-weight: 800; white-space: nowrap; }
+    .rtable td.who .avatar { display: inline-grid; vertical-align: middle; margin-right: .5vw; width: 2.4vw; height: 2.4vw; font-size: 1vw; }
+    .rtable td .cell { display: flex; flex-direction: column; align-items: flex-start; gap: .3vw; }
+    .rtable td b { font-weight: 750; overflow-wrap: break-word; hyphens: auto; }
+    .rtable td.off b { text-decoration: line-through; opacity: .55; }
+    .rtable td .pts { font-size: .7em; }
+    .rtable td.sum { background: none; border: 0; font-weight: 900; text-align: right; }
+
+    /* category chooser in the waiting room */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass-strong); font-weight: 700; font-size: .92rem; transition: transform .15s, background .2s, box-shadow .2s; }
+    .chip.on { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .chip:not([disabled]):hover { transform: translateY(-1px); }
+    .chip[disabled] { cursor: default; }
+
+    /* ---------- one phone screen, no scrolling ---------- */
+    /* waiting room: two-column player list, the category chips live in the players panel */
+    #roomPlayers { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+    #roomPlayers li { gap: 6px; min-width: 0; padding: 4px 0; }
+    #roomPlayers .avatar { width: 26px; height: 26px; font-size: .72rem; }
+    #roomPlayers.many li { padding: 2px 0; }
+    /* many players on a small phone: the invite button says it all */
+    @media (max-height: 700px) { #room:has(#roomPlayers.many) .roomcode p { display: none; } }
+    #roomPlayers li:nth-child(2) { border-top: 0; }
+    #roomPlayers .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+    #roomPlayers .tag { font-size: 0; padding: 2px 5px; }
+    #roomPlayers .tag::after { font-size: .75rem; }
+    #roomPlayers .tag.host::after { content: "👑"; }
+    #roomPlayers .tag.tv::after { content: "📺"; }
+    #roomPlayers .tvbtn { padding: 4px 8px; font-size: .75rem; }
+    #roomPlayers .x { padding: 0 2px; }
+    #catPanel { margin-top: 6px; }
+    #catPanel .clabel { margin: 0 0 4px; font-size: .78rem; color: var(--muted); }
+    #catPanel .clabel b { text-transform: uppercase; letter-spacing: .08em; font-size: .74rem; }
+    #catPanel .chips { gap: 4px; }
+    #catPanel .chip { padding: 4px 9px; font-size: .8rem; min-height: 28px; }
+
+    /* writing */
+    .wtop { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+    .wtop .letter { width: clamp(52px, 9vh, 76px); height: clamp(52px, 9vh, 76px); border-radius: 18px; font-size: clamp(2rem, 5.6vh, 3rem); flex: none; }
+    .wtop .wtx { flex: 1; min-width: 0; }
+    .wtop .wtx p { margin: 0; font-size: .9rem; }
+    .wtop .stopban { padding: 8px 12px; border-radius: 14px; font-size: .88rem; line-height: 1.3; }
+    body:not(.tv) .fields { grid-template-columns: 1fr 1fr; gap: clamp(4px, 1vh, 10px) 8px; }
+    body:not(.tv) .fld { gap: 2px; min-width: 0; }
+    body:not(.tv) .fld span { font-size: .75rem; padding-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    body:not(.tv) .fld span i { margin-left: 4px; }
+    body:not(.tv) .fld input { font-size: 1rem; padding: clamp(7px, 1.3vh, 11px) 10px; }
+    body:not(.tv) .btn.stop { padding: 12px; font-size: 1.15rem; }
+    .pstage .pstatus .avatar { width: 24px; height: 24px; font-size: .68rem; }
+
+    /* review: one category at a time */
+    .rvhead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+    .rvhead .letter.small { width: 44px; height: 44px; border-radius: 13px; font-size: 1.5rem; flex: none; }
+    .rvhead h2 { font-size: 1.2rem !important; }
+    .rvhead .pbanner { font-size: .95rem; animation-duration: .4s; }
+    .rvhead .hint { margin: 0; font-size: .78rem; line-height: 1.3; }
+    .rvnav { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .rvnav .btn { width: 44px; height: 44px; padding: 0; flex: none; font-size: 1.1rem; }
+    .rvnav .cur { flex: 1; min-width: 0; text-align: center; font-weight: 850; font-size: 1.05rem; }
+    .rvnav .cur small { display: block; font-size: .72rem; color: var(--muted); font-weight: 700; }
+    .rvnav .dots { display: flex; gap: 4px; justify-content: center; margin-top: 3px; }
+    .rvnav .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--slot); }
+    .rvnav .dots i.on { background: var(--accent); }
+    body:not(.tv) .rvcat { padding: 4px 10px; border-radius: 16px; }
+    body:not(.tv) .rrow { padding: clamp(3px, .7vh, 6px) 0; }
+    body:not(.tv) .rrow .ans { line-height: 1.2; }
+    body:not(.tv) .vote { min-height: 32px; }
+    /* many players: one line per answer */
+    body:not(.tv) .rv.many .rrow { padding: 2px 0; gap: 6px; }
+    body:not(.tv) .rv.many .rrow .avatar { width: 22px; height: 22px; font-size: .6rem; }
+    body:not(.tv) .rv.many .rrow .ans { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; }
+    body:not(.tv) .rv.many .rrow .ans b { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+    body:not(.tv) .rv.many .rrow .ans small { display: inline; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    body:not(.tv) .rv.many .vote { min-height: 28px; padding: 3px 8px; }
+    body:not(.tv) .rv.many .pts { padding: 2px 7px; }
+
+    .rvrank .pscore { gap: 4px; }
+    .rvrank .pscore .ps { padding: 3px 10px; }
+    .rvrank .pscore .avatar { width: 26px; height: 26px; font-size: .7rem; }
+
+    /* TV: many categories / players stay on the screen */
+    .tvmain .letter { width: 18vh; height: 18vh; font-size: 12vh; border-radius: 4.4vh; }
+    .tvmain .catlist { gap: .6vw; }
+    .tvmain .catlist span { font-size: clamp(.9rem, min(1.7vw, 2.8vh), 2rem); padding: .3em .9em; }
+    .rtable { table-layout: fixed; }
+    .rtable td b { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rtable th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rtable td.who { overflow: hidden; text-overflow: ellipsis; }
+    .rtable.dense { font-size: clamp(.75rem, min(1.05vw, 1.9vh), 1.3rem); border-spacing: .35vw; }
+    .rtable.dense td { padding: .3vw .45vw; }
+    .rtable.dense td.who .avatar { width: 1.8vw; height: 1.8vw; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden pfit">
+    <div class="topbar glass">
+      <span class="title">Stadt-Land-Fluss</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const ALL = [["stadt", "Stadt"], ["land", "Land"], ["fluss", "Fluss"], ["name", "Name"], ["beruf", "Beruf"], ["tier", "Tier"],
+      ["marke", "Marke"], ["essen", "Essen"], ["promi", "Promi"], ["pflanze", "Pflanze"], ["metall", "🔩 Metallbau-Begriff"]];
+    const STATUS = { only: "Einzige Antwort", unique: "", dup: "Doppelt", letter: "Falscher Anfangsbuchstabe", voted: "Abgelehnt", empty: "" };
+    // Same normalisation as the server: lower case, umlauts written out, letters and digits only.
+    const norm = s => String(s || "").toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+      .normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^\p{L}\p{N}]/gu, "");
+    let sendTimer = null, rollTimer = null;
+
+    /* ---------- waiting room: choose categories ---------- */
+    function catPanel() {
+      const g = Shell.game;
+      if (!g || g.state !== "lobby") return;
+      let panel = document.getElementById("catPanel");
+      if (!panel) {
+        document.getElementById("hostControls").insertAdjacentHTML("afterend",
+          `<div id="catPanel"><p class="clabel" id="catHint"></p><div class="chips" id="chips"></div></div>`);
+        panel = document.getElementById("catPanel");
+        panel.addEventListener("click", e => {
+          const b = e.target.closest("[data-cat]"), game = Shell.game;
+          if (!b || game.host !== Shell.me) return;
+          const on = new Set(game.settings.cats);
+          on.has(b.dataset.cat) ? on.delete(b.dataset.cat) : on.add(b.dataset.cat);
+          if (on.size < 3) { Shell.toast("Mindestens 3 Kategorien"); return; }
+          Shell.send({ t: "settings", settings: { rounds: game.settings.rounds, seconds: game.settings.seconds, letters: game.settings.letters,
+            cats: ALL.map(c => c[0]).filter(c => on.has(c)) } });
+        });
+      }
+      const host = g.host === Shell.me, on = new Set(g.settings.cats || []);
+      Party.set("chips", ALL.map(([id, label]) => `<button class="chip ${on.has(id) ? "on" : ""}" data-cat="${id}" ${host ? "" : "disabled"}>${esc(label)}</button>`).join(""));
+      document.getElementById("catHint").innerHTML = `<b>Kategorien</b> · ${on.size} gewählt${host ? " · zum Ändern tippen" : " vom Gastgeber"}`;
+    }
+
+    /* ---------- writing ---------- */
+    function fieldsNow() {
+      const out = {};
+      document.querySelectorAll("#slf input[data-cat]").forEach(i => { if (i.value.trim()) out[i.dataset.cat] = i.value.trim(); });
+      return out;
+    }
+    function checkFields() {
+      const g = Shell.game, letter = (g.letter || "").toLowerCase();
+      let full = true;
+      document.querySelectorAll("#slf input[data-cat]").forEach(i => {
+        const n = norm(i.value), box = i.closest(".fld");
+        box.classList.toggle("ok", !!n && n.startsWith(letter));
+        box.classList.toggle("bad", !!n && !n.startsWith(letter));
+        box.querySelector("i").textContent = n && !n.startsWith(letter) ? `beginnt nicht mit ${g.letter}` : "";
+        if (!n) full = false;
+      });
+      const stop = document.getElementById("stopBtn");
+      if (stop) stop.disabled = !full || !!g.stopper;
+    }
+    function queueSend() {
+      clearTimeout(sendTimer);
+      sendTimer = setTimeout(() => { if (Shell.game && Shell.game.phase === "write") Shell.send({ t: "fields", fields: fieldsNow() }); }, 350);
+    }
+    function roll(el, letter) {
+      clearInterval(rollTimer);
+      if (!el) return;
+      const abc = "ABCDEFGHIJKLMNOPRSTUVWZ"; let n = 0;
+      el.classList.add("rolling");
+      rollTimer = setInterval(() => {
+        if (++n > 12) { clearInterval(rollTimer); el.textContent = letter; el.classList.remove("rolling"); el.animate([{ transform: "scale(1.25)" }, { transform: "none" }], { duration: 380, easing: "cubic-bezier(.2,.9,.3,1.3)" }); return; }
+        el.textContent = abc[Math.random() * abc.length | 0];
+      }, 70);
+    }
+
+    function stopBanner(g) {
+      if (!g.stopper) return "";
+      const who = g.stopper === Shell.me ? "Du hast" : `${esc(Party.nameOf(g, g.stopper))} hat`;
+      return `<div class="stopban">✋ ${who} Stopp gerufen!${g.stopper === Shell.me ? "" : " Schnell fertig schreiben …"}</div>`;
+    }
+
+    /* ---------- review ---------- */
+    const ptsBadge = r => `<span class="pts s${r.points}">${r.points ? "+" + r.points : "0"}</span>`;
+    function review(g, ctx) {
+      const players = g.players.filter(p => !p.screen);
+      if (ctx.tv) {
+        const sums = Object.fromEntries(players.map(p => [p.id, 0]));
+        g.review.forEach(c => c.rows.forEach(r => sums[r.id] += r.points));
+        const dense = g.review.length * players.length > 24 || g.review.length > 7;
+        return `<table class="rtable ${dense ? "dense" : ""}"><tr><th style="width:${dense ? 13 : 16}%"></th>${g.review.map(c => `<th>${esc(c.label)}</th>`).join("")}<th style="text-align:right;width:7%">Σ</th></tr>
+          ${players.map((p, i) => `<tr><td class="who">${Shell.avatar(p)}${esc(p.name)}</td>${g.review.map(c => {
+            const r = c.rows.find(x => x.id === p.id) || { text: "", points: 0, status: "empty", votes: 0 };
+            const off = r.status === "letter" || r.status === "voted";
+            return `<td class="${off ? "off" : ""}" style="animation-delay:${i * 50}ms"><div class="cell"><b>${r.text ? esc(r.text) : "–"}</b>${ptsBadge(r)}</div>
+              ${r.votes ? `<small>👎 ${r.votes}/${r.need}</small>` : ""}</td>`; }).join("")}<td class="sum">+${sums[p.id]}</td></tr>`).join("")}</table>`;
+      }
+      if (rvRound !== g.round) { rvRound = g.round; rvTab = 0; }
+      // Many players: the score table is the last page of the pager instead of a list under it.
+      const many = isMany(g), n = g.review.length + (many ? 1 : 0);
+      rvTab = Math.min(rvTab, n - 1);
+      const cur = g.review[rvTab] || { label: "🏆 Punktestand" };
+      const nav = `<div class="rvnav"><button class="btn ghost" data-rvtab="${(rvTab + n - 1) % n}" aria-label="Zurück">◀</button>
+        <div class="cur" title="${rvTab + 1} von ${n}">${esc(cur.label)}<div class="dots">${Array.from({ length: n }, (_, i) => `<i class="${i === rvTab ? "on" : ""}"></i>`).join("")}</div></div>
+        <button class="btn ghost" data-rvtab="${(rvTab + 1) % n}" aria-label="Weiter">▶</button></div>`;
+      if (!g.review[rvTab]) return `<div class="rv many rvrank">${nav}${Party.ranking(g, { gained: true })}</div>`;
+      return `<div class="rv ${many ? "many" : ""}">${nav}${[cur].map((c, ci) => `<div class="rvcat" style="animation-delay:${ci * 60}ms">
+        ${c.rows.map(r => {
+          const p = g.players.find(q => q.id === r.id) || { name: "?" }, off = r.status === "letter" || r.status === "voted";
+          const note = [STATUS[r.status], r.votes ? `👎 ${r.votes} von ${r.need}` : ""].filter(Boolean).join(" · ");
+          const canVote = r.id !== Shell.me && r.text && r.status !== "letter";
+          return `<div class="rrow ${off ? "off" : ""}">${Shell.avatar(p)}<span class="ans"><b>${r.text ? esc(r.text) : "–"}</b><small>${esc(p.id === Shell.me ? "Du" : p.name)}${note ? " · " + esc(note) : ""}</small></span>
+            ${ptsBadge(r)}${canVote ? `<button class="vote ${r.mine ? "on" : ""}" data-ch="${c.id}|${r.id}" title="Diese Antwort zählt nicht">👎${r.votes ? " " + r.votes : ""}</button>` : '<span class="vote spacer">👎</span>'}</div>`;
+        }).join("")}</div>`).join("")}</div>`;
+    }
+
+    let rvTab = 0, rvRound = null;
+    const isMany = g => g.players.filter(p => !p.screen).length > 5;
+    document.addEventListener("click", e => {
+      const t = e.target.closest("[data-rvtab]");
+      if (t) { rvTab = +t.dataset.rvtab; Party.set("review", review(Shell.game, { tv: false })); return; }
+      const b = e.target.closest("[data-ch]");
+      if (b) { const [cat, id] = b.dataset.ch.split("|"); Shell.send({ t: "challenge", cat, id }); }
+    });
+
+    Party.start({
+      kind: "stadtlandfluss", title: "Stadt-Land-Fluss", art: "stadtlandfluss", minPlayers: 2, icon: "🌍",
+      inputPhases: ["write"], skipLabel: "⏭ Runde beenden",
+      head: g => `Runde ${g.round} / ${g.rounds} · Buchstabe ${g.letter}`,
+      settings: [
+        { key: "rounds", label: "Runden", options: [[5, "5 Runden"], [3, "3 Runden"], [8, "8 Runden"], [10, "10 Runden"]] },
+        { key: "seconds", label: "Zeit", options: [[120, "2 Minuten pro Runde"], [90, "90 Sekunden pro Runde"], [180, "3 Minuten pro Runde"], [0, "Ohne Zeitlimit – nur Stopp"]] },
+        { key: "letters", label: "Buchstaben", options: [[0, "Ohne Q, X und Y"], [1, "Alle Buchstaben"]] },
+      ],
+      build(g, ctx) {
+        if (g.phase === "write") {
+          if (ctx.tv) return `<div class="letter" id="bigLetter">${esc(g.letter)}</div>
+            <div class="catlist">${g.cats.map((c, i) => `<span style="animation-delay:${i * 60}ms">${esc(c.label)}</span>`).join("")}</div>
+            <div id="ban" style="width:100%"></div><div data-status></div><p>Schreibt auf euren Handys – alles mit <b>${esc(g.letter)}</b>!</p>`;
+          const mine = g.my_fields || {};
+          return `<div class="wtop"><div class="letter" id="bigLetter">${esc(g.letter)}</div>
+              <div class="wtx"><div id="ban"></div><p id="wtxt">Alles mit <b>${esc(g.letter)}</b>! Wer alles hat, ruft Stopp.</p></div></div>
+            <form class="fields" id="slf" autocomplete="off">${g.cats.map((c, i) => `<label class="fld" style="animation-delay:${i * 40}ms"><span>${esc(c.label)}<i></i></span>
+              <input data-cat="${c.id}" maxlength="30" value="${esc(mine[c.id] || "")}" placeholder="${esc(g.letter)} …" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next"></label>`).join("")}</form>
+            <button class="btn stop" id="stopBtn" disabled>✋ Stopp!</button>
+            <div data-status></div>`;
+        }
+        if (ctx.tv) return `<div class="lhead"><div class="letter small">${esc(g.letter)}</div><h2>Auswertung</h2></div>
+          <div id="best"></div><div id="review" style="width:100%"></div>`;
+        return `<div class="rvhead"><div class="letter small">${esc(g.letter)}</div><div style="flex:1;min-width:0"><div id="best"><h2>Auswertung</h2></div>
+            <p class="hint">👎 Mehrheit = zählt nicht · einzige 20 · eigene 10 · doppelt 5</p></div></div>
+          <div id="review" style="width:100%"></div>
+          <div id="rank" style="width:100%"></div>`;
+      },
+      bind(g, ctx) {
+        if (g.phase === "write") {
+          roll(document.getElementById("bigLetter"), g.letter);
+          const form = document.getElementById("slf");
+          if (!form) return;
+          const inputs = [...form.querySelectorAll("input")];
+          form.onsubmit = e => e.preventDefault();
+          inputs.forEach((inp, i) => {
+            inp.oninput = () => { checkFields(); queueSend(); };
+            inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); (inputs[i + 1] || inp).focus(); if (!inputs[i + 1]) inp.blur(); } };
+          });
+          document.getElementById("stopBtn").onclick = () => { clearTimeout(sendTimer); Shell.send({ t: "stop", fields: fieldsNow() }); };
+          checkFields();
+          if (matchMedia("(pointer: fine)").matches && inputs[0]) inputs[0].focus();
+        }
+      },
+      update(g, ctx) {
+        if (g.phase === "write") {
+          if (Party.set("ban", stopBanner(g)) && g.stopper && g.stopper !== Shell.me && navigator.vibrate) navigator.vibrate(200);
+          const wt = document.getElementById("wtxt");
+          if (wt) wt.classList.toggle("hidden", !!g.stopper);
+          checkFields();
+        } else if (g.phase === "reveal" && g.review) {
+          Party.set("review", review(g, ctx));
+          Party.set("rank", isMany(g) ? "" : Party.ranking(g, { gained: true, compact: true }));
+          const best = g.players.filter(p => !p.screen).sort((a, b) => b.gained - a.gained)[0];
+          const bt = best && best.gained ? `${best.id === Shell.me ? "Du holst" : esc(best.name) + " holt"} ${best.gained} Punkte` : "";
+          Party.set("best", ctx.tv ? (bt ? `<div class="pbanner">${bt}</div>` : "") : `<h2>Auswertung</h2>${bt ? `<div class="pbanner">${bt}</div>` : ""}`);
+        }
+      },
+      celebrate: g => { const me = g.players.find(p => p.id === Shell.me); return !!me && me.gained > 0 && me.gained >= Math.max(...g.players.map(p => p.gained)); },
+    });
+    // The waiting room is drawn by common.js; hook in to show the category chooser below the settings.
+    const roomPlayer = window.GAME.roomPlayer;
+    window.GAME.roomPlayer = (p, me, g) => { queueMicrotask(catPanel); return roomPlayer(p, me, g); };
+  </script>
+</body>
+</html>

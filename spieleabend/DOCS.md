@@ -14,19 +14,35 @@ Spiele für mehrere Spieler im Browser. Auf der Startseite wählst du das Spiel:
 - **Wortgitter** (1 Spieler): Errate das Wort mit 5 Buchstaben in 6 Versuchen.
 - **Farbrausch** (2–10 Spieler): Passende Farbe oder Zahl ablegen, wer zuerst keine Karten mehr
   hat, gewinnt.
-- **Schätzmeister** (2–16): Schätzfragen – wer am nächsten dran ist, holt die Punkte.
+- **Schätzmeister** (2–16): Schätzfragen in Kategorien (auch Metallbau) – wer am nächsten dran ist, holt die Punkte.
 - **Wer würde eher …?** (3–16): Geheim abstimmen, wer aus der Runde am besten passt.
 - **Lügenbaron** (3–12): Glaubwürdige Lügen erfinden und die Wahrheit finden.
 - **Punchline** (3–12): Sätze lustig ergänzen, die beste Pointe gewinnt.
 - **Trinkspiele** (ab 18, alles geht auch mit Softdrinks): **Ich hab noch nie …**,
   **Wahrheit oder Trinken**, **Trinklotto**, **Pyramide**, **Pferderennen** und **Ring of Fire**.
 
+**🏆 Bestenliste und Konten:** Mit dem Add-on **Spieleabend-Bestenliste** aus diesem Repository
+zählt jede Partie für eine Rangliste pro Monat und für Achievements – aber nur für Spieler, die
+angemeldet sind. Oben auf der Startseite: **🔑 Anmelden** (Registrieren mit Bestätigungscode per
+E-Mail, Passwort vergessen per Code) und **🏆 Bestenliste**. Angemeldete spielen automatisch unter
+ihrem Kontonamen; Gäste spielen ohne Wertung mit. Der Zugangscode bleibt davor bestehen.
+
+**E-Mail für die Codes einrichten:** Im **Fabians-HA-Master** unter **E-Mail (Spieleabend)**:
+SMTP-Server (z. B. `smtp.gmail.com`, `smtp.web.de`, `smtp.gmx.net`), Port 587 mit Verschlüsselung
+starttls (oder 465 mit ssl), Benutzer = deine Adresse, Passwort (bei Gmail/iCloud ein
+**App-Passwort**), optional Absender. Ohne diese Angaben stehen die Codes im **Protokoll** des
+Add-ons – dann kannst du sie
+deinen Freunden weitergeben. Konten liegen nur auf deinem Home Assistant; Passwörter werden
+nicht im Klartext gespeichert.
+
 Auf der Startseite findest du Spiele über die **Suche** und die Filter **Spieler**, **Art**,
 **Dauer** und **Extras** (Fernseher-Modus, gerade offene Runden). Die Filter merkt sich der Browser.
 
 **📺 Fernseher-Modus** (Schnellmaler, die Quiz-, Party- und Trinkspiele): Im Warteraum tippt
 das Gerät, das alle sehen sollen, neben seinem Namen auf **📺 Host**. Es spielt dann nicht mit,
-sondern zeigt groß die Frage, wer schon geantwortet hat, die Auflösung und die Punkte.
+sondern zeigt groß die Frage, wer schon geantwortet hat, die Auflösung und die Punkte. Ist der
+Fernseher zugleich Gastgeber, schalten die Mitspieler mit „Nächste Runde“ weiter; macht der
+Gastgeber 20 Sekunden nach der Auflösung nicht weiter, dürfen das ebenfalls alle.
 
 ## Mitspielen
 
@@ -38,8 +54,9 @@ sondern zeigt groß die Frage, wer schon geantwortet hat, die Auflösung und die
 
 Im Warteraum schickt **📨 Einladen** einen Link mit dem Spielcode per WhatsApp, iMessage usw.
 
-Einer erstellt ein Spiel und bekommt einen vierstelligen Code. Die anderen geben ihren Namen ein
-und treten mit dem Code bei (offene Spiele stehen auch direkt in der Liste). Der Gastgeber kann
+Einer erstellt ein Spiel und bekommt einen vierstelligen Code. Die anderen geben den Code auf der
+**Startseite** unter „🎟️ Spiel beitreten“ ein und landen direkt im richtigen Spiel – oder tippen in
+der Lobby des Spiels bei einem der (bis zu drei) offenen Spiele auf **Beitreten**. Der Gastgeber kann
 Computer-Spieler hinzufügen, Einstellungen wählen und das Spiel starten.
 
 Lädt jemand die Seite neu oder verliert kurz die Verbindung, kommt er automatisch an seinen
@@ -195,6 +212,10 @@ gegen Nachrichtenfluten und eine Sperre nach 8 falschen Code-Eingaben (15 Minute
 
 - Eine Schätzfrage (Höhen, Entfernungen, Jahreszahlen …), alle tippen geheim eine Zahl. Punkt
   oder Komma gehen beide („384.400“, „8,1“).
+- **Kategorie** beim Erstellen der Runde wählen (im Warteraum änderbar): Allgemeinwissen
+  gemischt, Erde, Länder & Weltall, Geschichte & Jahreszahlen, Mensch & Alltag oder
+  **🔩 Metallbau (Ausbildung)** – Werkstoffe, Gewinde, Schweißen, Profile, Toleranzen und
+  Treppen/Geländer. Fachkategorien kommen nur, wenn sie gewählt sind.
 - Die drei Nächsten bekommen 3, 2 und 1 Punkt, gleich weit weg zählt gleich. Liegt jemand
   höchstens 1 % daneben, gibt es 2 Bonuspunkte für den Volltreffer.
 - Einstellbar: 5–15 Fragen, 30–60 Sekunden oder ohne Zeitlimit.
@@ -222,6 +243,63 @@ gegen Nachrichtenfluten und eine Sperre nach 8 falschen Code-Eingaben (15 Minute
   möglich.
 - Danach werden alle Antworten anonym gezeigt; jeder stimmt für die beste (nicht für die eigene).
 - 100 Punkte pro Stimme, +100 für die allein beste Pointe. Am Ende gibt es die Ruhmeshalle.
+
+## Buzzer-Quiz – Regeln
+
+Die Frage steht auf dem Fernseher bzw. allen Handys. Wer zuerst buzzert, sieht vier Antworten und hat
+12 Sekunden: richtig +3, falsch −2 und für diese Frage gesperrt – dann ist der Nächste dran.
+Kategorien wie Allgemeinwissen oder 🔩 Metallbau (Ausbildung).
+
+## Sortierfix – Regeln
+
+Fünf Dinge (Jahreszahlen, Höhen, Einwohner, Schmelzpunkte …) in die richtige Reihenfolge ziehen.
+1 Punkt pro richtiger Position, +3 wenn alle stimmen.
+
+## Filmoji – Regeln
+
+Für eine Person: Welcher Film steckt hinter den Emojis? Titel eintippen – deutsch oder im
+Original, kleine Tippfehler sind egal. 3 Versuche pro Film, richtig gibt 3 Punkte (ab einer Serie
+von 3 Filmen +1). Tipps zeigen das Jahr oder die Anfangsbuchstaben und kosten je einen Punkt.
+Aufgeben oder dreimal daneben kostet ein Herz – nach drei Herzen ist Schluss. Rekord und
+Statistik merkt sich das Gerät.
+
+## Codewörter – Regeln
+
+Zwei Teams (Rot und Blau) mit je einem Hinweisgeber, der als Einziger die Farben der 25 Karten sieht.
+Er gibt ein Wort und eine Zahl als Hinweis, sein Team deckt passende Karten auf (Zahl + 1 Versuche).
+Eine falsche Farbe beendet den Zug, der Attentäter verliert sofort. Wer zuerst alle eigenen Karten
+aufgedeckt hat, gewinnt. Mindestens 4 Spieler (2 pro Team).
+
+## Stadt-Land-Fluss – Regeln
+
+Ein Buchstabe, mehrere Kategorien. Wer fertig ist, ruft „Stopp!“ – dann bleiben den anderen noch
+ein paar Sekunden. Danach können Antworten angezweifelt werden (Mehrheit entscheidet).
+Eigene Antwort 10 Punkte (20, wenn sonst niemand in der Kategorie etwas hat), doppelte Antwort 5.
+
+## Spion – Regeln
+
+Alle kennen den geheimen Ort und ihre Rolle – nur der Spion nicht. Fragt euch reihum aus. Jeder kann
+eine Abstimmung starten; wird der Spion mit Mehrheit erwischt, darf er noch den Ort raten. Der Spion
+kann sich auch selbst enttarnen und den Ort nennen.
+
+## Werwolf – Regeln
+
+Die Handys sind der Spielleiter. Nachts wählen die Werwölfe ein Opfer, die Seherin prüft eine Person,
+die Hexe kann einmal heilen und einmal vergiften (optional: Jäger und Amor). Tagsüber diskutiert das
+Dorf und stimmt ab. Das Dorf gewinnt, wenn alle Werwölfe tot sind – die Werwölfe, sobald sie
+gleich viele sind wie die anderen. Ab 5 Spielern. Der Fernseher erzählt, verrät aber nie Rollen.
+
+## Blind gezeichnet – Regeln
+
+Jeder zeichnet seinen Begriff, ohne die eigenen Striche zu sehen. Danach werden die Bilder gezeigt
+und die anderen raten: 3 Punkte fürs Erraten, 2 für den Zeichner pro Person, die es erkannt hat.
+
+## Schwimmen (31) – Regeln
+
+Jeder hat 3 Karten, 3 liegen offen in der Mitte. Reihum eine Karte oder alle drei tauschen, schieben
+oder klopfen (dann ist jeder noch einmal dran). Gezählt wird die beste Farbe (Ass 11, Bilder 10),
+drei Gleiche zählen 30,5, drei Asse („Feuer“) 33 beenden die Runde sofort. Der Schlechteste verliert
+ein Leben; wer zuletzt noch im Spiel ist, gewinnt. Computer-Spieler sind möglich.
 
 ## Trinkspiele
 
@@ -257,3 +335,5 @@ Kartenspiele: Karte oder Stapel antippen, dann das Ziel antippen. Was gerade mö
 | Option  | Beschreibung         |
 | ------- | -------------------- |
 | `theme` | `dark` oder `light`. |
+
+Zugangscode und E-Mail-Server stehen im **Fabians-HA-Master**.

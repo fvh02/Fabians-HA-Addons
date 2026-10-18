@@ -134,6 +134,73 @@ Einrichtung (einmalig, kostenlos):
 Preisalarme prüft der Assistent alle 30 Minuten. Neue passende Angebote kommen per iMessage,
 jedes nur einmal. „Welche Preisalarme habe ich?“ und „Lösch den PS5-Alarm“ gehen auch.
 
+## Paketverfolgung
+
+Der Assistent behält deine Pakete im Blick und meldet sich von selbst per iMessage, wenn ein
+Paket **in Zustellung** ist („kommt heute“), **zur Abholung bereitliegt** (mit Adresse des
+Paketshops), **zugestellt** wurde oder es ein **Problem** gibt. Sonst bleibt er still.
+
+So kommen Pakete in die Liste:
+
+- **Per Nachricht:** Sendungsnummer oder Tracking-Link schicken, gern mit Inhalt
+  („Verfolg 00340434161234567890, das sind die AirPods“). Ein Screenshot der Versandbestätigung geht auch.
+- **Per E-Mail, automatisch:** Versandbestätigungen an die E-Mail-Adresse deiner Inkbox-Identität
+  weiterleiten – von Hand oder mit einer Weiterleitungsregel in deinem Postfach (z. B. für Mails
+  von DHL, DPD, Hermes, GLS, UPS, Amazon mit „Versand“ oder „Sendung“ im Betreff). Der Assistent
+  nimmt daraus nur die Sendungsnummer, antwortet nicht auf die Mail und schreibt dir kurz
+  „📦 Neues Paket erkannt“.
+
+Fragen kannst du jederzeit: „Wo ist mein Paket?“, „Kommt heute was?“, „Wo liegt das Kabel?“.
+Zugestellte Pakete verschwinden nach drei Tagen von selbst aus der Liste.
+
+Einrichtung:
+
+1. **Handynummer:** Im **Fabians-HA-Master** bei **iMessage → Deine Handynummer** (dasselbe Feld
+   wie für die eBay-Preisalarme).
+2. **Automatische Abfrage (empfohlen):** Auf [api.17track.net](https://api.17track.net) kostenlos
+   registrieren, den API-Schlüssel kopieren und im Master unter **Paketverfolgung → 17TRACK-Schlüssel** eintragen. Damit werden Pakete aller großen Paketdienste verfolgt. Wie viele Sendungsnummern
+   der kostenlose Tarif pro Monat erlaubt, zeigt dir das 17TRACK-Dashboard.
+3. **Optional DHL:** Auf [developer.dhl.com](https://developer.dhl.com) eine App mit der API
+   „Shipment Tracking – Unified“ anlegen und den API-Key im Master bei
+   **Paketverfolgung → DHL-Schlüssel** eintragen. DHL-Pakete werden dann direkt bei DHL abgefragt.
+4. Speichern – der Master startet den Assistenten neu. Im Protokoll steht
+   `[assistent] Paketverfolgung: aktiv, Meldungen an …`.
+
+Ohne Schlüssel merkt sich der Assistent die Pakete trotzdem und schaut bei Nachfrage auf der
+Seite des Paketdiensts nach – automatische Meldungen gibt es dann nicht. Geprüft wird stündlich
+zwischen 7 und 22 Uhr.
+
+## Stundenplan (WebUntis)
+
+Der Assistent meldet dir per iMessage **jede Änderung** in deinem WebUntis-Stundenplan –
+Ausfall, Vertretung, Raumänderung, Sonderstunden – für heute und die nächsten 7 Tage, z. B.:
+
+> 📚 Stundenplan:
+> ❌ morgen 14.10. 2.–3. Std. Mathe: entfällt
+> 🔁 morgen 14.10. 4. Std. Englisch: Raum B12 statt A04, „Aufgaben in Teams“
+
+Findet eine gemeldete Stunde doch statt, kommt „✅ findet wieder normal statt“. Geprüft wird
+alle 15 Minuten zwischen 6 und 22 Uhr; jede Änderung kommt nur einmal. Fragen gehen auch:
+„Was hab ich morgen?“, „Fällt diese Woche was aus?“, „Wann ist Freitag Schluss?“.
+
+Einrichtung im **Fabians-HA-Master** unter **Stundenplan 1 (WebUntis)** – für einen zweiten Plan
+(z. B. Geschwister) zusätzlich **Stundenplan 2**:
+
+- **Name:** frei wählbar, z. B. `Fabian` – steht in den Meldungen, wenn es mehrere Pläne gibt
+- **Server:** Im Browser auf [webuntis.com](https://webuntis.com) die Schule suchen und die
+  Login-Seite öffnen. Die Adresse aus der Adresszeile hier einfügen, z. B.
+  `https://nessa.webuntis.com/WebUntis/?school=gym-musterstadt#/basic/login` – dann bleibt
+  **Schule** leer.
+- **Benutzername / Passwort:** deine WebUntis-Anmeldung
+
+Meldungen gehen an deine Handynummer aus dem Master. Speichern – der Master startet den Assistenten
+neu; im Protokoll steht pro Plan `[assistent] Stundenplan Fabian: Anmeldung ok` oder der Fehler.
+
+Hinweise: Es geht nur mit Untis-Benutzername und -Passwort, nicht mit „Mit Microsoft anmelden“.
+Manche Schulen sperren den Zugriff für eigene Programme – dann steht das im Protokoll. Schlägt
+die Anmeldung dreimal hintereinander fehl, bekommst du einmal eine Nachricht. Der Assistent liest
+nur, er ändert nichts in WebUntis.
+
 ## 3D-Druck
 
 Mit **Fabians-HA-3D-Druck** sucht Claude Modelle auf Printables, schickt dir Bilder, slict für

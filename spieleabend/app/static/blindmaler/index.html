@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Blind gezeichnet</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <script>
+    // Lobby illustration (kept here as a fallback until it is part of art.js).
+    window.ART = window.ART || {};
+    window.ART.blindmaler = window.ART.blindmaler || `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="bma" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#7c3aed"/></linearGradient><filter id="bmsh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><g filter="url(#bmsh)" transform="rotate(-4 80 60)"><rect x="18" y="12" width="124" height="94" rx="12" fill="#fff"/></g><g transform="rotate(-4 80 60)" fill="none" stroke="#1f2937" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M44 84 L46 52 L78 34 L112 54 L108 86 Z"/><path d="M50 50 L84 30 L118 52"/><path d="M70 86 L72 66 L86 64 L88 84"/><circle cx="98" cy="64" r="5"/><path d="M104 24 q14 -6 18 8"/></g><g filter="url(#bmsh)" transform="rotate(-8 178 46)"><rect x="146" y="32" width="66" height="28" rx="14" fill="url(#bma)"/></g><g transform="rotate(-8 178 46)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M160 44 q6 7 12 0"/><path d="M184 44 q6 7 12 0"/></g><g filter="url(#bmsh)"><circle cx="176" cy="92" r="16" fill="#fff"/></g><text x="176" y="99" text-anchor="middle" font-size="18" font-weight="900" fill="#7c3aed" font-family="Inter,system-ui,sans-serif">?</text></svg>`;
+  </script>
+  <style>
+    .termcard {
+      max-width: 520px; text-align: center; font-size: clamp(1.5rem, 7vw, 2.2rem); font-weight: 850; line-height: 1.2;
+      padding: 12px 26px; border-radius: 20px; color: #3b1d4a; letter-spacing: -.01em;
+      background: linear-gradient(160deg, #fff7d6, #ffe9a8); box-shadow: 0 10px 26px rgba(120, 80, 0, .18);
+      transform: rotate(-1.2deg); animation: flipin .7s cubic-bezier(.3,.9,.3,1.2) both;
+    }
+    .termcard small { display: block; font-size: .72rem; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; opacity: .6; margin-bottom: 2px; }
+    @keyframes flipin { from { transform: perspective(700px) rotateY(90deg) scale(.9); opacity: 0; } 60% { transform: perspective(700px) rotateY(-10deg) rotate(-1.2deg); opacity: 1; } }
+    .paper {
+      width: 100%; max-width: 760px; aspect-ratio: 4 / 3; border-radius: 22px; overflow: hidden; position: relative;
+      background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 16px 40px rgba(30, 20, 80, .25);
+    }
+    .paper canvas, .paper svg { width: 100%; height: 100%; display: block; }
+    .pstage .paper { max-width: max(260px, min(640px, calc((100dvh - 360px) * 4 / 3))); }
+    .tvmain .paper { max-width: min(100%, calc((100vh - 360px) * 4 / 3)); border-radius: 2vw; }
+    .tvmain .pchoices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tvmain h2 { font-size: clamp(1.6rem, 3vw, 3.4rem); }
+    .tvmain .reveal .paper { max-width: min(100%, calc((100vh - 400px) * 4 / 3)); }
+    /* the blind pad: catches the finger but never shows a line */
+    .pad { touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+    .pad .wm { position: absolute; inset: 0; display: grid; place-items: center; font-size: 4.5rem; opacity: .08; pointer-events: none; }
+    .pad .dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #7c3aed; opacity: 0; pointer-events: none; transition: opacity .15s; }
+    .pad.down .dot { opacity: .22; }
+    .pad.locked { cursor: default; }
+    .pad.locked::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 5rem; color: var(--ok); background: rgba(255,255,255,.6); font-weight: 900; }
+    .padbar { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%; }
+    .padbar .cnt { font-size: .85rem; color: var(--muted); font-weight: 650; min-width: 74px; }
+    .pdone { font-weight: 700; color: var(--ok); }
+    .blindtv { font-size: clamp(5rem, 12vw, 12rem); animation: bob 2s ease-in-out infinite; }
+    .pchoice.mine { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .tvmain .pchoices { pointer-events: none; }
+    .pstage .pchoices { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pstage .pchoice { padding: 12px 8px; }
+    .artist { font-weight: 750; }
+    .res { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+    .res .r { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); text-align: left; animation: rise .4s ease both; }
+    .res .r.ok { box-shadow: inset 4px 0 0 var(--ok); }
+    .res .n { font-weight: 700; flex: none; max-width: 36%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .res .t { flex: 1; min-width: 0; color: var(--muted); font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .res .r:not(.ok) .t { text-decoration: line-through; }
+    .res .pts { font-weight: 850; color: var(--ok); min-width: 32px; text-align: right; }
+    .res .r.art { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent-2) 18%, transparent)); }
+    .tvmain .res .r { font-size: clamp(1rem, 1.4vw, 1.6rem); } .tvmain .res .t { font-size: inherit; }
+    .tvmain .reveal { display: grid !important; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: 2vw; }
+    .reveal .side { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; }
+    /* final gallery */
+    .overlay { overflow-y: auto; align-items: start; }
+    .overlay .panel { max-width: 640px; margin: auto; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 14px; text-align: left; }
+    .gallery figure { margin: 0; animation: rise .4s ease both; }
+    .gallery .paper { border-radius: 12px; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 6px 16px rgba(30, 20, 80, .2); }
+    .gallery figcaption { font-size: .78rem; margin-top: 4px; line-height: 1.3; color: var(--muted); }
+    .gallery figcaption b { color: var(--text); display: block; font-size: .88rem; }
+    /* ---------- one screen, no scrolling: the drawing gets the height that is left ---------- */
+    #table { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; } /* entry animations never make the page scroll */
+    #table > .topbar { flex: none; padding-top: 6px; padding-bottom: 6px; }
+    #table > #stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    #stage > .pstage, #stage > .tvgrid { flex: 1 1 0; min-height: 0; }
+    #stage > .pstage { justify-content: center; padding: clamp(10px, 2vh, 18px) clamp(10px, 3.4vw, 16px); gap: clamp(8px, 1.6vh, 14px); border-radius: 24px; }
+    .pstage > *, .tvmain > * { flex: none; }
+    .tvgrid { min-height: 0; height: auto; }
+    .tvmain { min-height: 0; }
+    .pbox { flex: 1 1 0 !important; min-height: 100px; width: 100%; container-type: size; display: grid; place-items: center; }
+    .pbox > .paper { width: min(100cqw, calc(100cqh * 4 / 3), 760px); max-width: none !important; }
+    .tvmain > .pbox { min-height: 160px; }
+    .termcard { padding: clamp(6px, 1.3vh, 12px) 22px; font-size: clamp(1.3rem, min(7vw, 4vh), 2.2rem); }
+    .pstage h2 { font-size: clamp(1.15rem, min(4.6vw, 3.2vh), 1.75rem); }
+    .pstage .pchoice { padding: clamp(8px, 1.4vh, 12px) 8px; }
+    .pstage .pstatus .avatar { width: 28px; height: 28px; font-size: .75rem; }
+    /* reveal: drawing on top, results below; a long result list scrolls inside as a last resort */
+    .reveal { display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.5vh, 14px); width: 100%; }
+    .pstage > .reveal { flex: 1 1 0; min-height: 0; }
+    .pstage .reveal > .pbox { min-height: clamp(90px, 24vh, 300px); }
+    /* .art (illustrations in common.css) would stretch the artist's row */
+    .res .r.art { display: flex; width: auto; height: auto; overflow: visible; color: inherit; }
+    .pstage .reveal .side { flex: 0 1 auto; min-height: 0; gap: 6px; }
+    .pstage .reveal .side > * { flex: none; }
+    .pstage .reveal .pbig { font-size: clamp(1.7rem, min(9vw, 5.5vh), 3.6rem); }
+    .pstage .reveal .res { flex: 0 1 auto; min-height: 66px; overflow-y: auto; overscroll-behavior: contain; gap: 4px; }
+    .pstage .reveal .res .r { flex: none; padding: 4px 10px; gap: 8px; }
+    .pstage .reveal .res .avatar { width: 26px; height: 26px; font-size: .72rem; }
+    .pstage .reveal .plabel { margin: 2px 0 0; }
+    /* many players: results in two columns */
+    .pstage .reveal .res:has(> .r:nth-child(6)) { display: grid; grid-template-columns: 1fr 1fr; align-content: start; }
+    .pstage .reveal .res:has(> .r:nth-child(6)) .r { min-width: 0; padding: 4px 8px 4px 4px; gap: 5px; font-size: .85rem; }
+    .pstage .reveal .res:has(> .r:nth-child(6)) .n { max-width: 55%; }
+    .pstage .reveal .res:has(> .r:nth-child(6)) .t { font-size: .78rem; }
+    .pstage .reveal .res:has(> .r:nth-child(6)) .pts { min-width: 0; }
+    .pstage .reveal .res:has(> .r:nth-child(6)) .avatar { width: 22px; height: 22px; font-size: .65rem; }
+    .rankc .pscore { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 4px 6px; }
+    .rankc .pscore:has(> .ps:nth-child(7)) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 100px), 1fr)); }
+    .rankc .pscore:has(> .ps:nth-child(7)) .pos { display: none; }
+    .rankc .pscore .ps { padding: 3px 9px 3px 4px; gap: 6px; border-radius: 999px; font-size: .84rem; }
+    .rankc .pscore .avatar { width: 22px; height: 22px; font-size: .65rem; }
+    .rankc .pscore .pos { width: auto; min-width: 10px; font-size: .75rem; }
+    .rankc .pscore .pts { min-width: 0; }
+    .rankc .pscore .plus { font-size: .75rem; }
+    /* TV */
+    .tvmain { gap: 1.4vw; padding-top: max(2.2vw, 56px); }
+    .tvmain .reveal { flex: 1 1 0; min-height: 0; }
+    .tvmain .reveal > .pbox { height: 100%; }
+    .tvmain .reveal .side { min-height: 0; }
+    .tvmain .reveal .res { min-height: 0; overflow: hidden; }
+    .tvside { min-height: 0; overflow: hidden; }
+    /* final gallery: the ranking stays, the pictures scroll inside the panel when there are many */
+    .overlay { align-items: center; }
+    #finished .panel { max-height: calc(100dvh - 32px); display: flex; flex-direction: column; padding: 16px; }
+    #finished .panel > * { flex: none; }
+    #finished .trophy { font-size: clamp(2rem, 6vh, 3.4rem); }
+    #finished h3 { font-size: clamp(1.3rem, 4vh, 1.9rem); margin: 2px 0; }
+    #finished #winnerSub { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    #finished #winnerSub > * { flex: none; }
+    #finished #winnerSub .pscore { gap: 4px; }
+    #finished #winnerSub .pscore .ps { padding: 5px 10px; }
+    #finished #winnerSub .pscore .avatar { width: 26px; height: 26px; font-size: .72rem; }
+    #finished .gallery { flex: 0 1 auto; min-height: 90px; overflow-y: auto; overscroll-behavior: contain; margin-top: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+    #finished .plabel { margin: 10px 0 0 !important; }
+    #finished .row { margin-top: 12px !important; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Blind gezeichnet</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const W = 1000, H = 750, SCALE = 1.5, PEN = { c: "#1f2937", w: 10 };
+
+    // ---------- showing drawings ----------
+    function strokePath(ctx, s, upto) {
+      const p = s.p, n = upto == null ? p.length : Math.min(p.length, upto);
+      if (n < 2) return;
+      ctx.strokeStyle = ctx.fillStyle = s.c;
+      ctx.lineWidth = s.w;
+      if (n === 2) { ctx.beginPath(); ctx.arc(p[0], p[1], s.w / 2, 0, Math.PI * 2); ctx.fill(); return; }
+      ctx.beginPath();
+      ctx.moveTo(p[0], p[1]);
+      for (let i = 2; i < n; i += 2) ctx.lineTo(p[i], p[i + 1]);
+      ctx.stroke();
+    }
+    function paint(ctx, strokes) {
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+      for (const s of strokes) strokePath(ctx, s);
+    }
+    /* Re-draw a drawing stroke by stroke, as if someone was drawing it right now. */
+    function replay(canvas, strokes, ms = 2600) {
+      canvas.width = W * SCALE; canvas.height = H * SCALE;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      ctx.lineCap = ctx.lineJoin = "round";
+      const total = strokes.reduce((n, s) => n + s.p.length, 0);
+      if (!total || ms <= 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) { paint(ctx, strokes); return; }
+      const t0 = performance.now();
+      (function frame(now) {
+        if (!canvas.isConnected) return;
+        let budget = Math.ceil(total * Math.min(1, (now - t0) / ms));
+        paint(ctx, []);
+        for (const s of strokes) { if (budget <= 0) break; strokePath(ctx, s, budget); budget -= s.p.length; }
+        if (now - t0 < ms) requestAnimationFrame(frame);
+      })(t0);
+    }
+    /* A finished drawing as inline SVG (no script needed, e.g. in the final gallery). */
+    function svgOf(strokes) {
+      return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><rect width="${W}" height="${H}" fill="#fff"/>${strokes.map(s => {
+        const p = s.p;
+        if (p.length === 2) return `<circle cx="${p[0]}" cy="${p[1]}" r="${s.w / 2}" fill="${s.c}"/>`;
+        let d = `M${p[0]} ${p[1]}`;
+        for (let i = 2; i < p.length; i += 2) d += `L${p[i]} ${p[i + 1]}`;
+        return `<path d="${d}" fill="none" stroke="${s.c}" stroke-width="${s.w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }).join("")}</svg>`;
+    }
+
+    // ---------- the blind pad ----------
+    let padKey = null, strokes = [], endAt = null, sent = null;
+    function draftKey(g) { return `${g.code}|${g.round}`; }
+    function saveDraft() { try { Shell.store.set("blindmaler-draft", JSON.stringify({ key: padKey, strokes })); } catch {} }
+    function loadDraft(key) {
+      try { const d = JSON.parse(Shell.store.get("blindmaler-draft") || "null"); if (d && d.key === key) return d.strokes; } catch {}
+      return [];
+    }
+    function myDone(g) { const me = g.players.find(p => p.id === Shell.me); return !!(me && me.done); }
+
+    function bindPad(g) {
+      const pad = document.getElementById("pad"), dot = document.getElementById("dot");
+      if (!pad) return;
+      const count = () => { const c = document.getElementById("cnt"); if (c) c.textContent = `${strokes.length} ${strokes.length === 1 ? "Strich" : "Striche"}`; };
+      count();
+      let cur = null;
+      const pos = e => {
+        const r = pad.getBoundingClientRect();
+        return [Math.round((e.clientX - r.left) / r.width * W), Math.round((e.clientY - r.top) / r.height * H), e.clientX - r.left, e.clientY - r.top];
+      };
+      const move = (x, y) => { dot.style.left = x + "px"; dot.style.top = y + "px"; };
+      pad.onpointerdown = e => {
+        if (myDone(Shell.game)) return;
+        pad.setPointerCapture(e.pointerId);
+        const [x, y, px, py] = pos(e);
+        cur = { c: PEN.c, w: PEN.w, p: [x, y] };
+        move(px, py); pad.classList.add("down");
+      };
+      pad.onpointermove = e => {
+        if (!cur) return;
+        const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+        for (const ev of events.length ? events : [e]) {
+          const [x, y, px, py] = pos(ev), p = cur.p;
+          move(px, py);
+          const dx = x - p[p.length - 2], dy = y - p[p.length - 1];
+          if (dx * dx + dy * dy >= 9) p.push(Math.max(0, Math.min(W, x)), Math.max(0, Math.min(H, y)));
+        }
+      };
+      pad.onpointerup = pad.onpointercancel = () => {
+        pad.classList.remove("down");
+        if (!cur) return;
+        strokes.push(cur); cur = null; saveDraft(); count();
+        if (navigator.vibrate) navigator.vibrate(8);
+      };
+      document.getElementById("restart").onclick = () => {
+        if (strokes.length && confirm("Alles wegwerfen und neu anfangen?")) { strokes = []; saveDraft(); count(); }
+      };
+      document.getElementById("submit").onclick = () => submit(false);
+    }
+
+    function submit(auto) {
+      const g = Shell.game;
+      if (!g || g.phase !== "draw" || myDone(g) || sent === padKey) return;
+      if (!auto && !strokes.length && !confirm("Du hast noch nichts gezeichnet. Trotzdem abgeben?")) return;
+      sent = padKey;
+      Shell.send({ t: "submit", strokes });
+    }
+    // When the drawing time is over, the drawing is handed in automatically.
+    setInterval(() => {
+      const g = Shell.game;
+      if (g && g.state === "playing" && g.phase === "draw" && endAt && Date.now() >= endAt) {
+        const me = g.players.find(p => p.id === Shell.me);
+        if (me && !me.screen) submit(true);
+      }
+    }, 250);
+
+    // ---------- pieces of the stage ----------
+    function choices(g, ctx) {
+      const art = g.drawing && g.drawing.by === Shell.me;
+      if (art) return `<p class="artist">🎨 Das ist deine Zeichnung von „${esc(g.my_term || "")}“ – so sieht sie also aus! Die anderen raten.</p>`;
+      if (g.mode === 1) {
+        if (ctx.tv) return "<p>Tippt auf euren Handys, was das sein soll!</p>";
+        return g.my_pick != null ? `<p class="pdone">✓ Dein Tipp: ${esc(g.my_pick)}</p>`
+          : Party.form("guessForm", "Was ist das?", "Raten", 40);
+      }
+      // (the picked answer is marked in update(), so the buttons don't pop in again on every change)
+      return `<div class="pchoices">${g.options.map((o, i) => `<button class="pchoice" data-pick="${esc(o)}" style="animation-delay:${i * 50}ms" ${ctx.tv ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>`;
+    }
+
+    function revealHtml(g, ctx) {
+      const d = g.drawing;
+      if (!d) return g.state === "finished" ? `<div class="blindtv">🖼️</div><h2>Das war's – ab in die Galerie!</h2>`
+        : `<div class="blindtv">🙈</div><h2>Niemand hat etwas gezeichnet!</h2>`;
+      const artist = g.players.find(p => p.id === d.by) || { name: d.name };
+      const others = g.results.length;
+      const hits = d.hits;
+      const verdict = !others ? "" : hits === others ? "Alle haben es erkannt! 🎉" : hits ? `${hits} von ${others} haben es erkannt` : "Niemand hat es erkannt 🙈";
+      return `<div class="reveal">
+        <div class="pbox"><div class="paper">${svgOf(d.strokes)}</div></div>
+        <div class="side">
+          <div class="pbig">${esc(d.term)}</div><p>von <b>${esc(d.name)}</b> · ${verdict}</p>
+          <div class="res">
+            <div class="r art">${Shell.avatar(artist)}<span class="n">${esc(d.name)}</span><span class="t" style="text-decoration:none">🎨 Künstler</span><span class="pts">${artist.gained ? "+" + artist.gained : ""}</span></div>
+            ${g.results.map((r, i) => { const p = g.players.find(q => q.id === r.id) || { name: "?" };
+              return `<div class="r ${r.ok ? "ok" : ""}" style="animation-delay:${(i + 1) * 60}ms">${Shell.avatar(p)}<span class="n">${esc(p.name)}</span>
+                <span class="t">${r.guess ? (r.ok ? "✓ " : "") + esc(r.guess) : "–"}</span><span class="pts">${r.ok ? "+" + p.gained : ""}</span></div>`; }).join("")}
+          </div>
+          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3><div class="rankc" style="width:100%">${Party.ranking(g, { gained: true, compact: true })}</div>`}
+        </div></div>`;
+    }
+
+    Party.start({
+      kind: "blindmaler", title: "Blind gezeichnet", art: "blindmaler", minPlayers: 3, icon: "🙈",
+      inputPhases: ["draw", "guess"],
+      settings: [
+        { key: "rounds", label: "Runden", options: [[2, "2 Runden"], [1, "1 Runde"], [3, "3 Runden"]] },
+        { key: "seconds", label: "Zeichenzeit", options: [[30, "30 Sekunden zeichnen"], [20, "20 Sekunden zeichnen"], [45, "45 Sekunden zeichnen"], [60, "60 Sekunden zeichnen"]] },
+        { key: "mode", label: "Raten", options: [[0, "Raten mit Auswahl"], [1, "Raten durch Eintippen"]] },
+      ],
+      head: g => `Runde ${g.round} / ${g.rounds}${g.phase !== "draw" && g.count ? ` · Bild ${g.pos} / ${g.count}` : ""}`,
+      key: g => g.pos,
+      isLast: g => g.last,
+      get nextLabel() { const g = Shell.game; return g && g.pos < g.count ? "Nächstes Bild →" : "Nächste Runde →"; },
+      skipLabel: "⏭ Nicht mehr warten",
+      build(g, ctx) {
+        if (g.phase === "draw") {
+          if (ctx.tv) return `<div class="blindtv">🙈✏️</div><h2>Alle zeichnen – blind!</h2><p>Jeder malt seinen eigenen Begriff, ohne die Striche zu sehen.</p><div data-status></div>`;
+          const key = draftKey(g);
+          if (padKey !== key) { padKey = key; strokes = loadDraft(key); }
+          return `<div class="termcard"><small>Zeichne – ohne hinzusehen</small>${esc(g.term || "?")}</div>
+            <div class="pbox"><div class="paper pad" id="pad"><span class="wm">🙈</span><i class="dot" id="dot"></i></div></div>
+            <div class="padbar" id="padbar"><span class="cnt" id="cnt"></span><button class="btn ghost small" id="restart">↺ Von vorn</button><button class="btn" id="submit">Fertig ✓</button></div>
+            <div data-status></div>`;
+        }
+        if (g.phase === "guess") {
+          return `<h2>Was soll das sein?</h2><div class="pbox"><div class="paper"><canvas id="view"></canvas></div></div>
+            <div id="mine" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px"></div><div data-status></div>`;
+        }
+        return revealHtml(g, ctx);
+      },
+      bind(g, ctx) {
+        if (g.phase === "draw" && !ctx.tv) bindPad(g);
+        if (g.phase === "guess") replay(document.getElementById("view"), g.drawing ? g.drawing.strokes : []);
+      },
+      celebrate: (g, ctx) => !!(g.drawing && g.results.some(r => r.ok && r.id === Shell.me)) || !!(g.drawing && g.drawing.by === Shell.me && g.drawing.hits),
+      update(g, ctx) {
+        endAt = g.phase === "draw" && g.remaining != null ? Date.now() + g.remaining * 1000 : null;
+        if (g.phase === "draw" && !ctx.tv) {
+          const done = myDone(g), pad = document.getElementById("pad"), bar = document.getElementById("padbar");
+          if (pad) pad.classList.toggle("locked", done);
+          if (bar && done && !bar.dataset.done) { bar.dataset.done = "1"; bar.innerHTML = `<p class="pdone">✓ Abgegeben – warte auf die anderen …</p>`; }
+        }
+        if (g.phase !== "guess") return;
+        if (Party.set("mine", choices(g, ctx))) {
+          document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => Shell.send({ t: "guess", value: b.dataset.pick }));
+          Party.onForm("guessForm", v => Shell.send({ t: "guess", value: v }));
+        }
+        document.querySelectorAll("[data-pick]").forEach(b => b.classList.toggle("on", b.dataset.pick === g.my_pick));
+      },
+      finishedExtra: g => {
+        const pics = g.gallery || [];
+        if (!pics.length) return "";
+        return `<div class="plabel" style="margin-top:16px">Galerie</div><div class="gallery">${pics.map((d, i) => `
+          <figure style="animation-delay:${Math.min(i, 20) * 50}ms"><div class="paper">${svgOf(d.strokes)}</div>
+          <figcaption><b>${esc(d.term)}</b>${esc(d.name)} · ${d.hits ? `${d.hits}× erkannt` : "nicht erkannt"}</figcaption></figure>`).join("")}</div>`;
+      },
+    });
+  </script>
+</body>
+</html>

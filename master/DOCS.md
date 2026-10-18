@@ -10,18 +10,21 @@ sich beim Start beim Master genau das, was sie brauchen.
    Er startet beim Hochfahren vor den anderen Add-ons.
 2. In der Seitenleiste **Master** öffnen.
 3. Hast du noch die alten Add-ons (Inkbox Claude Gateway, Krypto-Trader, 3D-Druck, Downloader,
-   Video-Downloader, Spieleabend aus den alten Repositories)? Dann auf **„Schlüssel aus den
+   Video-Downloader, Spieleabend, Bestenliste, Urlaubsplaner aus den alten Repositories)? Dann auf **„Schlüssel aus den
    alten Add-ons übernehmen“** klicken – fertig. Sonst die Felder ausfüllen:
 
 | Bereich | Wofür |
 |---|---|
 | iMessage (Inkbox) | API-Key, Identität und deine Handynummer – für den Assistenten und alle Meldungen der Add-ons |
-| Claude | Claude-Token oder Anthropic-API-Key für den Assistenten (nicht nötig mit importierter claude.ai-Anmeldung) |
+| Claude | Claude-Token oder Anthropic-API-Key für den Assistenten (nicht nötig mit importierter claude.ai-Anmeldung); der API-Key auch für den Urlaubsplaner |
 | Apple-Kalender | Apple-ID und App-Passwort (optional) |
 | eBay | Client-ID, Client-Secret, Postleitzahl (optional) |
+| Paketverfolgung | 17TRACK- und DHL-Schlüssel für den Assistenten (optional) |
+| Stundenplan 1 und 2 | WebUntis-Anmeldungen für den Assistenten (optional) |
 | 3D-Drucker | IP, Seriennummer, LAN-Zugangscode des Bambu Lab P1S |
 | Krypto-Börse | API-Key/Secret – nur für Echtgeld, **nur Handelsrecht, keine Auszahlungen** |
-| Zugangscodes | Code für Downloader/Videos aus dem Internet und Code für den Spieleabend |
+| Zugangscodes | Code für Downloader/Videos aus dem Internet und Code für Spieleabend und Bestenliste |
+| E-Mail (Spieleabend) | SMTP-Server für die Bestätigungscodes der Spieleabend-Konten (optional) |
 
 4. **Speichern.** Der Master startet die laufenden Add-ons, die einen geänderten Schlüssel
    nutzen, selbst neu. Oben siehst du, welche Add-ons verbunden sind und ob noch etwas fehlt.

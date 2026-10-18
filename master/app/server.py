@@ -43,7 +43,9 @@ FIELDS = [
     ("iMessage (Inkbox)", "inkbox_identity", "Inkbox-Identität", False, "Name deiner Inkbox-Identität, ohne @", ["assistent"]),
     ("iMessage (Inkbox)", "phone", "Deine Handynummer", False, "Für Meldungen der Add-ons, z. B. +4917012345678", ["assistent"]),
     ("Claude", "claude_oauth_token", "Claude-Token", True, "Aus „claude setup-token“ – nicht nötig, wenn die claude.ai-Anmeldung importiert ist", ["assistent"]),
-    ("Claude", "anthropic_api_key", "Anthropic-API-Key", True, "Alternative zum Token (wird nach Verbrauch abgerechnet)", ["assistent"]),
+    ("Claude", "anthropic_api_key", "Anthropic-API-Key", True,
+     "Für den Urlaubsplaner (Kassenzettel, Unterkünfte, Geheimtipps); beim Assistenten eine Alternative zum Token. Wird nach Verbrauch abgerechnet",
+     ["assistent", "urlaub"]),
     ("Apple-Kalender", "icloud_apple_id", "Apple-ID", False, "E-Mail-Adresse deiner Apple-ID", ["assistent"]),
     ("Apple-Kalender", "icloud_app_password", "App-Passwort", True, "account.apple.com → Anmeldung und Sicherheit → App-Passwörter", ["assistent"]),
     ("eBay", "ebay_client_id", "Client-ID (App-ID)", False, "developer.ebay.com → Application Keys (Production)", ["assistent"]),
@@ -52,6 +54,22 @@ FIELDS = [
     ("3D-Drucker (Bambu Lab)", "printer_ip", "IP-Adresse", False, "Drucker-Display → Einstellungen → Netzwerk", ["druck3d"]),
     ("3D-Drucker (Bambu Lab)", "printer_serial", "Seriennummer", False, "Drucker-Display → Einstellungen → Gerät", ["druck3d"]),
     ("3D-Drucker (Bambu Lab)", "printer_access_code", "Zugangscode (LAN)", True, "Drucker-Display → Einstellungen → Netzwerk → LAN-Modus", ["druck3d"]),
+    ("Paketverfolgung", "paket_17track_key", "17TRACK-Schlüssel", True,
+     "Kostenlos auf api.17track.net – verfolgt Pakete aller Paketdienste. Leer = Pakete werden nur gemerkt", ["assistent"]),
+    ("Paketverfolgung", "paket_dhl_key", "DHL-Schlüssel", True,
+     "Optional: developer.dhl.com → Shipment Tracking – Unified, für genauere DHL-Daten", ["assistent"]),
+    ("Stundenplan 1 (WebUntis)", "untis1_name", "Name", False, "Frei wählbar, z. B. Fabian", ["assistent"]),
+    ("Stundenplan 1 (WebUntis)", "untis1_server", "Server", False,
+     "Adresse aus dem Browser beim WebUntis-Login (z. B. https://nessa.webuntis.com/WebUntis/?school=gym-musterstadt – dann bleibt Schule leer) oder nur der Server", ["assistent"]),
+    ("Stundenplan 1 (WebUntis)", "untis1_school", "Schule", False, "Schulname, nur nötig, wenn er nicht in der Adresse steht", ["assistent"]),
+    ("Stundenplan 1 (WebUntis)", "untis1_username", "Benutzername", False, "Deine WebUntis-Anmeldung", ["assistent"]),
+    ("Stundenplan 1 (WebUntis)", "untis1_password", "Passwort", True, "Nur mit Untis-Passwort, nicht mit Microsoft-Login", ["assistent"]),
+    ("Stundenplan 2 (WebUntis)", "untis2_name", "Name", False, "Frei wählbar, z. B. Fabian – leer lassen, wenn du nur einen Stundenplan hast", ["assistent"]),
+    ("Stundenplan 2 (WebUntis)", "untis2_server", "Server", False,
+     "Adresse aus dem Browser beim WebUntis-Login (z. B. https://nessa.webuntis.com/WebUntis/?school=gym-musterstadt – dann bleibt Schule leer) oder nur der Server", ["assistent"]),
+    ("Stundenplan 2 (WebUntis)", "untis2_school", "Schule", False, "Schulname, nur nötig, wenn er nicht in der Adresse steht", ["assistent"]),
+    ("Stundenplan 2 (WebUntis)", "untis2_username", "Benutzername", False, "Deine WebUntis-Anmeldung", ["assistent"]),
+    ("Stundenplan 2 (WebUntis)", "untis2_password", "Passwort", True, "Nur mit Untis-Passwort, nicht mit Microsoft-Login", ["assistent"]),
     ("Krypto-Börse", "exchange_api_key", "API-Key", True, "Nur Handelsrecht, KEINE Auszahlungen erlauben", ["krypto"]),
     ("Krypto-Börse", "exchange_api_secret", "API-Secret", True, "", ["krypto"]),
     ("Krypto-Börse", "exchange_api_password", "API-Passphrase", True, "Nur bei manchen Börsen nötig", ["krypto"]),
@@ -59,7 +77,16 @@ FIELDS = [
      "Wird nur aus dem Internet abgefragt (Tunnel). Lang wählen und für dich behalten. Leer = Internet gesperrt",
      ["downloader", "videodownloader"]),
     ("Zugangscodes", "games_code", "Spieleabend", True,
-     "Für alle, die nicht über Home Assistant spielen – den darfst du an Freunde geben", ["spieleabend"]),
+     "Für alle, die nicht über Home Assistant spielen (auch für die Bestenliste) – den darfst du an Freunde geben",
+     ["spieleabend", "bestenliste"]),
+    ("E-Mail (Spieleabend)", "smtp_host", "SMTP-Server", False,
+     "Für Bestätigungscodes bei Registrierung und „Passwort vergessen“, z. B. smtp.gmail.com, smtp.web.de, smtp.gmx.net. Leer = Codes nur im Protokoll",
+     ["spieleabend"]),
+    ("E-Mail (Spieleabend)", "smtp_port", "Port", False, "Meist 587 (STARTTLS) oder 465 (SSL); leer = 587", ["spieleabend"]),
+    ("E-Mail (Spieleabend)", "smtp_tls", "Verschlüsselung", False, "starttls (Port 587), ssl (Port 465) oder none; leer = starttls", ["spieleabend"]),
+    ("E-Mail (Spieleabend)", "smtp_user", "Benutzer", False, "Meist deine E-Mail-Adresse", ["spieleabend"]),
+    ("E-Mail (Spieleabend)", "smtp_password", "Passwort", True, "Bei Gmail und iCloud ein App-Passwort", ["spieleabend"]),
+    ("E-Mail (Spieleabend)", "smtp_from", "Absender", False, "Leer = Benutzer", ["spieleabend"]),
 ]
 FIELD = {f[1]: f for f in FIELDS}
 PHONE = re.compile(r"^\+[1-9][0-9]{6,14}$")
@@ -72,6 +99,9 @@ TOOLS = {
     "videodownloader": ("Fabians-HA-Video-Downloader", 8097),
     "spieleabend": ("Fabians-HA-Spieleabend", 8098),
     "downloader": ("Fabians-HA-Downloader", 8099),
+    "bestenliste": ("Fabians-HA-Bestenliste", 8091),
+    "browser": ("Fabians-HA-Browser", 8096),
+    "urlaub": ("Fabians-HA-Urlaub", 8100),
 }
 # Without these an add-on cannot work at all (everything else is optional: Claude also works with an
 # imported claude.ai login, the exchange keys are only needed for real money).
@@ -83,14 +113,19 @@ IMPORT = {
                               "claude_oauth_token": "claude_oauth_token", "anthropic_api_key": "anthropic_api_key",
                               "icloud_apple_id": "icloud_apple_id", "icloud_app_password": "icloud_app_password",
                               "ebay_client_id": "ebay_client_id", "ebay_client_secret": "ebay_client_secret",
-                              "ebay_zip": "ebay_zip", "ebay_notify_to": "phone"},
+                              "ebay_zip": "ebay_zip", "ebay_notify_to": "phone",
+                              "paket_17track_key": "paket_17track_key", "paket_dhl_key": "paket_dhl_key",
+                              **{f"untis.{i}.{part}": f"untis{i + 1}_{part}" for i in (0, 1)
+                                 for part in ("name", "server", "school", "username", "password")}},
     "druck3d": {"printer_ip": "printer_ip", "printer_serial": "printer_serial", "access_code": "printer_access_code",
                 "inkbox_api_key": "inkbox_api_key", "imessage_to": "phone"},
     "krypto": {"api_key": "exchange_api_key", "api_secret": "exchange_api_secret", "api_password": "exchange_api_password",
                "inkbox_api_key": "inkbox_api_key", "imessage_to": "phone"},
     "downloader": {"inkbox_api_key": "inkbox_api_key", "imessage_to": "phone", "access_code": "access_code"},
     "videodownloader": {"access_code": "access_code"},
-    "spieleabend": {"access_code": "games_code"},
+    "spieleabend": {"access_code": "games_code", **{f"smtp_{k}": f"smtp_{k}" for k in ("host", "port", "tls", "user", "password", "from")}},
+    "bestenliste": {"access_code": "games_code"},
+    "urlaub": {"anthropic_api_key": "anthropic_api_key"},
 }
 
 
@@ -485,8 +520,12 @@ async def ui_import(request: web.Request) -> web.Response:
     found = await request.app["sv"].old_addons()
     values: dict[str, str] = {}
     for addon in found:
+        options = dict(addon["options"])
+        for name, entries in addon["options"].items():     # lists (e.g. timetables) as "untis.0.name"
+            if isinstance(entries, list):
+                options.update({f"{name}.{i}.{k}": v for i, e in enumerate(entries) if isinstance(e, dict) for k, v in e.items()})
         for old, new in IMPORT[addon["kind"]].items():
-            value = str(addon["options"].get(old) or "").strip()
+            value = str(options.get(old) or "").strip()
             if value and not store.get(new) and new not in values:
                 values[new] = value
     try:

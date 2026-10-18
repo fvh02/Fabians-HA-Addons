@@ -1,7 +1,7 @@
 name: Fabians-HA-Spieleabend
-version: "3.1.0"
+version: "3.6.0"
 slug: spieleabend
-description: 18 Spiele für den Spieleabend im Browser – Karten-, Zeichen-, Wort-, Quiz-, Party- und Trinkspiele, viele mit Fernseher-Modus
+description: 27 Spiele für den Spieleabend im Browser – Karten-, Zeichen-, Wort-, Quiz-, Party- und Trinkspiele, viele mit Fernseher-Modus
 url: https://github.com/fvh02/Fabians-HA-Addons
 image: ghcr.io/fvh02/{arch}-fabians-ha-spieleabend
 arch:

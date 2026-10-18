@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Codewörter</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <style>
+    :root { --rot: #ef4444; --rot-2: #b91c1c; --blau: #3b82f6; --blau-2: #1d4ed8; --paper: #fffaf0; --paper-2: #efe5d0; --ink: #2a2440; }
+    .card.cr { --c1: #f87171; --c2: #b91c1c; } .card.cb { --c1: #60a5fa; --c2: #1d4ed8; }
+    .card.cn { --c1: #e7dcc4; --c2: #b8a888; } .card.ca { --c1: #4b5563; --c2: #111827; }
+
+    /* waiting room: teams (compact, so that the room fits one phone screen) */
+    /* the team columns replace the plain player list (one panel instead of two) */
+    #roomPlayers { display: none; }
+    .thead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -2px 0 8px; }
+    .thead h2 { margin: 0 !important; }
+    .thead .btn { padding: 6px 12px; font-size: .8rem; }
+    .tcol .m .x { padding: 0 2px; font-size: 1.1rem; line-height: 1; margin-left: auto; }
+    .tcol .m .spyb + .x { margin-left: 0; }
+    .tfree { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 6px; margin-top: 8px; font-size: .8rem; color: var(--muted); }
+    .tfree .chipm { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 3px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); color: var(--text); font-weight: 650; max-width: 100%; }
+    .tfree .chipm .avatar { width: 18px; height: 18px; font-size: .58rem; }
+    .tfree .chipm .x { font-size: 1rem; padding: 0 3px; line-height: 1; }
+    .tfree .tvbtn { padding: 4px 9px; font-size: .75rem; }
+    #teamsPanel + #hostControls { margin-top: 10px; }
+    .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tcol { border-radius: 16px; padding: 8px 9px; border: 2px solid transparent; background: var(--glass-strong); display: flex; flex-direction: column; gap: 5px; transition: border-color .2s, box-shadow .2s; min-width: 0; }
+    .tcol.rot { border-color: color-mix(in srgb, var(--rot) 55%, transparent); }
+    .tcol.blau { border-color: color-mix(in srgb, var(--blau) 55%, transparent); }
+    .tcol.mine { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .tcol h3 { margin: 0; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+    .tcol h3 small { margin-left: auto; color: var(--muted); font-weight: 650; }
+    .tcol .ms { display: flex; flex-direction: column; gap: 4px; }
+    .tcol .m { display: flex; align-items: center; gap: 6px; font-weight: 650; font-size: .85rem; animation: rise .3s ease both; min-width: 0; }
+    .tcol .m .avatar { width: 20px; height: 20px; font-size: .62rem; flex: none; }
+    .tcol .m span.n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tcol .m .spyb { margin-left: auto; font-size: .8rem; }
+    /* many players: two names per line */
+    .teams.many .ms { gap: 2px; }
+    .teams.many .m .avatar { width: 18px; height: 18px; font-size: .58rem; }
+    .tcol .btn { margin-top: auto; padding: 11px 4px; font-size: .8rem; line-height: 1.2; }
+    .tcol.rot .btn:not(.ghost) { background: linear-gradient(135deg, #f87171, var(--rot-2)); }
+    .tcol.blau .btn:not(.ghost) { background: linear-gradient(135deg, #60a5fa, var(--blau-2)); }
+    .unassigned { margin: 8px 0 0; font-size: .78rem; line-height: 1.35; color: var(--muted); }
+    .tag.rot { background: linear-gradient(135deg, #f87171, var(--rot-2)); color: #fff; border: 0; }
+    .tag.blau { background: linear-gradient(135deg, #60a5fa, var(--blau-2)); color: #fff; border: 0; }
+
+    /* table */
+    #table > * { max-width: 760px; }
+    .topbar .timer { white-space: nowrap; font-family: ui-monospace, monospace; font-weight: 800; padding: 5px 12px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); }
+    .timer.low { color: #fff; background: linear-gradient(135deg, #f97316, #ef4444); border-color: transparent; animation: pulse 1s ease infinite; }
+    .cwstage { display: flex; flex-direction: column; gap: 10px; }
+    .score { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+    .tpill { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 16px; color: #fff; font-weight: 800; transition: transform .3s, box-shadow .3s, opacity .3s; opacity: .62; }
+    .tpill.rot { background: linear-gradient(135deg, #f87171, var(--rot-2)); }
+    .tpill.blau { background: linear-gradient(135deg, #60a5fa, var(--blau-2)); justify-content: flex-end; }
+    .tpill.on { opacity: 1; transform: scale(1.04); box-shadow: 0 8px 24px rgba(0, 0, 0, .25), 0 0 0 3px rgba(255, 255, 255, .55); }
+    .tpill b { font-size: 1.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+    .tpill small { font-size: .7rem; opacity: .85; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .score .vs { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; text-align: center; }
+    .hintbar { border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+    .hintbar .who { font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .hintbar .who.rot { color: var(--rot); } .hintbar .who.blau { color: var(--blau); }
+    .hintword { display: flex; align-items: center; gap: 10px; font-size: clamp(1.5rem, 7vw, 2.2rem); font-weight: 900; letter-spacing: -.01em; animation: popin .5s cubic-bezier(.2,.9,.3,1.3) both; max-width: 100%; flex-wrap: wrap; justify-content: center; }
+    .hintword > span:first-child { overflow-wrap: anywhere; }
+    .hintword .num { min-width: 1.5em; height: 1.5em; padding: 0 .3em; border-radius: 999px; display: grid; place-items: center; font-size: .75em; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .hintword.rot .num { background: linear-gradient(135deg, #f87171, var(--rot-2)); }
+    .hintword.blau .num { background: linear-gradient(135deg, #60a5fa, var(--blau-2)); }
+    .hintbar .sub { color: var(--muted); font-size: .9rem; }
+    .thinking i { background: var(--muted); }
+
+    .board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(4px, 1.3vw, 10px); }
+    .cw { position: relative; aspect-ratio: 1.45; border-radius: clamp(8px, 2vw, 14px); border: 0; padding: 0; cursor: default; container-type: inline-size;
+      background: linear-gradient(160deg, var(--paper), var(--paper-2)); color: var(--ink); box-shadow: 0 3px 0 rgba(90, 70, 40, .35), 0 6px 16px rgba(30, 20, 60, .18);
+      display: grid; place-items: center; transition: transform .18s cubic-bezier(.3,.9,.3,1.3), box-shadow .2s, filter .2s; }
+    .cw.dealin { animation: deal .5s cubic-bezier(.2,.9,.3,1.2) both; }
+    .cw::before { content: ""; position: absolute; left: 10%; right: 10%; bottom: 16%; height: 1px; background: currentColor; opacity: .14; }
+    .cw .w { font-weight: 800; font-size: min(var(--max, 15px), calc(100cqw / (var(--n) * .6 + 1.2))); letter-spacing: -.01em; line-height: 1; padding: 0 4%; white-space: nowrap; position: relative; }
+    .cw.can { cursor: pointer; }
+    .cw.can:hover { transform: translateY(-3px); }
+    .cw.sel { transform: translateY(-3px) scale(1.04); box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--accent), 0 12px 26px rgba(60, 20, 120, .45); z-index: 2; }
+    .cw.marked:not(.sel) { box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(30, 20, 60, .18); }
+    .cw .marks { position: absolute; top: -7px; right: -5px; display: flex; z-index: 3; }
+    .cw .marks .avatar { width: 18px; height: 18px; font-size: .55rem; margin-left: -5px; box-shadow: 0 0 0 2px var(--bg-1); }
+    /* key (Hinweisgeber): pale tints for hidden cards */
+    .cw.k-rot { background: linear-gradient(160deg, #ffe4e4, #fca5a5); color: #7f1d1d; }
+    .cw.k-blau { background: linear-gradient(160deg, #e0ecff, #93c5fd); color: #1e3a8a; }
+    .cw.k-neutral { background: linear-gradient(160deg, #fbf6ea, #e4d8bd); color: #5b4a2a; }
+    .cw.k-attentaeter { background: linear-gradient(160deg, #4b5563, #111827); color: #f9fafb; }
+    .cw.k-attentaeter::after { content: "💀"; position: absolute; top: 4%; left: 6%; font-size: max(9px, 14cqw); }
+    /* revealed cards */
+    .cw.r { cursor: default; }
+    .cw.r .w { opacity: .82; }
+    .cw.r::after { position: absolute; top: 5%; right: 6%; font-size: max(9px, 13cqw); filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+    .cw.r.c-rot { background: linear-gradient(150deg, #f87171, var(--rot-2)); color: #fff; } .cw.r.c-rot::after { content: "🕵️"; }
+    .cw.r.c-blau { background: linear-gradient(150deg, #60a5fa, var(--blau-2)); color: #fff; } .cw.r.c-blau::after { content: "🕵️"; }
+    .cw.r.c-neutral { background: linear-gradient(150deg, #e7dcc4, #b8a888); color: #4a3b1f; } .cw.r.c-neutral::after { content: "🚶"; }
+    .cw.r.c-attentaeter { background: radial-gradient(circle at 50% 40%, #374151, #030712); color: #fff; box-shadow: 0 0 0 3px #f43f5e, 0 10px 30px rgba(244, 63, 94, .4); }
+    .cw.r.c-attentaeter::after { content: "💀"; }
+    .keyview .cw.r { filter: saturate(.55) brightness(.9); }
+    .keyview .cw.r .w { text-decoration: line-through; text-decoration-thickness: 2px; }
+    .cw.flipin { animation: cardflip .8s cubic-bezier(.3,.9,.3,1.1) both; }
+    @keyframes cardflip { 0% { transform: rotateY(90deg) scale(1.15); } 60% { transform: rotateY(-10deg) scale(1.12); } 100% { transform: none; } }
+    .cw.boom { animation: boom .9s ease both; }
+    @keyframes boom { 0% { transform: scale(1.4) rotate(-6deg); } 25% { transform: scale(1.2) rotate(5deg); } 50% { transform: scale(1.1) rotate(-3deg); } 100% { transform: none; } }
+    body.shake #stage { animation: shake .6s ease both; }
+    @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+
+    .me-line { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); text-align: center; }
+    .me-line b { color: var(--text); }
+    .legend { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; font-size: .75rem; }
+    .legend span { padding: 3px 9px; border-radius: 999px; font-weight: 750; }
+    .legend .lr { background: #fca5a5; color: #7f1d1d; } .legend .lb { background: #93c5fd; color: #1e3a8a; }
+    .legend .ln { background: #e4d8bd; color: #5b4a2a; } .legend .la { background: #111827; color: #fff; }
+    .actions { border-radius: 20px; padding: 12px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+    .actions p { margin: 0; color: var(--muted); line-height: 1.4; }
+    .hform { display: flex; gap: 8px; width: 100%; }
+    .hform input { flex: 1; min-width: 0; font-size: 1.1rem; text-align: center; font-weight: 700; }
+    .hform select { width: 4.4em; font-size: 1.1rem; font-weight: 800; text-align: center; }
+    .gbtns { display: flex; gap: 8px; width: 100%; }
+    .gbtns .btn { flex: 1; padding: 13px 10px; white-space: nowrap; }
+    .gbtns .btn.reveal { flex: 2; }
+    .tries { font-size: .82rem; font-weight: 750; color: var(--muted); }
+    .history { width: 100%; font-size: .85rem; }
+    .history summary { cursor: pointer; color: var(--muted); font-weight: 700; text-align: center; list-style: none; }
+    .history summary::-webkit-details-marker { display: none; }
+    .hlist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .hrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-radius: 12px; background: var(--glass-strong); border-left: 4px solid var(--muted); text-align: left; }
+    .hrow.rot { border-left-color: var(--rot); } .hrow.blau { border-left-color: var(--blau); }
+    .hrow b { font-weight: 850; }
+    .hrow .f { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+    .hrow .f i { font-style: normal; font-size: .72rem; font-weight: 750; padding: 2px 7px; border-radius: 999px; color: #fff; background: #9ca3af; }
+    .hrow .f i.rot { background: var(--rot); } .hrow .f i.blau { background: var(--blau); } .hrow .f i.neutral { background: #b8a888; } .hrow .f i.attentaeter { background: #111827; }
+    .log { margin: 0 auto; }
+    .skipbtn { align-self: center; }
+
+    /* phone: the whole game on one screen – the board takes the space that is left */
+    body:not(.tv) #table { height: 100vh; height: 100dvh; min-height: 0; gap: clamp(6px, 1.2vh, 12px); padding-top: 8px; padding-bottom: 8px; }
+    body:not(.tv) .topbar { padding: 6px 8px 6px 14px; }
+    body:not(.tv) .topbar #leaveGame { padding: 9px 14px !important; }
+    body:not(.tv) #stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .cwstage { flex: 1; min-height: 0; gap: clamp(6px, 1.2vh, 12px); justify-content: center; }
+    .cwstage > * { flex: none; }
+    .cwstage .board { flex: 1 1 0; min-height: 0; max-height: calc((min(100vw, 760px) - 16px) / 1.2); grid-template-rows: repeat(5, minmax(0, 1fr)); }
+    .cwstage .cw { aspect-ratio: auto; min-height: 0; }
+    .cwstage .tpill { padding: 6px 12px; }
+    .cwstage .tpill b { font-size: 1.3rem; }
+    .cwstage .hintbar { padding: clamp(6px, 1.2vh, 12px) 12px; gap: 2px; }
+    .cwstage .hintword { font-size: clamp(1.3rem, 3.6vh, 2.2rem); }
+    .cwstage .hintbar .sub { font-size: .85rem; }
+    .cwstage .me-line { gap: 4px 8px; font-size: .85rem; }
+    .cwstage .legend { font-size: .72rem; gap: 4px; }
+    .cwstage .legend span { padding: 2px 8px; }
+    .cwstage .actions { padding: clamp(8px, 1.4vh, 12px); gap: 8px; }
+    .cwstage .actions p { font-size: .88rem; line-height: 1.3; }
+    .cwstage .gbtns .btn { padding: 12px 10px; }
+    .hform .btn { flex: none; padding: 12px 14px; }
+    .cwstage .log { font-size: .75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    /* the hint history opens as a pop-up above its button instead of pushing the board away */
+    .cwstage .history { position: relative; margin-top: -4px; }
+    .cwstage .history[open] .hlist { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 6; margin: 0; max-height: min(55vh, 420px); overflow-y: auto;
+      padding: 10px; border-radius: 18px; background: var(--bg-1); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); animation: rise .25s ease both; }
+
+    /* TV */
+    body.tv #table { padding: 14px; }
+    body.tv .topbar { display: none; }
+    .tvwrap { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 25vw, 440px); gap: 1.4vw; min-height: calc(100vh - 28px); align-items: stretch; }
+    .tvboard { border-radius: 28px; padding: 1.6vw; display: flex; align-items: center; }
+    .tvboard .board { width: 100%; gap: 1vw; }
+    .tvboard .cw { --max: 2.3vw; border-radius: 1vw; }
+    .tvboard .cw .marks .avatar { width: 2vw; height: 2vw; font-size: .9vw; }
+    .tvside { display: flex; flex-direction: column; gap: 1vw; }
+    .tvside > .glass { border-radius: 22px; padding: 1.1vw; }
+    .tvside .tpill { padding: 1vw; } .tvside .tpill b { font-size: 3vw; } .tvside .tpill small { font-size: .9vw; }
+    .tvside .score { grid-template-columns: 1fr 1fr; }
+    .tvside .score .vs { display: none; }
+    .tvside .hintbar { padding: 1.4vw 1vw; }
+    .tvside .hintbar .who { font-size: 1.1vw; }
+    .tvside .hintword { font-size: 3.4vw; }
+    .tvside .hintbar .sub { font-size: 1.15vw; }
+    .tvside .hlist { max-height: 30vh; overflow: auto; }
+    .tvside .hrow { font-size: 1vw; }
+    .tvside .timer { font-size: 2vw; text-align: center; display: block; }
+    .tvside .log { font-size: .95vw; }
+    @media (max-width: 760px) { .tvwrap { grid-template-columns: 1fr; } .tvboard .cw { --max: 15px; } }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Codewörter</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <span class="timer hidden" id="timer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const send = msg => Shell.send(msg);
+    const esc = s => Shell.esc(s);
+    const TEAM = { rot: "Rot", blau: "Blau" };
+    const DOT = { rot: "🔴", blau: "🔵" };
+    const other = t => t === "rot" ? "blau" : "rot";
+    let viewKey = null, endAt = null, seenRevealed = null, boardCode = null;
+
+    window.GAME = {
+      kind: "codewoerter",
+      title: "Codewörter",
+      minPlayers: 4,
+      noBots: true,
+      art: window.ART && window.ART.codewoerter ? "codewoerter" : undefined,
+      fan: [["cr", "🕵️"], ["cb", "🔎"], ["cn", "💬"], ["ca", "💀"]].map(([c, e]) => Shell.card(c, `<span class="emo">${e}</span>`)).join(""),
+      settings: [
+        { key: "seconds", label: "Zeit", options: [[0, "Ohne Zeitlimit"], [60, "60 s pro Hinweis & Raten"], [90, "90 s pro Hinweis & Raten"], [120, "2 Min. pro Hinweis & Raten"], [180, "3 Min. pro Hinweis & Raten"]] },
+      ],
+      countPlayers: g => g.players.filter(p => !p.screen).length,
+      roomPlayer: (p, me, g) => {
+        queueMicrotask(teamsPanel);
+        const tags = "";  // the team is shown in the teams panel below
+        if (p.id !== me) return p.screen ? '<span class="tag tv">📺 Bildschirm</span>' : tags;
+        if (p.screen) return '<button class="btn tvbtn" data-room-act="screen" title="Dieses Gerät ist der Bildschirm">📺 Bildschirm ✓</button>';
+        return tags + (g.players.some(q => q.screen) ? "" : '<button class="btn ghost tvbtn" data-room-act="screen" title="Dieses Gerät wird zum Bildschirm (z. B. Fernseher) und spielt nicht mit">📺</button>');
+      },
+      render: () => render(),
+      finished: () => {
+        const g = Shell.game, mine = myTeam(g);
+        const win = g.winner, lost = g.reason === "assassin";
+        const list = t => g.players.filter(p => p.team === t && !p.screen).map(p => `${esc(p.name)}${p.spy ? " 🕵️" : ""}`).join(", ");
+        return {
+          icon: lost ? "💀" : "🏆",
+          title: win ? (mine && !isTv(g) ? (mine === win ? "Ihr habt gewonnen!" : `Team ${TEAM[win]} gewinnt`) : `Team ${TEAM[win]} gewinnt!`) : "Spiel beendet",
+          sub: win ? `<p>${lost ? `Team ${TEAM[other(win)]} hat den Attentäter erwischt 💀` : `Alle Wörter von Team ${TEAM[win]} gefunden`}</p>
+            <p>${DOT[win]} ${list(win)}</p>` + '<button class="btn ghost small" onclick="document.getElementById(\'finished\').classList.add(\'hidden\')">🔍 Spielfeld ansehen</button>' : "",
+        };
+      },
+    };
+
+    const meP = g => g.players.find(p => p.id === Shell.me) || {};
+    const myTeam = g => meP(g).team;
+    const isTv = g => !!meP(g).screen;
+    const nameOf = (g, id) => (g.players.find(p => p.id === id) || {}).name || "?";
+
+    // ---------- waiting room: team panel ----------
+    function teamsPanel() {
+      const g = Shell.game;
+      if (!g || g.state !== "lobby") return;
+      let panel = $("teamsPanel");
+      if (!panel) {
+        const box = $("roomPlayers").closest(".panel");
+        box.querySelector("h2").outerHTML = `<div class="thead"><h2>Spieler &amp; Teams</h2><span id="theadBtn"></span></div>`;
+        $("hostControls").insertAdjacentHTML("beforebegin", `<div id="teamsPanel"></div>`);
+        panel = $("teamsPanel");
+        box.addEventListener("click", e => {
+          const b = e.target.closest("[data-tact],[data-tkick],[data-tscreen]");
+          if (!b || !box.contains(b) || b.closest("#roomPlayers")) return;
+          if (b.dataset.tact) send({ t: b.dataset.tact });
+          else if (b.dataset.tkick) send({ t: "kick", id: b.dataset.tkick });
+          else send({ t: "screen" });
+        });
+      }
+      const me = meP(g), host = g.host === Shell.me;
+      const kick = p => host && p.id !== Shell.me ? `<button class="x" data-tkick="${p.id}" title="Entfernen">×</button>` : "";
+      const label = p => `${esc(p.name)}${p.id === Shell.me ? " (du)" : ""}${p.id === g.host ? " 👑" : ""}`;
+      const col = t => {
+        const members = g.players.filter(p => p.team === t && !p.screen);
+        return `<div class="tcol ${t} ${me.team === t ? "mine" : ""}"><h3>${DOT[t]} Team ${TEAM[t]} <small>${members.length}</small></h3>
+          <div class="ms">${members.map(p => `<div class="m">${Shell.avatar(p)}<span class="n">${label(p)}</span>${p.spy ? '<span class="spyb" title="Hinweisgeber">🕵️</span>' : ""}${kick(p)}</div>`).join("")}</div>
+          ${me.screen ? "" : me.team === t
+            ? `<button class="btn ${me.spy ? "" : "ghost"}" data-tact="spy">${me.spy ? "🕵️ Hinweisgeber ✓" : "🕵️ Hinweise geben"}</button>`
+            : `<button class="btn" data-tact="team_${t}">Ins Team ${TEAM[t]}</button>`}</div>`;
+      };
+      const free = g.players.filter(p => !p.team && !p.screen), screen = g.players.find(p => p.screen);
+      const many = Math.max(...["rot", "blau"].map(t => g.players.filter(p => p.team === t && !p.screen).length)) > 3;
+      const chip = (p, extra = "") => `<span class="chipm">${Shell.avatar(p)}${extra}${label(p)}${kick(p)}</span>`;
+      const tvBtn = me.screen ? '<button class="btn tvbtn" data-tscreen="1" title="Dieses Gerät ist der Bildschirm">📺 Bildschirm ✓</button>'
+        : screen ? "" : '<button class="btn ghost tvbtn" data-tscreen="1" title="Dieses Gerät wird zum Bildschirm (z. B. Fernseher) und spielt nicht mit">📺 Als Bildschirm</button>';
+      const extras = [free.length ? `<span>Ohne Team:</span>${free.map(p => chip(p)).join("")}` : "",
+        screen && !me.screen ? chip(screen, "📺 ") : "", tvBtn].filter(Boolean).join("");
+      Party_set($("theadBtn"), host ? '<button class="btn ghost" data-tact="shuffle">🔀 Mischen</button>' : "");
+      Party_set(panel, `<div class="teams ${many ? "many" : ""}">${col("rot")}${col("blau")}</div>
+        ${extras ? `<div class="tfree">${extras}</div>` : ""}
+        <p class="unassigned">${free.length ? "Ohne Team: wird beim Start verteilt · " : ""}mind. 2 pro Team · fehlt ein Hinweisgeber, wird er ausgelost.</p>`);
+    }
+    const Party_set = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._html = html; } };
+
+    // ---------- table ----------
+    function render() {
+      const g = Shell.game, tv = isTv(g);
+      document.body.classList.toggle("tv", tv);
+      $("tableCode").textContent = `Code ${g.code}`;
+      $("leaveGame").onclick = Shell.leaveGame;
+      endAt = g.remaining == null ? null : Date.now() + g.remaining * 1000;
+      const me = meP(g);
+      const key = `${g.code}|${g.state}|${g.turn}|${g.phase}|${tv}|${me.team}|${me.spy}|${g.host === Shell.me}`;
+      if (key !== viewKey) { viewKey = key; build(g, tv); }
+      update(g, tv);
+      tick();
+    }
+
+    function build(g, tv) {
+      if (tv) {
+        $("stage").innerHTML = `<div class="tvwrap"><div class="tvboard glass"><div class="board" id="board"></div></div>
+          <aside class="tvside"><div class="glass"><div class="score" id="score"></div></div>
+            <div class="glass hintbar" id="hintbar"></div>
+            <div class="glass"><span class="timer hidden" id="tvTimer"></span><div id="tvActions"></div>
+              <details class="history" open><summary>Bisherige Hinweise</summary><div class="hlist" id="hlist"></div></details></div>
+            <div class="glass"><p class="log" id="log"></p></div>
+            <div class="glass tvcode"><span>Mitspielen:</span> <b>${esc(g.code)}</b></div></aside></div>`;
+      } else {
+        $("stage").innerHTML = `<div class="cwstage">
+          <div class="score" id="score"></div>
+          <div class="glass hintbar" id="hintbar"></div>
+          <div class="me-line" id="meLine"></div>
+          <div class="board" id="board"></div>
+          <div class="glass actions" id="actions">${actionsHtml(g)}</div>
+          <p class="log" id="log"></p>
+          <details class="history"><summary>📜 Bisherige Hinweise</summary><div class="hlist" id="hlist"></div></details></div>`;
+        bindActions();
+      }
+      $("board").onclick = e => {
+        const c = e.target.closest(".cw.can");
+        if (c) send({ t: "select", i: +c.dataset.i });
+      };
+    }
+
+    const isGuesser = g => { const me = meP(g); return g.state === "playing" && g.phase === "guess" && me.team === g.turn && !me.spy && !me.screen; };
+
+    function actionsHtml(g) {
+      const me = meP(g), host = g.host === Shell.me;
+      if (g.state !== "playing") return `<p>Das Spiel ist vorbei – jetzt seht ihr, welche Karte zu wem gehört.</p>
+        <button class="btn" onclick="document.getElementById('finished').classList.remove('hidden')">🏆 Ergebnis anzeigen</button>`;
+      const skip = host ? `<button class="btn ghost small skipbtn" id="skipBtn">⏭ Zug überspringen</button>` : "";
+      if (me.spy && me.team === g.turn && g.phase === "hint") {
+        return `<p><b>Du bist dran!</b> Ein Wort und eine Zahl: Wie viele Karten deines Teams passen dazu?</p>
+          <form class="hform" id="hintForm" autocomplete="off">
+            <input name="word" maxlength="24" placeholder="Ein Wort" enterkeyhint="send" autocapitalize="words" required>
+            <select name="number" aria-label="Anzahl">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(n => `<option value="${n}">${n}</option>`).join("")}<option value="-1">∞</option></select>
+            <button type="button" class="btn" id="hintBtn">Geben</button>
+          </form>${skip}`;
+      }
+      if (isGuesser(g)) {
+        return `<p class="tries" id="tries"></p>
+          <div class="gbtns"><button class="btn ghost" id="endTurn">Zug beenden</button><button class="btn reveal" id="revealBtn" disabled>Karte antippen</button></div>${skip}`;
+      }
+      if (me.spy && me.team === g.turn) return `<p>Dein Team rät gerade – kein Wort, keine Miene! 🤐</p>${skip}`;
+      if (me.team === g.turn) return `<p>Euer Hinweisgeber <b>${esc(nameOf(g, (g.players.find(p => p.team === g.turn && p.spy) || {}).id))}</b> überlegt sich einen Hinweis …</p>${skip}`;
+      return `<p>Team <b>${TEAM[g.turn]}</b> ist dran${g.phase === "hint" ? " und wartet auf den Hinweis" : " und rät"}.</p>${skip}`;
+    }
+
+    function bindActions() {
+      const f = $("hintForm");
+      if (f) {
+        const go = () => {
+          const word = f.word.value.trim();
+          if (!word) { Shell.toast("Bitte gib einen Hinweis ein"); f.word.focus(); return; }
+          if (/\s/.test(word)) { Shell.toast("Nur ein einziges Wort als Hinweis"); return; }
+          send({ t: "hint", word, number: +f.number.value });
+        };
+        f.onsubmit = e => { e.preventDefault(); go(); };
+        $("hintBtn").onclick = go;
+      }
+      if ($("endTurn")) $("endTurn").onclick = () => { if (confirm("Zug wirklich beenden?")) send({ t: "end_turn" }); };
+      if ($("revealBtn")) $("revealBtn").onclick = () => {
+        const g = Shell.game, sel = meP(g).sel;
+        if (sel != null) send({ t: "reveal", i: sel });
+      };
+      if ($("skipBtn")) $("skipBtn").onclick = () => { if (confirm("Den Zug dieses Teams überspringen?")) send({ t: "skip" }); };
+    }
+
+    function scoreHtml(g) {
+      const pill = t => `<div class="tpill ${t} ${g.state === "playing" && g.turn === t ? "on" : ""} ${g.winner === t ? "on" : ""}">
+        ${t === "rot" ? `<b>${g.left[t]}</b><small>Team Rot<br>übrig</small>` : `<small style="text-align:right">Team Blau<br>übrig</small><b>${g.left[t]}</b>`}</div>`;
+      return `${pill("rot")}<div class="vs">${g.state === "playing" ? (g.turn === "rot" ? "◀ dran" : "dran ▶") : "Ende"}</div>${pill("blau")}`;
+    }
+
+    function hintHtml(g) {
+      if (g.state !== "playing") {
+        return g.winner ? `<div class="who ${g.winner}">Spielende</div><div class="hintword ${g.winner}">🏆 Team ${TEAM[g.winner]}</div>
+          <div class="sub">${g.reason === "assassin" ? "Der Attentäter wurde aufgedeckt 💀" : "Alle Wörter gefunden"}</div>` : `<div class="who">Spiel beendet</div>`;
+      }
+      const spy = g.players.find(p => p.team === g.turn && p.spy);
+      if (g.phase === "hint") {
+        const self = spy && spy.id === Shell.me;
+        return `<div class="who ${g.turn}">${DOT[g.turn]} Team ${TEAM[g.turn]} ist dran</div>
+          <div class="sub">${self ? "Dein Team wartet auf deinen Hinweis" : `${spy ? `<b>${esc(spy.name)}</b>` : "Der Hinweisgeber"} überlegt sich einen Hinweis`}<span class="thinking"><i></i><i></i><i></i></span></div>`;
+      }
+      const n = g.hint.number;
+      const tries = g.guesses_left == null ? "beliebig viele Versuche" : `noch ${g.guesses_left} Versuch${g.guesses_left === 1 ? "" : "e"}`;
+      return `<div class="who ${g.turn}">${DOT[g.turn]} Hinweis für Team ${TEAM[g.turn]}</div>
+        <div class="hintword ${g.turn}"><span>${esc(g.hint.word)}</span><span class="num">${n < 0 ? "∞" : n}</span></div>
+        <div class="sub">${tries}</div>`;
+    }
+
+    function boardHtml(g, flipped, fresh) {
+      const me = meP(g), guesser = isGuesser(g);
+      const marks = {};
+      g.players.forEach(p => { if (p.sel != null) (marks[p.sel] = marks[p.sel] || []).push(p); });
+      return g.board.map((c, i) => {
+        const cls = ["cw"];
+        if (c.r) cls.push("r", "c-" + c.c);
+        else if (c.c) cls.push("k-" + c.c);
+        if (!c.r && guesser) cls.push("can");
+        if (!c.r && me.sel === i && guesser) cls.push("sel");
+        if (marks[i]) cls.push("marked");
+        if (flipped.has(i)) cls.push(c.c === "attentaeter" ? "boom" : "flipin");
+        if (fresh) cls.push("dealin");
+        const m = marks[i] ? `<span class="marks">${marks[i].map(p => Shell.avatar(p).replace('class="avatar"', `class="avatar" title="${esc(p.name)}"`)).join("")}</span>` : "";
+        return `<button class="${cls.join(" ")}" data-i="${i}" style="--n:${[...c.w].length};${fresh ? `animation-delay:${i * 22}ms` : ""}" ${c.r ? "disabled" : ""}><span class="w">${esc(c.w)}</span>${m}</button>`;
+      }).join("");
+    }
+
+    function historyHtml(g) {
+      if (!g.hints.length) return `<p class="empty" style="text-align:center;margin:4px 0">Noch keine Hinweise.</p>`;
+      return [...g.hints].reverse().map(h => `<div class="hrow ${h.team}"><b>${esc(h.word)} ${h.number < 0 ? "∞" : h.number}</b>
+        <span class="f">${h.found.map(f => `<i class="${f.c}">${esc(f.w)}</i>`).join("")}</span></div>`).join("");
+    }
+
+    function update(g, tv) {
+      // A new board deals its cards in; cards turned over since the last update get the flip animation.
+      const code = g.code + g.board.map(c => c.w).join();
+      const fresh = boardCode !== code;
+      const now = new Set(g.board.map((c, i) => c.r ? i : -1).filter(i => i >= 0));
+      const flipped = fresh ? new Set() : new Set([...now].filter(i => !seenRevealed.has(i)));
+      boardCode = code; seenRevealed = now;
+      const board = $("board");
+      board.classList.toggle("keyview", g.board.some(c => !c.r && c.c));
+      board.innerHTML = boardHtml(g, flipped, fresh);
+      if ([...flipped].some(i => g.board[i].c === "attentaeter")) {
+        document.body.classList.add("shake"); setTimeout(() => document.body.classList.remove("shake"), 700);
+      }
+      $("score").innerHTML = scoreHtml(g);
+      $("hintbar").innerHTML = hintHtml(g);
+      $("hlist").innerHTML = historyHtml(g);
+      $("log").textContent = g.log.slice(-1).join("");
+      const me = meP(g);
+      if ($("meLine")) {
+        $("meLine").innerHTML = !me.team ? "" : me.spy && g.state === "playing"
+          ? `<span>Du bist <b>Hinweisgeber</b> für ${DOT[me.team]} <b>Team ${TEAM[me.team]}</b></span>
+             <span class="legend"><span class="${me.team === "rot" ? "lr" : "lb"}">Eure</span><span class="${me.team === "rot" ? "lb" : "lr"}">Gegner</span><span class="ln">Neutral</span><span class="la">💀 Attentäter</span></span>`
+          : `<span>Du spielst in ${DOT[me.team]} <b>Team ${TEAM[me.team]}</b></span>`;
+      }
+      if ($("tries")) {
+        $("tries").textContent = g.guesses_left == null ? "Ihr dürft so oft raten, wie ihr wollt – bis zum ersten Fehler." : `Noch ${g.guesses_left} Versuch${g.guesses_left === 1 ? "" : "e"} – tippt eine Karte an, dann aufdecken.`;
+        const sel = me.sel, rb = $("revealBtn");
+        rb.disabled = sel == null;
+        rb.textContent = sel == null ? "Karte antippen" : `„${g.board[sel].w}“ aufdecken`;
+      }
+      if (tv) {
+        const host = $("tvActions");
+        const html = `<p style="text-align:center;margin:0 0 10px">${g.state === "playing" ? `<button class="btn ghost small" id="skipBtn">⏭ Zug überspringen</button>`
+          : `<button class="btn small" onclick="document.getElementById('finished').classList.remove('hidden')">🏆 Ergebnis anzeigen</button>`}</p>`;
+        if (host._html !== html) { host.innerHTML = html; host._html = html; bindActions(); }
+      }
+    }
+
+    function tick() {
+      const g = Shell.game;
+      for (const el of [$("timer"), $("tvTimer")]) {
+        if (!el) continue;
+        if (!g || endAt == null || g.state !== "playing") { el.classList.add("hidden"); continue; }
+        const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+        el.classList.remove("hidden");
+        el.textContent = `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+        el.classList.toggle("low", left <= 10);
+      }
+    }
+    setInterval(tick, 500);
+    Shell.start(window.GAME);
+  </script>
+</body>
+</html>

@@ -66,6 +66,60 @@
     .banner { font-size: clamp(1.6rem, 6vw, 2.2rem); font-weight: 900; letter-spacing: -.02em; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
     .banner.crew { color: var(--ok); } .banner.imp { color: var(--danger); }
     .wordbox { font-size: 1rem; } .wordbox b { font-size: 1.3rem; }
+    /* ---------- one screen, no scrolling ---------- */
+    #table { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; } /* entry animations never make the page scroll */
+    #table > .topbar { flex: none; }
+    #stage { flex: 1 1 0; min-height: 0; justify-content: center; gap: clamp(8px, 1.6vh, 16px); padding: clamp(12px, 2.2vh, 20px) 14px; }
+    #stage > * { flex: none; }
+    /* the role card gets the height that is left */
+    .rolebox { flex: 1 1 0 !important; min-height: 140px; width: 100%; container-type: size; display: grid; place-items: center; }
+    .rolebox .role { width: min(270px, 100cqw, calc(100cqh * 5 / 7)); }
+    .role .face { padding: clamp(12px, 3cqh, 20px); gap: clamp(4px, 1.4cqh, 10px); }
+    .role .front .sus { font-size: clamp(2rem, 9cqh, 3.4rem); }
+    .role .back .q { font-size: clamp(2.4rem, 10cqh, 4rem); }
+    /* peeking at the card again: on top of everything, tap to close */
+    #peekBox:not(:empty) { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; cursor: pointer;
+      background: rgba(10, 5, 30, .45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); container-type: size; }
+    #peekBox .role { width: min(300px, 90cqw, calc(90cqh * 5 / 7)); }
+    /* clue order: two columns for many players; a very long list scrolls inside */
+    #stage > .order { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; gap: 6px; padding: 3px; }
+    .order li { padding: 7px 12px; gap: 10px; }
+    .order:has(> li:nth-child(6)) { display: grid; grid-template-columns: 1fr 1fr; align-content: start; }
+    .order:has(> li:nth-child(6)) li { min-width: 0; padding: 6px 8px; gap: 7px; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+    .order:has(> li:nth-child(6)) li::before { display: inline-grid; width: 22px; height: 22px; margin-right: 6px; vertical-align: middle; }
+    /* vote: compact buttons in a grid */
+    #stage > .votes { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
+    .vote { padding: clamp(8px, 1.6vh, 14px) 8px; gap: 4px; border-radius: 16px; }
+    .vote .avatar { width: clamp(30px, 5.5vh, 46px); height: clamp(30px, 5.5vh, 46px); font-size: .9rem; }
+    .votes:has(> .vote:nth-child(5)) .vote { flex-direction: row; padding: 8px; gap: 7px; min-width: 0; position: relative; }
+    .votes:has(> .vote:nth-child(5)) .vote > span:not(.tick):not(.avatar) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+    .votes:has(> .vote:nth-child(5)) .vote .avatar { width: 28px; height: 28px; font-size: .72rem; }
+    .votes:has(> .vote:nth-child(5)) .vote .tick { font-size: 0; min-height: 0; }
+    .votes:has(> .vote:nth-child(5)) .vote .tick:not(:empty)::after { content: "✓"; font-size: .85rem; font-weight: 900; }
+    .votes:has(> .vote:nth-child(9)) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 104px), 1fr)); gap: 6px; }
+    .votes:has(> .vote:nth-child(9)) .vote { padding: 6px; gap: 5px; font-size: .85rem; }
+    .votes:has(> .vote:nth-child(9)) .vote .avatar { width: 24px; height: 24px; font-size: .65rem; }
+    /* result list: compact rows, a very long list scrolls inside */
+    #stage > .result { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; gap: 5px; padding: 3px; }
+    .result .r { padding: 5px 10px; gap: 8px; flex: none; }
+    .result .r .avatar { width: 26px; height: 26px; font-size: .72rem; }
+    .result .r .v { font-size: .75rem; text-align: right; }
+    #stage > .row { flex-wrap: nowrap; gap: 8px; }
+    #stage > .row .btn { padding: 11px 14px; }
+    .banner { font-size: clamp(1.4rem, min(6vw, 4.2vh), 2.2rem); }
+    #stage .trophy { font-size: clamp(2.2rem, 7vh, 3.4rem); }
+    /* end overlay: compact ranking, two columns for many players */
+    .overlay .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    .overlay .result { gap: 5px; }
+    .overlay .result:has(> .r:nth-child(7)) { display: grid; grid-template-columns: 1fr 1fr; }
+    .overlay .result:has(> .r:nth-child(7)) .r { min-width: 0; padding: 4px 8px 4px 4px; gap: 6px; }
+    .overlay .result:has(> .r:nth-child(7)) .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .88rem; }
+    .overlay .result:has(> .r:nth-child(7)) .pts { min-width: 0; }
+    .overlay .trophy { font-size: clamp(2.2rem, 7vh, 3.4rem); }
+    @media (max-height: 700px) {
+      #stage p { font-size: .9rem; line-height: 1.35; }
+      .options .btn { padding: 11px 8px; }
+    }
   </style>
 </head>
 <body>
@@ -133,7 +187,7 @@
       const host = g.host === Shell.me;
       let html = "";
       if (g.phase === "reveal") {
-        html = `<h2>Deine geheime Karte</h2>${roleCard(g, false)}
+        html = `<h2>Deine geheime Karte</h2><div class="rolebox">${roleCard(g, false)}</div>
           <button class="btn" id="seenBtn">Gesehen ✓</button>
           <p>Warte, bis alle ihre Karte angeschaut haben.</p><div class="seenrow" id="seenRow"></div>`;
       } else if (g.phase === "clues") {
@@ -170,7 +224,7 @@
         const box = $("peekBox");
         if (box.innerHTML) { box.innerHTML = ""; return; }
         box.innerHTML = roleCard(Shell.game, true);
-        box.querySelector(".role").onclick = () => box.innerHTML = "";
+        box.onclick = () => box.innerHTML = "";
       };
       if ($("toVote")) $("toVote").onclick = () => send({ t: "to_vote" });
       document.querySelectorAll("[data-opt]").forEach(b => b.onclick = () => { if (confirm(`„${b.dataset.opt}“ – sicher?`)) send({ t: "guess_word", word: b.dataset.opt }); });

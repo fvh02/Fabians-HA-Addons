@@ -67,6 +67,33 @@
     .scores td { padding: 8px 6px; border-top: 1px solid var(--glass-border); text-align: right; }
     .bigword { font-size: clamp(1.3rem, 6vw, 2.4rem); font-weight: 900; letter-spacing: .04em; margin: 4px 0;
       background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; word-break: break-word; }
+    /* ---------- one screen, no scrolling: the gallows gets the height that is left ---------- */
+    #table { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; } /* entry animations never make the page scroll */
+    #table > .topbar, #people { flex: none; }
+    #stage { flex: 1 1 0; min-height: 0; justify-content: center; gap: clamp(6px, 1.3vh, 14px); padding: clamp(10px, 2vh, 18px) 12px; }
+    #stage > * { flex: none; }
+    #gallowsBox { flex: 1 1 0; min-height: 56px; width: 100%; container-type: size; display: grid; place-items: center; }
+    #gallowsBox .gallows { width: auto; height: min(100cqh, 260px); aspect-ratio: 190 / 240; max-width: 100%; }
+    /* players: compact chips that wrap instead of a sideways scrolling strip */
+    .people { padding: 0 2px 2px; flex-wrap: wrap; justify-content: center; gap: 5px; overflow: visible; }
+    .chip { padding: 4px 9px 4px 4px; gap: 5px; font-size: .82rem; }
+    .chip .avatar { width: 22px; height: 22px; font-size: .65rem; }
+    .chip.turn { transform: none; }
+    .status { padding: 6px 14px; }
+    .key { height: clamp(40px, 6.2vh, 50px); }
+    .keys { gap: 5px; }
+    .wrong { min-height: 1.2em; }
+    .lt .f, .lt .b { border-radius: 8px; }
+    #stage .trophy { font-size: clamp(2.4rem, 8vh, 3.4rem); }
+    .choose { gap: 10px; }
+    /* round end / final ranking: compact table */
+    .overlay .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    .scores td { padding: 6px; }
+    .overlay .trophy { font-size: clamp(2.2rem, 7vh, 3.4rem); }
+    @media (max-height: 700px) {
+      .scores { font-size: .9rem; }
+      .scores td { padding: 5px 6px; }
+    }
   </style>
 </head>
 <body>
@@ -224,7 +251,7 @@
       parts.push(cur);
       // tiles shrink so the longest part of the word fits on one line
       const longest = Math.max(...parts.map(p => p.length), 1);
-      $("word").style.setProperty("--t", `max(30px, min(48px, calc((min(100vw, 820px) - 64px) / ${longest} - 5px)))`);
+      $("word").style.setProperty("--t", `max(26px, min(48px, calc((min(100vw, 820px) - 64px) / ${longest} - 5px), 6.4vh))`);
       $("word").innerHTML = parts.map(p => `<div class="wpart">${p.join("")}</div>`).join("");
       // newly opened tiles flip in (start closed, then open)
       document.querySelectorAll("#word .lt[data-i]").forEach((el, n) => {

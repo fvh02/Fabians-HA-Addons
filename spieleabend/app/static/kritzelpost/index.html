@@ -105,6 +105,50 @@
       .swatch { width: 24px; height: 24px; }
       .tool { width: 36px; height: 36px; }
     }
+    /* ---------- one screen, no scrolling: the work area / album gets what is left ---------- */
+    #table { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; } /* entry animations never make the page scroll */
+    #table > .topbar, #crew { flex: none; }
+    #stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .work, .album { flex: 1 1 auto; min-height: 0; }
+    .work { justify-content: center; gap: clamp(8px, 1.8vh, 16px); }
+    .work > * { flex: none; }
+    .work .hint { margin: 0; }
+    /* the drawing takes all remaining height and keeps 4:3 */
+    .work > .pbox { flex: 1 1 0; min-height: 120px; width: 100%; container-type: size; display: grid; place-items: center; }
+    .work .pbox .paper { width: min(100cqw, calc(100cqh * 4 / 3), 760px); max-width: none; }
+    .prompt { padding: clamp(8px, 1.6vh, 16px) 20px; font-size: clamp(1.05rem, 2.8vh, 1.5rem); }
+    .crew { gap: 6px; }
+    .crew .who { width: 52px; font-size: .75rem; gap: 2px; }
+    .crew .who span:last-child { max-width: 52px; }
+    /* many players: avatars only (names on hover) */
+    .crew.many .who { width: auto; }
+    .crew.many .who span:last-child { display: none; }
+    .crew.many .who .tick { right: -3px; }
+    .crew.many .avatar { width: 28px; height: 28px; font-size: .75rem; }
+    /* album: the entries scroll inside the panel, the newest is scrolled into view */
+    .album { gap: 10px; }
+    .album header, .reveal-bar { flex: none; }
+    .album header h2 { font-size: clamp(1.15rem, 3.2vh, 1.8rem); }
+    .entries { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; container-type: size; padding: 2px 2px 6px; gap: 10px; }
+    .entry { flex: none; }
+    .entry .paper { width: min(460px, 76cqw, calc(72cqh * 4 / 3)); flex: none; }
+    .entry .bubble { font-size: 1.02rem; padding: 10px 14px; }
+    .reveal-bar { gap: 8px; }
+    .reveal-bar .pos { min-width: 0; }
+    @media (max-width: 560px) {
+      .work, .album { padding: 12px 10px; }
+      .tools { gap: 6px; }
+      .swatches { display: grid; grid-template-columns: repeat(7, 24px); gap: 6px; padding: 6px 8px; }
+      .sizes, .acts { padding: 4px 6px; gap: 4px; }
+      .reveal-bar { gap: 6px; }
+      .reveal-bar .btn { padding: 10px 11px; font-size: .9rem; }
+      .write-row input { padding: 12px 14px; }
+    }
+    @media (max-height: 700px) {
+      .crew .who { font-size: .75rem; }
+      .crew .avatar { width: 28px; height: 28px; font-size: .75rem; }
+      .ideas button { padding: 5px 10px; font-size: .8rem; }
+    }
   </style>
 </head>
 <body>
@@ -219,6 +263,7 @@
     }
 
     function renderCrew(g) {
+      $("crew").classList.toggle("many", g.players.length > 6);
       $("crew").innerHTML = g.players.map(p => `
         <div class="who ${p.done ? "done" : ""}">${Shell.avatar(p)}<span class="tick">✓</span><span>${esc(p.name)}</span></div>`).join("");
     }
@@ -272,7 +317,7 @@
           <div class="ideas">${ideas}</div>${submitRow}`;
       } else if (kind === "draw") {
         html = `<div class="prompt"><small>Zeichne</small>${task && task.text ? esc(task.text) : "<i>(nichts geschrieben – zeichne, was du willst)</i>"}</div>
-          <div class="paper" id="paper"><canvas id="pad"></canvas></div>
+          <div class="pbox"><div class="paper" id="paper"><canvas id="pad"></canvas></div></div>
           <div class="tools">
             <div class="swatches glass">${COLORS.map(c => `<button class="swatch" data-color="${c}" style="background:${c}" title="${c}"></button>`).join("")}</div>
             <div class="sizes glass">${SIZES.map(s => `<button class="tool" data-size="${s}" title="Stärke ${s}"><i style="width:${Math.max(4, s / 2)}px;height:${Math.max(4, s / 2)}px"></i></button>`).join("")}</div>
@@ -285,7 +330,7 @@
       } else {
         html = `<h2>Was ist das?</h2>
           <p class="hint">Beschreibe die Zeichnung – der nächste Spieler zeichnet deinen Satz.</p>
-          <div class="paper readonly"><canvas id="view"></canvas></div>
+          <div class="pbox"><div class="paper readonly"><canvas id="view"></canvas></div></div>
           <div class="write-row"><input id="textIn" maxlength="120" placeholder="Das ist bestimmt …" autocomplete="off"></div>${submitRow}`;
       }
       $("stage").innerHTML = `<div class="work glass">${html}</div>`;

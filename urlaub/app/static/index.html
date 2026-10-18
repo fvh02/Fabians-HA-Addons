@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Urlaubsplaner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <style>
+    :root {
+      --bg-1: #ecfeff; --bg-2: #fff7ed;
+      --blob-1: #67e8f9; --blob-2: #fdba74; --blob-3: #a5b4fc; --blob-4: #f9a8d4;
+      --glass: rgba(255,255,255,.58); --glass-strong: rgba(255,255,255,.78); --glass-border: rgba(255,255,255,.8);
+      --glass-shadow: 0 8px 32px rgba(20,60,90,.14);
+      --text: #102a3a; --muted: #557083; --accent: #0891b2; --accent-2: #f97316; --ok: #059669; --danger: #e11d48;
+      --input: rgba(255,255,255,.75); --chip: rgba(8,145,178,.1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-1: #06141c; --bg-2: #141022;
+        --blob-1: #0e7490; --blob-2: #c2410c; --blob-3: #4338ca; --blob-4: #be185d;
+        --glass: rgba(255,255,255,.07); --glass-strong: rgba(255,255,255,.12); --glass-border: rgba(255,255,255,.16);
+        --glass-shadow: 0 8px 32px rgba(0,0,0,.45);
+        --text: #eefbff; --muted: #9bb6c4; --accent: #22d3ee; --accent-2: #fb923c; --ok: #34d399; --danger: #fb7185;
+        --input: rgba(255,255,255,.08); --chip: rgba(34,211,238,.13);
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; }
+    body { font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text);
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2)); background-color: var(--bg-1); min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    .backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .backdrop i { position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%; filter: blur(80px); opacity: .5; animation: drift 26s ease-in-out infinite alternate; }
+    .backdrop i:nth-child(1) { background: var(--blob-1); top: -20vmax; left: -15vmax; }
+    .backdrop i:nth-child(2) { background: var(--blob-2); bottom: -25vmax; right: -15vmax; animation-delay: -8s; }
+    .backdrop i:nth-child(3) { background: var(--blob-3); top: 35%; left: 40%; width: 32vmax; height: 32vmax; opacity: .3; animation-delay: -15s; }
+    @keyframes drift { 50% { transform: translate(8vmax, 6vmax) scale(1.1); } 100% { transform: translate(-6vmax, 10vmax) scale(.95); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+    @keyframes pop { from { opacity: 0; transform: scale(.94); } }
+    .glass { background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,.25);
+      backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    input, select, textarea { font: inherit; color: var(--text); background: var(--input); border: 1px solid var(--glass-border);
+      border-radius: 14px; padding: 11px 14px; outline: none; width: 100%; min-width: 0; }
+    textarea { resize: vertical; min-height: 64px; }
+    select option { color: #111; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .btn { border: 0; border-radius: 14px; padding: 11px 18px; font-weight: 700; color: #fff; min-height: 44px; white-space: nowrap;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+      transition: transform .15s, filter .2s; }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn.ghost { background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border); box-shadow: none; }
+    .btn.small { min-height: 36px; padding: 7px 12px; font-size: .88rem; }
+    .btn.danger { background: none; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); box-shadow: none; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .small { font-size: .85rem; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .row > * { flex: 1 1 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label.f { display: flex; flex-direction: column; gap: 5px; font-size: .8rem; font-weight: 700; color: var(--muted); }
+    .wrap { max-width: 620px; margin: 0 auto; padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); animation: rise .45s ease both; }
+    .panel { border-radius: 22px; padding: 16px; margin-bottom: 12px; }
+    .panel h2 { margin: 0 0 12px; font-size: .78rem; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; display: flex; align-items: center; gap: 8px; }
+    .panel h2 .sp { flex: 1; }
+    h1.logo { margin: 18px 0 4px; text-align: center; font-size: clamp(2rem, 9vw, 2.8rem); font-weight: 850; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { text-align: center; color: var(--muted); margin: 0 0 18px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--chip); font-size: .82rem; font-weight: 650; border: 1px solid transparent; }
+    .chip.on { background: color-mix(in srgb, var(--ok) 18%, transparent); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+    .chip.off { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 35%, transparent); text-decoration: line-through; opacity: .8; }
+    .chip.q { opacity: .65; }
+    button.chip { cursor: pointer; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; flex: none; font-size: .9rem;
+      background: linear-gradient(135deg, hsl(var(--h) 75% 50%), hsl(calc(var(--h) + 40) 80% 55%)); }
+    .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%) translateY(-20px); opacity: 0;
+      padding: 12px 18px; border-radius: 14px; font-weight: 650; transition: .3s; z-index: 60; max-width: calc(100% - 28px); text-align: center; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%); }
+    .busy { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,20,30,.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 70; }
+    .busy .panel { text-align: center; max-width: 320px; animation: pop .3s ease both; }
+    .spinner { width: 42px; height: 42px; border-radius: 50%; border: 4px solid var(--chip); border-top-color: var(--accent); animation: spin 1s linear infinite; margin: 4px auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* start */
+    .tripcard { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--glass-border); cursor: pointer; }
+    .tripcard:first-of-type { border-top: 0; }
+    .tripcard .em { font-size: 1.8rem; }
+    .tripcard b { display: block; }
+    .codein { text-transform: uppercase; letter-spacing: .25em; font-weight: 800; text-align: center; }
+
+    /* trip header & tabs */
+    .head { border-radius: 24px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
+    .head h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.02em; padding-right: 92px; }
+    .head .where { color: var(--muted); margin-top: 2px; font-weight: 600; }
+    .head .code { position: absolute; top: 14px; right: 14px; text-align: center; }
+    .head .code b { display: block; font-family: ui-monospace, monospace; letter-spacing: .14em; font-size: 1rem; }
+    .back { display: inline-flex; gap: 6px; color: var(--muted); text-decoration: none; font-weight: 650; font-size: .9rem; margin-bottom: 10px; background: none; border: 0; padding: 0; }
+    nav.tabs { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom)); width: min(600px, calc(100% - 20px));
+      display: grid; grid-template-columns: repeat(5, 1fr); border-radius: 22px; padding: 6px; z-index: 40; }
+    nav.tabs button { border: 0; background: none; border-radius: 16px; padding: 6px 0 5px; display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: .68rem; font-weight: 700; color: var(--muted); }
+    nav.tabs button span { font-size: 1.35rem; line-height: 1.2; }
+    nav.tabs button.on { background: var(--glass-strong); color: var(--text); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat { border-radius: 18px; padding: 12px 8px; text-align: center; }
+    .stat b { display: block; font-size: 1.5rem; font-weight: 850; }
+    .stat span { font-size: .72rem; color: var(--muted); font-weight: 650; }
+
+    /* people */
+    .person { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--glass-border); }
+    .person:first-child { border-top: 0; }
+    .person .top { display: flex; align-items: center; gap: 10px; }
+    .person .top b { flex: 1; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* stays */
+    .stay { border-radius: 20px; overflow: hidden; margin-bottom: 12px; animation: rise .4s ease both; }
+    .stay .pic { height: 150px; background: var(--chip) center / cover; position: relative; }
+    .stay .pic.none { height: 64px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent-2) 22%, transparent)); }
+    .stay .pic.none::after { content: "🏠"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; }
+    .stay .medal { position: absolute; top: 10px; left: 10px; font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+    .stay .score { position: absolute; top: 10px; right: 10px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-weight: 850; }
+    .stay .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .stay h3 { margin: 0; font-size: 1.05rem; }
+    .facts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .bars { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-size: .82rem; font-weight: 650; }
+    .bars i { height: 8px; border-radius: 4px; background: var(--chip); overflow: hidden; display: block; }
+    .bars i u { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+    .pm { margin: 0; padding-left: 18px; font-size: .88rem; }
+    .pm li { margin: 2px 0; }
+    .top3 li { margin: 6px 0; }
+    details summary { cursor: pointer; font-weight: 700; color: var(--muted); font-size: .88rem; }
+    details[open] summary { margin-bottom: 8px; }
+
+    /* spots */
+    .spot { padding: 12px 0; border-top: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 5px; }
+    .spot:first-child { border-top: 0; }
+    .spot .t { display: flex; align-items: flex-start; gap: 8px; }
+    .spot .t b { flex: 1; font-size: 1rem; }
+    .gem { font-size: .72rem; font-weight: 850; color: #fff; padding: 3px 8px; border-radius: 999px; background: linear-gradient(135deg, #8b5cf6, #ec4899); white-space: nowrap; }
+    .tip { font-size: .85rem; color: var(--muted); }
+    .links a { color: var(--accent); font-weight: 700; font-size: .85rem; text-decoration: none; margin-right: 14px; }
+    .heart { border: 0; background: none; font-size: 1.1rem; padding: 0 2px; white-space: nowrap; }
+
+    /* money */
+    .bal { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .bal b { flex: 1; }
+    .amount { font-weight: 850; font-variant-numeric: tabular-nums; }
+    .plus { color: var(--ok); } .minus { color: var(--danger); }
+    .transfer { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: var(--chip); margin-top: 6px; font-weight: 650; }
+    .receipt { border-radius: 18px; margin-bottom: 10px; padding: 12px 14px; }
+    .receipt .rh { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .receipt .rh b { flex: 1; }
+    .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 0; border-top: 1px solid var(--glass-border); cursor: pointer; }
+    .item .n { font-weight: 650; }
+    .item .who { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; font-size: .75rem; color: var(--muted); align-items: center; }
+    .item.unsure .n::after { content: " ⚠️"; }
+    .sumcheck { font-size: .82rem; margin-top: 8px; }
+    .upload { display: flex; flex-direction: column; gap: 10px; }
+    .camera { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px; border-radius: 18px; border: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+      font-weight: 750; cursor: pointer; background: var(--chip); }
+    .camera input { display: none; }
+
+    /* sheet */
+    .sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,20,30,.35); }
+    .sheet .panel { width: min(620px, 100%); margin: 0; border-radius: 24px 24px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom)); max-height: 88dvh; overflow: auto; animation: rise .3s ease both; }
+    .sheet h3 { margin: 0 0 12px; }
+    .sheet .group { margin: 12px 0; }
+    .sheet .group > p { margin: 0 0 6px; font-size: .8rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .warn { background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 14px; padding: 10px 12px; font-size: .88rem; }
+  </style>
+</head>
+<body>
+  <div class="backdrop"><i></i><i></i><i></i></div>
+
+  <!-- start -->
+  <main class="wrap hidden" id="start">
+    <h1 class="logo">Urlaubsplaner</h1>
+    <p class="sub">Gemeinsam planen: Unterkunft, coole Orte und die Urlaubskasse.</p>
+    <section class="panel glass hidden" id="mine"><h2>Meine Urlaube</h2><div id="mineList"></div></section>
+    <section class="panel glass">
+      <h2>Urlaub beitreten</h2>
+      <form id="joinForm" class="row" autocomplete="off">
+        <input name="code" class="codein" maxlength="6" placeholder="CODE" required style="flex:1 1 120px">
+        <input name="name" placeholder="Dein Name" maxlength="30" required style="flex:1 1 140px">
+        <button class="btn">Beitreten</button>
+      </form>
+    </section>
+    <section class="panel glass">
+      <h2>Neuen Urlaub planen</h2>
+      <form id="createForm" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
+        <label class="f">Name des Urlaubs<input name="trip" placeholder="z. B. Kroatien mit den Jungs" maxlength="60" required></label>
+        <label class="f">Wohin?<input name="destination" placeholder="Ort, Insel oder Region – z. B. Hvar, Kroatien" maxlength="120" required></label>
+        <div class="grid2"><label class="f">Von<input type="date" name="start"></label><label class="f">Bis<input type="date" name="end"></label></div>
+        <label class="f">Dein Name<input name="name" placeholder="z. B. Alex" maxlength="30" required></label>
+        <button class="btn">Urlaub erstellen ✈️</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- trip -->
+  <main class="wrap hidden" id="trip">
+    <button class="back" id="toStart">← Alle Urlaube</button>
+    <header class="head glass" id="head"></header>
+    <div id="view"></div>
+  </main>
+  <nav class="tabs glass hidden" id="tabs">
+    <button data-tab="home"><span>🏝️</span>Übersicht</button>
+    <button data-tab="people"><span>👥</span>Leute</button>
+    <button data-tab="stays"><span>🏠</span>Unterkunft</button>
+    <button data-tab="spots"><span>📍</span>Spots</button>
+    <button data-tab="money"><span>🧾</span>Kasse</button>
+  </nav>
+
+  <div class="toast glass" id="toast"></div>
+  <div class="busy hidden" id="busy"><div class="panel glass"><div class="spinner"></div><b id="busyText">Einen Moment …</b><p class="muted small" id="busySub"></p></div></div>
+  <div class="sheet hidden" id="sheet"><div class="panel glass" id="sheetBody"></div></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const store = {
+      get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    };
+    let trips = store.get("urlaub-trips", {});     // code → { token, name, trip }
+    let S = null, code = null, tab = "home";
+
+    function toast(text) { const t = $("toast"); t.textContent = text; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3200); }
+    function busy(on, text = "Einen Moment …", sub = "") { $("busy").classList.toggle("hidden", !on); $("busyText").textContent = text; $("busySub").textContent = sub; }
+    const hue = s => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+    const avatar = m => `<span class="avatar" style="--h:${hue(m.name)}">${esc(m.name.slice(0, 1).toUpperCase())}</span>`;
+    const money = (cents, cur) => (cents / 100).toLocaleString("de-DE", { style: "currency", currency: cur || (S && S.trip.currency) || "EUR" });
+    const fmtDate = d => d ? new Date(d + "T12:00").toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" }) : "";
+
+    async function api(path, opts = {}) {
+      const headers = { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...(code && trips[code] ? { "X-Token": trips[code].token } : {}) };
+      const res = await fetch("api/" + path, { method: opts.method || (opts.body ? "POST" : "GET"), headers, cache: "no-store",
+        body: opts.body instanceof FormData ? opts.body : opts.body ? JSON.stringify(opts.body) : undefined });
+      const data = await res.json().catch(() => ({ error: "Keine Verbindung zum Urlaubsplaner" }));
+      if (!res.ok) { if (res.status === 401 && code) { delete trips[code]; store.set("urlaub-trips", trips); } throw new Error(data.error || "Fehler"); }
+      return data;
+    }
+    // Runs an action, shows errors as a toast and renders the new state.
+    async function act(fn, label, sub) {
+      if (label) busy(true, label, sub);
+      try { const data = await fn(); if (data && data.trip) { S = data; render(); } return data; }
+      catch (e) { toast(e.message); }
+      finally { if (label) busy(false); }
+    }
+
+    // ---------------- start ----------------
+    function showStart() {
+      const invited = new URLSearchParams(location.search).get("code");
+      code = null; S = null; history.replaceState(null, "", location.pathname + location.search);
+      $("start").classList.remove("hidden"); $("trip").classList.add("hidden"); $("tabs").classList.add("hidden");
+      const list = Object.entries(trips);
+      $("mine").classList.toggle("hidden", !list.length);
+      $("mineList").innerHTML = list.map(([c, t]) => `<div class="tripcard" data-open="${esc(c)}"><span class="em">🏝️</span>
+        <div style="flex:1"><b>${esc(t.trip || c)}</b><span class="muted small">${esc(t.where || "")} · als ${esc(t.name || "")}</span></div><span class="muted">›</span></div>`).join("");
+      if (invited) $("joinForm").code.value = invited.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const name = store.get("urlaub-name", "");
+      if (name) { $("joinForm").name.value = name; $("createForm").name.value = name; }
+    }
+    $("mineList").onclick = e => { const el = e.target.closest("[data-open]"); if (el) openTrip(el.dataset.open); };
+    $("joinForm").code.oninput = e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); };
+    $("joinForm").onsubmit = async e => {
+      e.preventDefault(); const f = e.target;
+      const c = f.code.value.trim().toUpperCase(), name = f.name.value.trim();
+      if (trips[c]) return openTrip(c);
+      store.set("urlaub-name", name);
+      try { const r = await api("join", { body: { code: c, name } }); trips[r.code] = { token: r.token, name }; store.set("urlaub-trips", trips); openTrip(r.code); }
+      catch (err) { toast(err.message); }
+    };
+    $("createForm").onsubmit = async e => {
+      e.preventDefault(); const f = e.target, d = Object.fromEntries(new FormData(f));
+      store.set("urlaub-name", d.name);
+      busy(true, "Urlaub wird angelegt …", "Das Ziel wird auf der Karte gesucht");
+      try {
+        const r = await api("trips", { body: d });
+        trips[r.code] = { token: r.token, name: d.name, trip: d.trip, where: d.destination }; store.set("urlaub-trips", trips);
+        if (!r.found) toast("Das Ziel wurde auf der Karte nicht gefunden – du kannst es später genauer angeben");
+        f.reset(); openTrip(r.code);
+      } catch (err) { toast(err.message); }
+      finally { busy(false); }
+    };
+
+    // ---------------- trip ----------------
+    async function openTrip(c) {
+      code = c;
+      try { S = await api("trip"); }
+      catch (e) { toast(e.message); return showStart(); }
+      trips[c] = { ...trips[c], trip: S.trip.name, where: S.trip.destination }; store.set("urlaub-trips", trips);
+      history.replaceState(null, "", location.pathname + "#" + c);
+      $("start").classList.add("hidden"); $("trip").classList.remove("hidden"); $("tabs").classList.remove("hidden");
+      render();
+    }
+    $("toStart").onclick = showStart;
+    $("tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); scrollTo({ top: 0 }); } };
+    const member = id => S.members.find(m => m.id === id) || { name: "?", id };
+    const isMe = id => id === S.me.id;
+    const canEdit = id => isMe(id) || S.me.owner;
+
+    function render() {
+      const t = S.trip;
+      document.title = `${t.name} · Urlaubsplaner`;
+      const days = t.start ? Math.ceil((new Date(t.start + "T00:00") - new Date()) / 86400000) : null;
+      $("head").innerHTML = `<h1>${esc(t.name)}</h1><div class="where">📍 ${esc(t.destination)}${t.start ? ` · ${fmtDate(t.start)}${t.end ? " – " + fmtDate(t.end) : ""}` : ""}</div>
+        ${days != null && days > 0 ? `<div class="muted small" style="margin-top:6px">⏳ noch ${days} ${days === 1 ? "Tag" : "Tage"}</div>` : ""}
+        <button class="code btn ghost small" id="share" title="Einladen"><span class="small muted">Code</span><b>${esc(t.code)}</b></button>`;
+      $("share").onclick = invite;
+      document.querySelectorAll("#tabs [data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+      $("view").innerHTML = ({ home, people, stays, spots, money: moneyTab })[tab]();
+      bind[tab] && bind[tab]();
+    }
+
+    async function invite() {
+      const url = location.origin + location.pathname + "?code=" + S.trip.code;
+      const text = `Plan mit uns: ${S.trip.name} 🏝️ – tritt mit dem Code ${S.trip.code} bei: ${url}`;
+      if (navigator.share) { try { await navigator.share({ title: S.trip.name, text, url }); return; } catch (e) { if (e.name === "AbortError") return; } }
+      try { await navigator.clipboard.writeText(text); toast("Einladung kopiert – einfach in den Gruppenchat einfügen"); } catch { prompt("Einladung:", text); }
+    }
+
+    // ---------------- overview ----------------
+    function home() {
+      const mine = S.money.net[S.me.id] || 0;
+      const best = S.ranking && S.ranking.top3 && S.ranking.top3[0] && S.stays.find(s => s.id === S.ranking.top3[0].id);
+      const gems = (S.spots || []).filter(s => s.geheimtipp).length;
+      const open = S.members.filter(m => !Object.keys(m.answers).length).map(m => m.name);
+      return `<div class="stats">
+          <div class="stat glass"><b>${S.members.length}</b><span>Mitreisende</span></div>
+          <div class="stat glass"><b>${S.stays.length}</b><span>Unterkünfte</span></div>
+          <div class="stat glass"><b>${(S.spots || []).length}</b><span>Spots${gems ? ` · ${gems} 💎` : ""}</span></div>
+        </div>
+        <section class="panel glass" style="margin-top:12px"><h2>Deine Kasse</h2>
+          <div class="bal"><b>${mine > 0 ? "Du bekommst noch" : mine < 0 ? "Du schuldest noch" : "Du bist ausgeglichen"}</b>
+          <span class="amount ${mine > 0 ? "plus" : mine < 0 ? "minus" : ""}">${money(Math.abs(mine))}</span></div>
+          <button class="btn ghost small" data-go="money">🧾 Kassenzettel hinzufügen</button></section>
+        ${best ? `<section class="panel glass"><h2>🥇 Beste Unterkunft</h2><b>${esc(stayTitle(best))}</b><p class="small muted" style="margin:6px 0 0">${esc(S.ranking.top3[0].warum)}</p></section>` : ""}
+        ${open.length ? `<section class="panel glass"><h2>👥 Noch offen</h2><p class="small" style="margin:0">Noch keine Angaben zu Getränken und Essen von: <b>${esc(open.join(", "))}</b>. Damit teilt die Kasse Bier, Schnaps & Co. richtig auf.</p>
+          <button class="btn ghost small" data-go="people" style="margin-top:10px">Zu den Leuten</button></section>` : ""}
+        <section class="panel glass"><h2>✈️ Freunde einladen</h2><p class="small muted" style="margin:0 0 10px">Mit dem Code <b>${esc(S.trip.code)}</b> können alle beitreten.</p>
+          <button class="btn" id="invite2">📨 Einladung teilen</button></section>
+        ${S.me.owner ? `<details class="panel glass"><summary>⚙️ Urlaub bearbeiten</summary>
+          <form id="editTrip" style="display:flex;flex-direction:column;gap:10px">
+            <label class="f">Name<input name="trip" value="${esc(S.trip.name)}" maxlength="60"></label>
+            <label class="f">Ziel<input name="destination" value="${esc(S.trip.destination)}" maxlength="120"></label>
+            <div class="grid2"><label class="f">Von<input type="date" name="start" value="${esc(S.trip.start || "")}"></label><label class="f">Bis<input type="date" name="end" value="${esc(S.trip.end || "")}"></label></div>
+            <label class="f">Währung der Kasse<select name="currency">${["EUR", "CHF", "GBP", "USD", "HRK", "CZK", "PLN", "HUF", "DKK", "SEK", "NOK", "TRY"].map(c => `<option ${c === S.trip.currency ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+            <button class="btn">Speichern</button></form></details>` : `<button class="btn danger small" id="leave">Urlaub verlassen</button>`}`;
+    }
+    const stayTitle = s => s.manual.titel || s.data.titel || (s.url ? "Unterkunft auf " + new URL(s.url).hostname.replace(/^www\./, "") : "Unterkunft");
+
+    const bind = {
+      home() {
+        document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { tab = b.dataset.go; render(); });
+        $("invite2").onclick = invite;
+        const f = $("editTrip");
+        if (f) f.onsubmit = e => { e.preventDefault(); act(() => api("trip", { method: "PATCH", body: Object.fromEntries(new FormData(f)) }), "Wird gespeichert …"); };
+        const l = $("leave");
+        if (l) l.onclick = async () => {
+          if (!confirm("Diesen Urlaub wirklich verlassen?")) return;
+          try { await api("members/" + S.me.id, { method: "DELETE" }); delete trips[code]; store.set("urlaub-trips", trips); showStart(); } catch (e) { toast(e.message); }
+        };
+      },
+    };
+
+    // ---------------- people & categories ----------------
+    function tagChip(m, t) {
+      const v = m.answers[t.id], parentNo = t.parent && m.answers[t.parent] === false;
+      const cls = parentNo || v === false ? "off" : v === true ? "on" : "q";
+      const edit = canEdit(m.id) && !parentNo;
+      return `<${edit ? "button" : "span"} class="chip ${cls}" ${edit ? `data-tag="${esc(t.id)}" data-m="${m.id}"` : ""} title="${esc(t.name)}">${t.icon} ${esc(t.name)}${cls === "q" ? " ?" : ""}</${edit ? "button" : "span"}>`;
+    }
+    function people() {
+      return `<section class="panel glass"><h2>👥 Mitreisende<span class="sp"></span><button class="btn ghost small" id="invite3">+ Einladen</button></h2>
+          <p class="small muted" style="margin:0 0 6px">Tippe auf eine Kategorie: <span class="chip on">✓ ja</span> <span class="chip off">nein</span> <span class="chip q">? offen</span>. Wer z. B. kein Bier trinkt, zahlt beim Aufteilen kein Bier mit. Offene Angaben zählen als ja.</p>
+          ${S.members.map(m => `<div class="person"><div class="top">${avatar(m)}<b>${esc(m.name)}${isMe(m.id) ? " (du)" : ""}${m.owner ? " 👑" : ""}</b>
+            ${S.me.owner && !isMe(m.id) ? `<button class="btn ghost small" data-kick="${m.id}" title="Entfernen">✕</button>` : ""}</div>
+            <div class="tags">${S.tags.map(t => tagChip(m, t)).join("")}</div></div>`).join("")}
+        </section>
+        <section class="panel glass"><h2>🏷️ Eigene Kategorie</h2>
+          <form id="tagForm" class="row" autocomplete="off">
+            <input name="icon" maxlength="4" placeholder="🍹" style="flex:0 0 64px;text-align:center">
+            <input name="name" maxlength="30" placeholder="z. B. Cocktails, Energydrinks, Vegan" required style="flex:1 1 160px">
+            <select name="parent" style="flex:1 1 130px"><option value="">gehört zu …</option>${S.tags.filter(t => !t.parent).map(t => `<option value="${esc(t.id)}">${t.icon} ${esc(t.name)}</option>`).join("")}</select>
+            <button class="btn">Hinzufügen</button></form>
+          ${S.me.owner ? `<details style="margin-top:12px"><summary>Kategorien entfernen</summary><div class="tags">${S.tags.map(t => `<button class="chip" data-deltag="${esc(t.id)}">${t.icon} ${esc(t.name)} ✕</button>`).join("")}</div></details>` : ""}
+        </section>`;
+    }
+    bind.people = () => {
+      $("invite3").onclick = invite;
+      document.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => {
+        const m = member(+b.dataset.m), v = m.answers[b.dataset.tag];
+        const next = v === undefined ? true : v === true ? false : null;
+        act(() => api("members/" + m.id, { method: "PATCH", body: { answers: { [b.dataset.tag]: next } } }));
+      });
+      document.querySelectorAll("[data-kick]").forEach(b => b.onclick = () => {
+        if (confirm(`${member(+b.dataset.kick).name} aus dem Urlaub entfernen?`)) act(() => api("members/" + b.dataset.kick, { method: "DELETE" }));
+      });
+      $("tagForm").onsubmit = e => { e.preventDefault(); act(() => api("tags", { body: Object.fromEntries(new FormData(e.target)) })); };
+      document.querySelectorAll("[data-deltag]").forEach(b => b.onclick = () => {
+        if (confirm("Diese Kategorie für alle entfernen?")) act(() => api("tags/" + b.dataset.deltag, { method: "DELETE" }));
+      });
+    };
+
+    // ---------------- stays ----------------
+    function stayCard(s, rank) {
+      const d = { ...s.data, ...s.manual }, r = S.ranking && S.ranking.bewertungen.find(b => b.id === s.id);
+      const n = s.near || {}, votes = S.votes.stay[String(s.id)] || [];
+      const medal = rank >= 0 ? ["🥇", "🥈", "🥉"][rank] : "";
+      const nights = d.naechte || nightsOf(), pp = d.preis_gesamt ? d.preis_gesamt / S.members.length / (nights || 1) : null;
+      const fact = (icon, v) => v ? `<span class="chip">${icon} ${esc(v)}</span>` : "";
+      const near = (icon, label, v) => v && v.naechstes_km != null ? `<span class="chip">${icon} ${label} ${kmText(v.naechstes_km)}</span>` : "";
+      return `<article class="stay glass">
+        <div class="pic ${d.bild ? "" : "none"}" style="${d.bild ? `background-image:url('${esc(d.bild)}')` : ""}">${medal ? `<span class="medal">${medal}</span>` : ""}${r ? `<span class="score">${r.gesamt.toFixed(1)} / 10</span>` : ""}</div>
+        <div class="body"><h3>${esc(stayTitle(s))}</h3>
+          <div class="facts">${fact("💶", d.preis_gesamt ? money(Math.round(d.preis_gesamt * 100)) + " gesamt" : d.preis_text)}${pp ? fact("👤", money(Math.round(pp * 100)) + " p. P./Nacht") : ""}
+            ${fact("👥", d.gaeste && d.gaeste + " Gäste")}${fact("🛏️", d.betten && d.betten + " Betten")}${fact("🚪", d.schlafzimmer && d.schlafzimmer + " Zimmer")}${fact("🛁", d.baeder && d.baeder + " Bäder")}
+            ${fact("⭐", d.bewertung && (+d.bewertung).toFixed(2).replace(".", ",") + (d.anzahl_bewertungen ? ` (${d.anzahl_bewertungen})` : ""))}</div>
+          ${s.near ? `<div class="facts">${n.zentrum_km != null ? `<span class="chip">🏛️ Zentrum ${kmText(n.zentrum_km)}</span>` : ""}${near("🏖️", "Strand", n.strand)}${near("🛒", "Supermarkt", n.supermarkt)}${near("🍽️", "Lokal", n.restaurant)}${near("🚌", "Bus", n.haltestelle)}</div>` : ""}
+          ${r ? `<div class="bars">${[["📍 Lage", r.lage], ["🛋️ Komfort", r.komfort], ["💶 Preis", r.preis]].map(([l, v]) => `<span>${l}</span><i><u style="width:${v * 10}%"></u></i><b>${v.toFixed(1)}</b>`).join("")}</div>
+            ${r.plus.length ? `<ul class="pm">${r.plus.map(p => `<li>👍 ${esc(p)}</li>`).join("")}${r.minus.map(p => `<li>👎 ${esc(p)}</li>`).join("")}</ul>` : ""}
+            ${r.fehlt.length ? `<p class="small muted" style="margin:0">Fehlt: ${esc(r.fehlt.join(", "))}</p>` : ""}` : ""}
+          ${s.data.fehler ? `<p class="warn" style="margin:0">⚠️ ${esc(s.data.fehler)}</p>` : ""}
+          <div class="row" style="justify-content:flex-start">
+            <button class="btn ghost small" data-vote="${s.id}" style="flex:0 0 auto">${votes.includes(S.me.id) ? "💚" : "🤍"} ${votes.length || ""}</button>
+            ${s.url ? `<a class="btn ghost small" href="${esc(s.url)}" target="_blank" rel="noopener" style="flex:0 0 auto;text-decoration:none">Ansehen ↗</a>` : ""}
+            <button class="btn ghost small" data-editstay="${s.id}" style="flex:0 0 auto">✏️ Angaben</button>
+            <button class="btn danger small" data-delstay="${s.id}" style="flex:0 0 auto">🗑️</button></div>
+        </div></article>`;
+    }
+    const kmText = km => km < 1 ? Math.round(km * 1000 / 10) * 10 + " m" : km.toFixed(1).replace(".", ",") + " km";
+    function nightsOf() { const t = S.trip; if (!t.start || !t.end) return null; return Math.max(1, Math.round((new Date(t.end) - new Date(t.start)) / 86400000)); }
+    function stays() {
+      const top = S.ranking ? S.ranking.top3.map(t => t.id) : [];
+      const order = [...S.stays].sort((a, b) => (top.indexOf(a.id) + 1 || 99) - (top.indexOf(b.id) + 1 || 99));
+      return `<section class="panel glass"><h2>🏠 Unterkunft hinzufügen</h2>
+          <form id="stayForm" style="display:flex;flex-direction:column;gap:10px" autocomplete="off">
+            <input name="url" placeholder="Link einfügen, z. B. https://www.airbnb.de/rooms/…" inputmode="url">
+            <details><summary>Oder von Hand / Angaben ergänzen</summary>${stayFields({})}</details>
+            <button class="btn">Hinzufügen</button></form>
+          <p class="small muted" style="margin:10px 0 0">Tipp: In der Airbnb-App über „Teilen → Link kopieren“. Gib bei mehreren den Gesamtpreis an, damit der Preis fair verglichen wird.</p></section>
+        ${S.stays.length >= 2 ? `<section class="panel glass"><h2>🤖 Vergleich</h2>
+          ${S.ranking ? `<ol class="top3" style="margin:0 0 10px;padding-left:20px">${S.ranking.top3.map((t, i) => { const s = S.stays.find(x => x.id === t.id); return s ? `<li><b>${["🥇", "🥈", "🥉"][i]} ${esc(stayTitle(s))}</b><br><span class="small muted">${esc(t.warum)}</span></li>` : ""; }).join("")}</ol>
+            <p class="small" style="margin:0 0 10px">${esc(S.ranking.fazit)}</p>` : `<p class="small muted" style="margin:0 0 10px">Claude bewertet Lage, Komfort und Preis aller Unterkünfte und schlägt die besten drei vor.</p>`}
+          <button class="btn" id="rank" ${S.ai ? "" : "disabled"}>${S.ranking ? "🔄 Neu bewerten" : "✨ Beste 3 vorschlagen"}</button>
+          ${S.ai ? "" : `<p class="small muted">Dafür fehlt der Anthropic-API-Key im Fabians-HA-Master.</p>`}</section>` : ""}
+        ${order.map(s => stayCard(s, top.indexOf(s.id))).join("") || `<p class="muted" style="text-align:center">Noch keine Unterkünfte – füge Links von Airbnb, Booking & Co. hinzu.</p>`}`;
+    }
+    function stayFields(m) {
+      const f = (name, label, type = "text", ph = "") => `<label class="f">${label}<input name="${name}" type="${type}" ${type === "number" ? 'step="any" inputmode="decimal"' : ""} value="${esc(m[name] ?? "")}" placeholder="${ph}"></label>`;
+      return `<div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">${f("titel", "Titel", "text", "z. B. Villa mit Pool")}
+        <div class="grid2">${f("preis_gesamt", "Gesamtpreis", "number", "z. B. 1450")}${f("naechte", "Nächte", "number", nightsOf() || "")}</div>
+        <div class="grid2">${f("gaeste", "Gäste", "number")}${f("betten", "Betten", "number")}</div>
+        <div class="grid2">${f("schlafzimmer", "Schlafzimmer", "number")}${f("baeder", "Bäder", "number")}</div>
+        <div class="grid2">${f("bewertung", "Bewertung (0–5)", "number")}${f("adresse", "Adresse / Ort", "text", "für die Lage")}</div>
+        ${f("notiz", "Notiz", "text", "z. B. Pool, Parkplatz, Klima")}</div>`;
+    }
+    bind.stays = () => {
+      $("stayForm").onsubmit = e => {
+        e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); const url = d.url; delete d.url;
+        act(() => api("stays", { body: { url, manual: d } }), "Unterkunft wird geladen …", "Infos und Umgebung werden gesucht");
+      };
+      const r = $("rank");
+      if (r) r.onclick = () => act(() => api("stays/rank", { body: {} }), "Claude vergleicht die Unterkünfte …", "Lage, Komfort und Preis – das dauert etwa eine Minute");
+      document.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => act(() => api("vote", { body: { kind: "stay", ref: b.dataset.vote } })));
+      document.querySelectorAll("[data-delstay]").forEach(b => b.onclick = () => { if (confirm("Unterkunft entfernen?")) act(() => api("stays/" + b.dataset.delstay, { method: "DELETE" })); });
+      document.querySelectorAll("[data-editstay]").forEach(b => b.onclick = () => {
+        const s = S.stays.find(x => x.id === +b.dataset.editstay);
+        sheet(`<h3>✏️ ${esc(stayTitle(s))}</h3><form id="stayEdit">${stayFields(s.manual)}<div class="row" style="margin-top:14px"><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn">Speichern</button></div></form>`);
+        $("stayEdit").onsubmit = e => { e.preventDefault(); closeSheet(); act(() => api("stays/" + s.id, { method: "PATCH", body: { manual: Object.fromEntries(new FormData(e.target)) } }), "Wird gespeichert …"); };
+      });
+    };
+
+    // ---------------- spots ----------------
+    const CATS = { "Natur": "🌿", "Aussicht": "🌄", "Baden": "🏖️", "Kultur": "🏛️", "Essen & Trinken": "🍽️", "Nachtleben": "🍸", "Aktiv": "🥾" };
+    function spots() {
+      const list = S.spots || [], votes = S.votes.spot;
+      const groups = Object.keys(CATS).map(c => [c, list.filter(s => s.kategorie === c).sort((a, b) => (votes[b.id] || []).length - (votes[a.id] || []).length || b.geheimtipp - a.geheimtipp)]).filter(([, l]) => l.length);
+      return `<section class="panel glass"><h2>📍 Coole Spots in der Nähe</h2>
+          <form id="spotForm" style="display:flex;flex-direction:column;gap:10px">
+            <label class="f">Worauf habt ihr Lust? (optional)<textarea name="wishes" maxlength="400" placeholder="z. B. einsame Buchten zum Schnorcheln, Sonnenuntergang, günstige Bars, Wandern">${esc(S.trip.wishes || "")}</textarea></label>
+            <div class="row"><label class="f" style="flex:1 1 110px">Umkreis<select name="radius"><option value="8">8 km</option><option value="15" selected>15 km</option><option value="25">25 km</option><option value="40">40 km</option></select></label>
+            <button class="btn" ${S.ai ? "" : "disabled"} style="flex:2 1 170px;align-self:flex-end">${list.length ? "🔄 Neue Vorschläge" : "✨ Spots finden"}</button></div></form>
+          ${S.ai ? "" : `<p class="small muted">Dafür fehlt der Anthropic-API-Key im Fabians-HA-Master.</p>`}
+          ${S.trip.lat == null ? `<p class="warn">⚠️ Das Ziel wurde nicht auf der Karte gefunden – bitte in der Übersicht genauer angeben (z. B. „Hvar, Kroatien“).</p>` : ""}</section>
+        ${groups.map(([c, l]) => `<section class="panel glass"><h2>${CATS[c]} ${esc(c)}</h2>${l.map(s => {
+          const v = votes[s.id] || [];
+          return `<div class="spot"><div class="t"><b>${esc(s.titel)}</b>${s.geheimtipp ? '<span class="gem">💎 Geheimtipp</span>' : ""}
+            <button class="heart" data-spotvote="${esc(s.id)}">${v.includes(S.me.id) ? "❤️" : "🤍"} ${v.length || ""}</button></div>
+            <span class="small">${esc(s.beschreibung)}</span><span class="tip">💡 ${esc(s.tipp)}</span>
+            <div class="links"><span class="muted small" style="margin-right:12px">📏 ${kmText(s.km)}</span>
+              <a href="https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lon}" target="_blank" rel="noopener">Karte ↗</a>
+              ${s.wiki ? `<a href="https://${esc(s.wiki.split(":")[0])}.wikipedia.org/wiki/${encodeURIComponent(s.wiki.split(":").slice(1).join(":"))}" target="_blank" rel="noopener">Wikipedia ↗</a>` : ""}</div></div>`;
+        }).join("")}</section>`).join("")}
+        ${list.length ? `<p class="small muted" style="text-align:center">Orte aus OpenStreetMap und Wikipedia, ausgesucht und beschrieben von Claude – vor Ort kurz prüfen.</p>` : ""}`;
+    }
+    bind.spots = () => {
+      $("spotForm").onsubmit = e => {
+        e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
+        act(() => api("spots", { body: d }), "Coole Spots werden gesucht …", "Orte aus OpenStreetMap, ausgewählt von Claude – das dauert etwa eine Minute");
+      };
+      document.querySelectorAll("[data-spotvote]").forEach(b => b.onclick = () => act(() => api("vote", { body: { kind: "spot", ref: b.dataset.spotvote } })));
+    };
+
+    // ---------------- money ----------------
+    function moneyTab() {
+      const net = S.money.net;
+      return `<section class="panel glass upload"><h2>🧾 Kassenzettel</h2>
+          <div class="row"><label class="f" style="flex:1 1 150px">Bezahlt von<select id="payer">${S.members.map(m => `<option value="${m.id}" ${isMe(m.id) ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label></div>
+          <label class="camera">📷 Kassenzettel fotografieren<input type="file" accept="image/*" id="receiptFile"></label>
+          ${S.ai ? "" : `<p class="small muted" style="margin:0">Fotos auslesen braucht den Anthropic-API-Key im Fabians-HA-Master – Ausgaben von Hand gehen immer.</p>`}
+          <details><summary>Ausgabe von Hand eintragen</summary>
+            <form id="manualForm" style="display:flex;flex-direction:column;gap:10px" autocomplete="off">
+              <div class="grid2"><input name="title" placeholder="z. B. Tanken, Fähre" maxlength="80" required><input name="amount" placeholder="Betrag" inputmode="decimal" required></div>
+              <div class="tags">${S.tags.map(t => `<label class="chip"><input type="checkbox" name="tag" value="${esc(t.id)}" style="width:auto;margin:0"> ${t.icon} ${esc(t.name)}</label>`).join("")}</div>
+              <button class="btn ghost">Eintragen</button></form></details></section>
+        <section class="panel glass"><h2>⚖️ Wer bekommt was?</h2>
+          ${S.members.map(m => `<div class="bal">${avatar(m)}<b>${esc(m.name)}<br><span class="small muted" style="font-weight:500">bezahlt ${money(S.money.paid[m.id] || 0)} · Anteil ${money(S.money.owed[m.id] || 0)}</span></b>
+            <span class="amount ${net[m.id] > 0 ? "plus" : net[m.id] < 0 ? "minus" : ""}">${net[m.id] > 0 ? "+" : ""}${money(net[m.id] || 0)}</span></div>`).join("")}
+          ${S.settle.length ? `<p class="small muted" style="margin:10px 0 0">So wird ausgeglichen:</p>${S.settle.map(t => `<div class="transfer">${esc(member(t.from).name)} → ${esc(member(t.to).name)}<span style="flex:1"></span><span class="amount">${money(t.cents)}</span></div>`).join("")}`
+            : S.receipts.length ? `<p class="small" style="margin:8px 0 0">✅ Alles ausgeglichen</p>` : ""}</section>
+        ${S.receipts.map(receiptCard).join("")}`;
+    }
+    function receiptCard(r) {
+      const sum = r.items.reduce((a, i) => a + i.price, 0), diff = r.total != null ? Math.round((r.total - sum) * 100) : 0;
+      const open = receiptCard.open === r.id;
+      return `<article class="receipt glass"><div class="rh" data-toggle="${r.id}"><span style="font-size:1.4rem">🧾</span>
+          <b>${esc(r.store || "Einkauf")}<br><span class="small muted">${r.date ? esc(fmtDate(r.date)) + " · " : ""}${esc(member(r.payer).name)} hat bezahlt · ${r.items.length} Artikel</span></b>
+          <span class="amount">${money(Math.round(sum * 100), r.currency)}</span></div>
+        ${open ? `${r.items.map(i => itemRow(i, r)).join("")}
+          ${Math.abs(diff) >= 2 ? `<p class="sumcheck warn">⚠️ Laut Bon ${money(Math.round(r.total * 100), r.currency)} – die Artikel ergeben ${money(Math.round(sum * 100), r.currency)}. Bitte prüfen.</p>` : r.image ? `<p class="sumcheck muted">✓ Summe stimmt mit dem Bon überein</p>` : ""}
+          <div class="row" style="margin-top:10px">
+            <select data-payer="${r.id}" style="flex:1 1 140px">${S.members.map(m => `<option value="${m.id}" ${m.id === r.payer ? "selected" : ""}>💳 ${esc(m.name)}</option>`).join("")}</select>
+            <button class="btn ghost small" data-additem="${r.id}" style="flex:0 0 auto">+ Artikel</button>
+            ${r.image ? `<a class="btn ghost small" target="_blank" href="api/receipts/${r.id}/bild?t=${encodeURIComponent(trips[code].token)}" style="flex:0 0 auto;text-decoration:none">🖼️ Bon</a>` : ""}
+            <button class="btn danger small" data-delreceipt="${r.id}" style="flex:0 0 auto">🗑️</button></div>` : ""}</article>`;
+    }
+    function itemRow(i, r) {
+      const people = S.money.items[i.id] || [];
+      const all = people.length === S.members.length;
+      const tags = i.tags.map(t => S.tags.find(x => x.id === t)).filter(Boolean);
+      return `<div class="item ${i.unsure ? "unsure" : ""}" data-item="${i.id}" data-receipt="${r.id}"><span class="n">${i.qty > 1 ? esc(i.qty) + "× " : ""}${esc(i.name)}</span>
+        <span class="amount ${i.price < 0 ? "plus" : ""}">${money(Math.round(i.price * 100), r.currency)}</span>
+        <span class="who">${tags.map(t => `<span class="chip" style="padding:2px 7px">${t.icon} ${esc(t.name)}</span>`).join("")}${i.people.length ? "✋ " : ""}${all ? "alle" : people.map(p => esc(member(p).name)).join(", ")}</span></div>`;
+    }
+    bind.money = () => {
+      $("receiptFile").onchange = async e => {
+        const file = e.target.files[0]; e.target.value = "";
+        if (!file) return;
+        busy(true, "Kassenzettel wird gelesen …", "Claude erkennt die Artikel und sortiert sie – das dauert etwa 20–40 Sekunden");
+        try {
+          const blob = await shrink(file), fd = new FormData();
+          fd.append("payer", $("payer").value); fd.append("image", blob, "bon.jpg");
+          const data = await api("receipts", { body: fd });
+          receiptCard.open = data.new_receipt; S = data; render();
+          toast("Fertig! Tippe einen Artikel an, um ihn zu ändern");
+        } catch (err) { toast(err.message); }
+        finally { busy(false); }
+      };
+      $("manualForm").onsubmit = e => {
+        e.preventDefault(); const f = e.target;
+        act(() => api("receipts", { body: { title: f.title.value, amount: f.amount.value, payer: +$("payer").value, tags: [...f.querySelectorAll("[name=tag]:checked")].map(x => x.value) } }));
+      };
+      document.querySelectorAll("[data-toggle]").forEach(el => el.onclick = () => { receiptCard.open = receiptCard.open === +el.dataset.toggle ? null : +el.dataset.toggle; render(); });
+      document.querySelectorAll("[data-payer]").forEach(el => el.onchange = () => act(() => api("receipts/" + el.dataset.payer, { method: "PATCH", body: { payer: +el.value } })));
+      document.querySelectorAll("[data-additem]").forEach(el => el.onclick = () => act(() => api(`receipts/${el.dataset.additem}/items`, { body: {} })));
+      document.querySelectorAll("[data-delreceipt]").forEach(el => el.onclick = () => { if (confirm("Kassenzettel löschen?")) act(() => api("receipts/" + el.dataset.delreceipt, { method: "DELETE" })); });
+      document.querySelectorAll("[data-item]").forEach(el => el.onclick = () => editItem(+el.dataset.item, +el.dataset.receipt));
+    };
+
+    function editItem(id, receiptId) {
+      const r = S.receipts.find(x => x.id === receiptId), i = r.items.find(x => x.id === id);
+      const tags = new Set(i.tags), manual = new Set(i.people), auto = S.money.items[id] || [];
+      sheet(`<h3>Artikel bearbeiten</h3>
+        <div class="grid2"><label class="f">Name<input id="iName" value="${esc(i.name)}" maxlength="80"></label><label class="f">Preis<input id="iPrice" value="${String(i.price).replace(".", ",")}" inputmode="decimal"></label></div>
+        <div class="group"><p>Was ist es?</p><div class="tags" id="iTags">${S.tags.map(t => `<button class="chip ${tags.has(t.id) ? "on" : ""}" data-t="${esc(t.id)}">${t.icon} ${esc(t.name)}</button>`).join("")}</div>
+          <p class="small muted" style="margin:6px 0 0;text-transform:none;letter-spacing:0;font-weight:500">Ohne Kategorie zahlen alle mit.</p></div>
+        <div class="group"><p>Wer zahlt mit?</p><div class="tags" id="iPeople">${S.members.map(m => `<button class="chip ${(manual.size ? manual.has(m.id) : auto.includes(m.id)) ? "on" : ""}" data-p="${m.id}">${esc(m.name)}</button>`).join("")}</div>
+          <p class="small muted" style="margin:6px 0 0;text-transform:none;letter-spacing:0;font-weight:500" id="iHint">${manual.size ? "Von Hand gewählt." : "Automatisch nach den Angaben der Leute."}</p></div>
+        <div class="row" style="margin-top:14px"><button class="btn danger" id="iDel" style="flex:0 0 auto">🗑️</button><button class="btn ghost" data-close>Abbrechen</button><button class="btn" id="iSave">Speichern</button></div>`);
+      let peopleTouched = false;
+      $("iTags").onclick = e => { const b = e.target.closest("[data-t]"); if (!b) return; tags.has(b.dataset.t) ? tags.delete(b.dataset.t) : tags.add(b.dataset.t); b.classList.toggle("on"); };
+      $("iPeople").onclick = e => { const b = e.target.closest("[data-p]"); if (!b) return; peopleTouched = true; b.classList.toggle("on"); $("iHint").textContent = "Von Hand gewählt."; };
+      $("iDel").onclick = () => { closeSheet(); act(() => api("items/" + id, { method: "DELETE" })); };
+      $("iSave").onclick = () => {
+        const body = { name: $("iName").value, price: $("iPrice").value };
+        if ([...tags].sort().join() !== [...i.tags].sort().join()) body.tags = [...tags];
+        if (peopleTouched) {
+          const picked = [...$("iPeople").querySelectorAll(".on")].map(b => +b.dataset.p);
+          body.people = picked.length === S.members.length ? [] : picked;    // everyone = back to automatic
+        }
+        closeSheet();
+        act(() => api("items/" + id, { method: "PATCH", body }));
+      };
+    }
+
+    function sheet(html) {
+      $("sheetBody").innerHTML = html; $("sheet").classList.remove("hidden");
+      $("sheetBody").querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheet);
+    }
+    function closeSheet() { $("sheet").classList.add("hidden"); }
+    $("sheet").onclick = e => { if (e.target === $("sheet")) closeSheet(); };
+
+    // Photos from phones are big (and sometimes HEIC): shrink to a JPEG of at most 2000 px in the browser.
+    async function shrink(file) {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+        const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+        const c = document.createElement("canvas"); c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+        c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+        return await new Promise(res => c.toBlob(b => res(b || file), "image/jpeg", .9));
+      } catch { return file; }
+    }
+
+    // ---------------- go ----------------
+    const fromHash = location.hash.slice(1).toUpperCase();
+    if (fromHash && trips[fromHash]) openTrip(fromHash); else showStart();
+  </script>
+</body>
+</html>

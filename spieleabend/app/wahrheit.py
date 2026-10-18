@@ -99,7 +99,8 @@ class Game(PartyGame):
 
     def act(self, player_id: str, msg: dict, is_host: bool) -> None:
         if msg.get("t") == "next" and self.state == "playing" and self.phase == "reveal":
-            if not is_host and player_id != self.active:
+            player = self.player(player_id)
+            if not is_host and player_id != self.active and not (player and player.screen):
                 raise RuleError("Der Gastgeber oder der Spieler am Zug geht weiter")
             if self.turn >= self.total_turns:
                 self.finish()

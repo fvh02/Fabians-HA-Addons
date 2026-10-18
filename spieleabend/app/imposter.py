@@ -165,6 +165,9 @@ class Game:
 
     def _finish_round(self, winner: str) -> None:
         self.winner = winner
+        if winner == "imposter":
+            self.highlights = getattr(self, "highlights", []) + [
+                (self.player(i).name, "imposter_sieg") for i in self.imposters if self.player(i)]
         for p in self.players:
             if winner == "imposter" and p.id in self.imposters:
                 p.gained = 3

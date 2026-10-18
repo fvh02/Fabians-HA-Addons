@@ -7,7 +7,7 @@ from common import RuleError
 from party import PartyGame
 
 # (question, answer, unit, note) – answers are commonly cited values, rounded where it says "etwa".
-QUESTIONS = [
+WELT = [
     ("Wie hoch ist der Mount Everest?", 8849, "m", ""),
     ("Wie hoch ist die Zugspitze?", 2962, "m", ""),
     ("Wie hoch ist der Kilimandscharo?", 5895, "m", ""),
@@ -39,6 +39,9 @@ QUESTIONS = [
     ("Wie viele Menschen leben auf der Erde?", 8.1, "Mrd.", "etwa, 2024"),
     ("Wie viele Menschen leben in Deutschland?", 84, "Mio.", "etwa"),
     ("Wie viele Menschen leben in Berlin?", 3.8, "Mio.", "etwa"),
+]
+
+GESCHICHTE = [
     ("In welchem Jahr fiel die Berliner Mauer?", 1989, "", ""),
     ("In welchem Jahr wurde die Bundesrepublik Deutschland gegründet?", 1949, "", ""),
     ("In welchem Jahr landeten die ersten Menschen auf dem Mond?", 1969, "", ""),
@@ -52,6 +55,9 @@ QUESTIONS = [
     ("In welchem Jahr wurde Albert Einstein geboren?", 1879, "", ""),
     ("Um welches Jahr druckte Gutenberg mit beweglichen Lettern?", 1450, "", "etwa"),
     ("Wie alt wurde Johann Wolfgang von Goethe?", 82, "Jahre", ""),
+]
+
+ALLTAG = [
     ("Wie viele Knochen hat ein erwachsener Mensch?", 206, "", ""),
     ("Wie viele Zähne hat ein Erwachsener mit Weisheitszähnen?", 32, "", ""),
     ("Wie viele Liter Blut hat ein erwachsener Mensch?", 5, "Liter", "etwa"),
@@ -73,6 +79,67 @@ QUESTIONS = [
     ("Wie viele Monde hat der Mars?", 2, "", ""),
     ("Wie viele Minuten dauert ein Handballspiel ohne Verlängerung?", 60, "min", ""),
 ]
+
+# Metal construction (Metallbau apprenticeship): materials, workshop, welding, standards. Table values.
+METALL = [
+    ("Bei wie viel Grad schmilzt reines Eisen?", 1538, "°C", ""),
+    ("Bei wie viel Grad schmilzt Aluminium?", 660, "°C", ""),
+    ("Bei wie viel Grad schmilzt Kupfer?", 1085, "°C", ""),
+    ("Bei wie viel Grad schmilzt Zink?", 420, "°C", "etwa"),
+    ("Wie heiß ist das Zinkbad beim Feuerverzinken?", 450, "°C", "etwa"),
+    ("Ab wie viel Grad Arbeitstemperatur spricht man von Hartlöten statt Weichlöten?", 450, "°C", ""),
+    ("Wie heiß wird eine Acetylen-Sauerstoff-Flamme an der heißesten Stelle?", 3200, "°C", "etwa"),
+    ("Bei wie viel Grad zeigt Stahl beim Anlassen die Anlassfarbe Strohgelb?", 220, "°C", "etwa"),
+    ("Wie viel Kilogramm wiegt ein Kubikmeter Stahl?", 7850, "kg", ""),
+    ("Welche Dichte hat Aluminium?", 2.7, "g/cm³", ""),
+    ("Welche Dichte hat Kupfer?", 8.96, "g/cm³", ""),
+    ("Wie viel wiegt eine Stahlblechtafel 2000 × 1000 × 2 mm?", 31.4, "kg", "2 m × 1 m × 0,002 m × 7850 kg/m³"),
+    ("Wie viel wiegt ein Flachstahl 50 × 10 mm mit 6 m Länge?", 23.55, "kg", "0,05 m × 0,01 m × 6 m × 7850 kg/m³"),
+    ("Wie viel wiegt ein Rundstahl mit 20 mm Durchmesser und 1 m Länge?", 2.47, "kg", "etwa"),
+    ("Wie viel wiegt 1 m Träger HEB 200?", 61.3, "kg", ""),
+    ("Wie viel wiegt 1 m Träger IPE 200?", 22.4, "kg", ""),
+    ("Wie groß ist der E-Modul von Stahl?", 210000, "N/mm²", ""),
+    ("Wie groß ist der E-Modul von Aluminium?", 70000, "N/mm²", "etwa"),
+    ("Welche Mindeststreckgrenze hat ein S355?", 355, "N/mm²", "bei Dicken bis 16 mm"),
+    ("Welche Mindestzugfestigkeit hat eine Schraube der Festigkeitsklasse 8.8?", 800, "N/mm²", "Nennwert"),
+    ("Welche Streckgrenze hat eine Schraube der Festigkeitsklasse 8.8?", 640, "N/mm²", "0,8 × 800"),
+    ("Wie viel Prozent Kohlenstoff enthält ein C45?", 0.45, "%", ""),
+    ("Ab wie viel Prozent Kohlenstoff spricht man von Gusseisen statt Stahl?", 2.06, "%", "nach dem Eisen-Kohlenstoff-Diagramm, teils auch 2,1 %"),
+    ("Wie viel Prozent Chrom braucht ein Stahl mindestens, um als nichtrostend zu gelten?", 10.5, "%", ""),
+    ("Wie viel Prozent Nickel enthält ein V2A-Stahl (1.4301) etwa?", 8, "%", "8 bis 10,5 %, Chrom etwa 18 %"),
+    ("Wie viel Prozent CO₂ enthält das Mischgas M21 „Corgon 18“?", 18, "%", "Rest Argon"),
+    ("Mit wie viel bar wird eine volle Argon-Flasche üblicherweise gefüllt?", 200, "bar", "es gibt auch 300-bar-Flaschen"),
+    ("Wie viele Millimeter dehnt sich ein 10 m langer Stahlträger bei 50 °C Erwärmung aus?", 6, "mm", "0,012 mm pro Meter und Grad"),
+    ("Wie viele Millimeter dehnt sich ein 10 m langes Aluprofil bei 50 °C Erwärmung aus?", 11.5, "mm", "etwa 0,023 mm pro Meter und Grad"),
+    ("Welchen Spitzenwinkel hat ein normaler HSS-Spiralbohrer?", 118, "°", ""),
+    ("Welchen Flankenwinkel hat ein metrisches Gewinde?", 60, "°", ""),
+    ("Welche Steigung hat ein M10-Regelgewinde?", 1.5, "mm", ""),
+    ("Welche Steigung hat ein M12-Regelgewinde?", 1.75, "mm", ""),
+    ("Welchen Kernlochbohrer nimmt man für ein M8-Gewinde?", 6.8, "mm", ""),
+    ("Welchen Kernlochbohrer nimmt man für ein M12-Gewinde?", 10.2, "mm", ""),
+    ("Welche Schlüsselweite hat eine M10-Sechskantschraube nach ISO?", 16, "mm", "nach alter DIN 17 mm"),
+    ("Welche Drehzahl ergibt sich für einen 10-mm-Bohrer bei 25 m/min Schnittgeschwindigkeit?", 796, "1/min", "n = v × 1000 / (π × d)"),
+    ("Welche Stromstärke ergibt die Faustformel „Durchmesser × 40“ für eine 3,2-mm-Stabelektrode?", 128, "A", ""),
+    ("Welches a-Maß ergibt die Faustformel a ≈ 0,7 × t für eine Kehlnaht an 10-mm-Blech?", 7, "mm", ""),
+    ("Wie lang ist der Umfang eines Rohres mit 100 mm Außendurchmesser?", 314, "mm", "π × 100"),
+    ("Wie groß ist die Allgemeintoleranz ISO 2768-m für ein Maß von 50 mm?", 0.3, "± mm", "Bereich über 30 bis 120 mm"),
+    ("Wie viele Zentimeter dürfen Öffnungen in einem Geländer höchstens messen, damit kein Kinderkopf durchpasst?", 12, "cm", ""),
+    ("Wie hoch muss ein Geländer bei bis zu 12 m Absturzhöhe nach den meisten Landesbauordnungen mindestens sein?", 90, "cm", "darüber meist 110 cm"),
+    ("Wie viele Zentimeter ergibt die Schrittmaßregel 2 × Steigung + 1 × Auftritt?", 63, "cm", "59 bis 65 cm gelten als bequem"),
+    ("Wie hoch darf eine Stufe einer notwendigen Treppe im Einfamilienhaus höchstens sein?", 20, "cm", "DIN 18065"),
+    ("Wie viele Jahre dauert die Ausbildung zum Metallbauer regulär?", 3.5, "Jahre", ""),
+]
+
+# Category id (the settings send numbers) → name and questions. 0 mixes the general ones; specialist
+# categories such as Metallbau are only asked when chosen.
+CATEGORIES = {
+    0: ("Allgemeinwissen gemischt", WELT + GESCHICHTE + ALLTAG),
+    1: ("Erde, Länder & Weltall", WELT),
+    2: ("Geschichte & Jahreszahlen", GESCHICHTE),
+    3: ("Mensch & Alltag", ALLTAG),
+    4: ("Metallbau (Ausbildung)", METALL),
+}
+QUESTIONS = CATEGORIES[0][1]
 
 
 def parse_number(text: str) -> float | None:
@@ -99,9 +166,18 @@ class Game(PartyGame):
         super().__init__(code)
         self.question = None
         self.ranking: list[dict] = []
+        self.category = 0
+
+    def configure_more(self, settings: dict) -> None:
+        category = settings.get("category")
+        self.category = int(category) if category is not None and int(category) in CATEGORIES else 0
+
+    def settings_view(self) -> dict:
+        return {**super().settings_view(), "category": self.category}
 
     def setup_round(self) -> None:
-        pool = [q for q in QUESTIONS if q[0] not in self.used] or QUESTIONS
+        questions = CATEGORIES[self.category][1]
+        pool = [q for q in questions if q[0] not in self.used] or questions
         self.question = random.choice(pool)
         self.used.add(self.question[0])
         self.ranking = []
@@ -132,6 +208,8 @@ class Game(PartyGame):
             points = max(0, 3 - rank)
             exact = diff <= abs(answer) * 0.01
             p.gained = points + (2 if exact else 0)
+            if exact:
+                self.highlights = getattr(self, "highlights", []) + [(p.name, "volltreffer")]
             p.score += p.gained
             ranking.append({"id": p.id, "value": p.answer, "rank": rank + 1, "points": p.gained, "exact": exact})
         self.ranking = ranking
@@ -144,7 +222,7 @@ class Game(PartyGame):
         q, answer, unit, note = self.question or ("", 0, "", "")
         reveal = self.phase == "reveal"
         return {
-            "question": q, "unit": unit,
+            "question": q, "unit": unit, "category": CATEGORIES[self.category][0],
             "answer": answer if reveal else None, "note": note if reveal else "",
             "ranking": self.ranking if reveal else [],
             "my_answer": me.answer if me and isinstance(me.answer, float) else None,

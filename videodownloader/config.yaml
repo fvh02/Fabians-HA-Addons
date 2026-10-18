@@ -1,7 +1,7 @@
 name: Fabians-HA-Video-Downloader
-version: "1.2.0"
+version: "1.4.2"
 slug: videodownloader
-description: YouTube und Online-Videos in wählbarer Qualität herunterladen – mit Mediathek
+description: Videos von YouTube und beliebigen Webseiten in wählbarer Qualität herunterladen – mit Mediathek und optional über Proton VPN
 url: https://github.com/fvh02/Fabians-HA-Addons
 image: ghcr.io/fvh02/{arch}-fabians-ha-videodownloader
 arch:
