@@ -259,12 +259,12 @@ class Accounts:
             return self.fail("Diesen Namen gibt es schon – bitte wähle einen anderen")
         if existing:      # registered before but never confirmed: start over
             self.store.x("UPDATE users SET name = ?, name_key = ?, pw = ? WHERE id = ?",
-                         (name, name.casefold(), hash_password(password), existing["id"]))
+                         (name, name.casefold(), (await asyncio.to_thread(hash_password, password)), existing["id"]))
             user_id = existing["id"]
         else:
             user_id = secrets.token_hex(8)
             self.store.x("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
-                         (user_id, name, name.casefold(), email, email, hash_password(password), time.time()))
+                         (user_id, name, name.casefold(), email, email, (await asyncio.to_thread(hash_password, password)), time.time()))
         sent = await self.send_code(self.store.one("SELECT * FROM users WHERE id = ?", (user_id,)), "verify")
         log.info("Neues Konto: %s (%s)", name, mask(email))
         return web.json_response({"next": "verify", "email": email, "sent": sent})
@@ -290,7 +290,7 @@ class Accounts:
         self.limiter.check(self.client_ip(request), "login", 10, 900)
         data = await self.body(request)
         user = self.store.by_login(str(data.get("login") or ""))
-        if not user or not check_password(str(data.get("password") or ""), user["pw"]):
+        if not user or not await asyncio.to_thread(check_password, str(data.get("password") or ""), user["pw"]):
             return self.fail("Name/E-Mail oder Passwort stimmt nicht", 401)
         if not user["verified"]:
             await self.send_code(user, "verify")
@@ -325,7 +325,7 @@ class Accounts:
         if not user or not self.store.use_code(user["id"], "reset", str(data.get("code") or "")):
             return self.fail("Der Code stimmt nicht oder ist abgelaufen – fordere einen neuen an")
         # The code came by e-mail, so the address is confirmed too.
-        self.store.x("UPDATE users SET pw = ?, verified = 1 WHERE id = ?", (hash_password(password), user["id"]))
+        self.store.x("UPDATE users SET pw = ?, verified = 1 WHERE id = ?", ((await asyncio.to_thread(hash_password, password)), user["id"]))
         self.store.x("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
         return self.login_response(request, self.store.one("SELECT * FROM users WHERE id = ?", (user["id"],)))
 
@@ -335,11 +335,11 @@ class Accounts:
             return self.fail("Bitte melde dich an", 401)
         self.limiter.check(self.client_ip(request), "password", 10, 900)
         data = await self.body(request)
-        if not check_password(str(data.get("old") or ""), user["pw"]):
+        if not await asyncio.to_thread(check_password, str(data.get("old") or ""), user["pw"]):
             return self.fail("Das aktuelle Passwort stimmt nicht")
         if len(str(data.get("new") or "")) < 8:
             return self.fail("Das neue Passwort braucht mindestens 8 Zeichen")
-        self.store.x("UPDATE users SET pw = ? WHERE id = ?", (hash_password(str(data["new"])), user["id"]))
+        self.store.x("UPDATE users SET pw = ? WHERE id = ?", ((await asyncio.to_thread(hash_password, str(data["new"]))), user["id"]))
         self.store.x("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?", (user["id"], sha(request.cookies.get(COOKIE, ""))))
         return web.json_response({"ok": True})
 
@@ -348,7 +348,7 @@ class Accounts:
         if not user:
             return self.fail("Bitte melde dich an", 401)
         data = await self.body(request)
-        if not check_password(str(data.get("password") or ""), user["pw"]):
+        if not await asyncio.to_thread(check_password, str(data.get("password") or ""), user["pw"]):
             return self.fail("Das Passwort stimmt nicht")
         for table, column in (("sessions", "user_id"), ("codes", "user_id"), ("users", "id")):
             self.store.x(f"DELETE FROM {table} WHERE {column} = ?", (user["id"],))

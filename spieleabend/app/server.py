@@ -12,6 +12,7 @@ import re
 import secrets
 import string
 import time
+from collections import deque
 from pathlib import Path
 
 from aiohttp import WSMsgType, web
@@ -108,6 +109,56 @@ MSG_RATE, MSG_BURST = 15.0, 60.0  # WebSocket messages per second (sustained, bu
 LOGIN_TRIES, LOGIN_WINDOW = 8, 900
 
 
+class Outbox:
+    """Messages for one browser, written by its own task: a slow phone never holds up the others.
+
+    A full view replaces the views and live updates still waiting for that browser (it contains them),
+    and a view identical to the last one is not sent again – except as the answer to that browser's own
+    action (force), so its page always redraws after a tap.
+    """
+
+    MAX_WAITING = 200
+
+    def __init__(self, ws: web.WebSocketResponse) -> None:
+        self.ws = ws
+        self.items: deque[tuple[str, str]] = deque()
+        self.ready = asyncio.Event()
+        self.last_view = ""
+        self.task = asyncio.create_task(self.run())
+
+    def put(self, text: str, kind: str = "other", force: bool = False) -> None:
+        if self.ws.closed:
+            return
+        if kind == "view":
+            if text == self.last_view and not force:
+                return
+            self.last_view = text
+            if self.items:
+                self.items = deque(i for i in self.items if i[0] not in ("view", "live"))
+        elif len(self.items) >= self.MAX_WAITING:
+            return          # hopelessly behind: the next full view catches up
+        self.items.append((kind, text))
+        self.ready.set()
+
+    async def run(self) -> None:
+        while not self.ws.closed:
+            await self.ready.wait()
+            self.ready.clear()
+            while self.items and not self.ws.closed:
+                _, text = self.items.popleft()
+                try:
+                    await self.ws.send_str(text)
+                except (ConnectionError, RuntimeError):
+                    return
+
+    def close(self) -> None:
+        self.task.cancel()
+
+
+def dumps(message: dict) -> str:
+    return json.dumps(message, separators=(",", ":"), ensure_ascii=False)
+
+
 class Hub:
     """All rooms of one game kind, the browsers connected to them and their bots."""
 
@@ -123,15 +174,25 @@ class Hub:
         self.timer_tasks: set[asyncio.Task] = set()  # keep references so tasks aren't collected
         self.reported: set[str] = set()  # rooms whose finished game went to the Bestenliste
         self.accounts: dict[web.WebSocketResponse, dict] = {}  # browser → logged-in account (id, name)
+        self.outboxes: dict[web.WebSocketResponse, Outbox] = {}
+        self.acting: web.WebSocketResponse | None = None  # the browser whose message is being handled
 
     # -- sending -------------------------------------------------------------
-    @staticmethod
-    async def send(ws: web.WebSocketResponse, message: dict) -> None:
-        if not ws.closed:
-            try:
-                await ws.send_json(message)
-            except (ConnectionError, RuntimeError):
-                pass
+    def connect(self, ws: web.WebSocketResponse) -> None:
+        self.outboxes[ws] = Outbox(ws)
+
+    def disconnect(self, ws: web.WebSocketResponse) -> None:
+        self.sockets.pop(ws, None)
+        self.accounts.pop(ws, None)
+        box = self.outboxes.pop(ws, None)
+        if box:
+            box.close()
+
+    async def send(self, ws: web.WebSocketResponse, message: dict, kind: str = "other") -> None:
+        """Queue a message; it never waits for the network."""
+        box = self.outboxes.get(ws)
+        if box:
+            box.put(dumps(message), kind, force=True)
 
     def open_games(self) -> list[dict]:
         return [
@@ -140,24 +201,34 @@ class Hub:
             for g in self.games.values() if g.players
         ]
 
-    async def send_view(self, ws: web.WebSocketResponse) -> None:
+    async def send_view(self, ws: web.WebSocketResponse, lobby: str | None = None) -> None:
         token = self.sockets.get(ws)
         seat = self.seats.get(token)
         game = self.games.get(seat[0]) if seat else None
+        box = self.outboxes.get(ws)
+        if not box:
+            return
+        force = ws is self.acting
         if game and game.player(seat[1]):
-            await self.send(ws, {"t": "game", "me": seat[1], "game": game.view_for(seat[1])})
+            box.put(dumps({"t": "game", "me": seat[1], "game": game.view_for(seat[1])}), "view", force)
         else:
             self.seats.pop(token, None)
-            await self.send(ws, {"t": "lobby", "games": self.open_games()})
+            box.put(lobby or self.lobby_text(), "view", force)
+
+    def lobby_text(self) -> str:
+        return dumps({"t": "lobby", "games": self.open_games()})
 
     async def broadcast(self, code: str | None = None) -> None:
-        """Update every browser in room `code` and everyone in the lobby."""
+        """Update every browser in room `code` and everyone in the lobby (the lobby list is built once)."""
         if code:
             self.touched[code] = time.time()
+        lobby = None
         for ws, token in list(self.sockets.items()):
             seat = self.seats.get(token)
             if seat is None or seat[0] == code:
-                await self.send_view(ws)
+                if seat is None and lobby is None:
+                    lobby = self.lobby_text()
+                await self.send_view(ws, lobby)
         if code:
             self.schedule_bots(code)
             self.schedule_timer(code)
@@ -258,6 +329,13 @@ class Hub:
         return code
 
     async def handle(self, ws: web.WebSocketResponse, token: str, msg: dict) -> None:
+        self.acting = ws
+        try:
+            await self._handle(ws, token, msg)
+        finally:
+            self.acting = None
+
+    async def _handle(self, ws: web.WebSocketResponse, token: str, msg: dict) -> None:
         kind = msg.get("t")
         seat = self.seats.get(token)
         game = self.games.get(seat[0]) if seat else None
@@ -292,7 +370,7 @@ class Hub:
 
         if not game:
             if kind == "lobby":
-                await self.send(ws, {"t": "lobby", "games": self.open_games()})
+                await self.send(ws, {"t": "lobby", "games": self.open_games()}, "view")
                 return
             raise RuleError("Du bist in keinem Spiel")
 
@@ -300,7 +378,7 @@ class Hub:
         if kind == "leave":
             code = self.leave(token)
             await self.broadcast(code)
-            await self.send(ws, {"t": "lobby", "games": self.open_games()})
+            await self.send(ws, {"t": "lobby", "games": self.open_games()}, "view")
             return
         if kind == "add_bot":
             if not is_host:
@@ -341,10 +419,11 @@ class Hub:
 
     async def broadcast_live(self, code: str, message: dict) -> None:
         self.touched[code] = time.time()
+        text = dumps(message)
         for ws, token in list(self.sockets.items()):
             seat = self.seats.get(token)
-            if seat and seat[0] == code:
-                await self.send(ws, message)
+            if seat and seat[0] == code and ws in self.outboxes:
+                self.outboxes[ws].put(text, "live")
 
     async def cleanup(self) -> None:
         now = time.time()
@@ -383,12 +462,26 @@ async def bestenliste(request: web.Request) -> web.Response:
     return await stats.proxy(request, request.match_info["path"])
 
 
+_pages: dict[tuple[Path, str], tuple[float, str]] = {}
+STATIC_REF = re.compile(r'\b(src|href)="((?:\.\./|/)?static/[^"?#]+\.(?:js|css))"')
+ASSET_VERSION = re.sub(r"[^0-9A-Za-z.]", "", VERSION) or str(int(time.time()))
+
+
 def page(path: Path, root: str = "") -> web.Response:
-    return html_response(path.read_text(encoding="utf-8"), root)
+    """Pages are prepared once and kept in memory (read again only when the file changes)."""
+    mtime = path.stat().st_mtime
+    cached = _pages.get((path, root))
+    if not cached or cached[0] != mtime:
+        cached = _pages[(path, root)] = (mtime, prepare_html(path.read_text(encoding="utf-8"), root))
+    return web.Response(text=cached[1], content_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
 def html_response(html: str, root: str = "") -> web.Response:
-    """Serve an HTML page; `root` is the relative way back to the start page ("" or "../")."""
+    return web.Response(text=prepare_html(html, root), content_type="text/html", headers={"Cache-Control": "no-cache"})
+
+
+def prepare_html(html: str, root: str = "") -> str:
+    """An HTML page with the app head added; `root` is the relative way back to the start page ("" or "../")."""
     color = "#0b0a1f" if THEME == "dark" else "#eef2ff"
     head = f"""
   <link rel="manifest" href="{root}manifest.webmanifest">
@@ -405,10 +498,13 @@ def html_response(html: str, root: str = "") -> web.Response:
   </script>
 </head>"""
     html = html.replace("<html ", f'<html data-theme="{THEME}" ', 1)
+    # Scripts and styles carry the add-on version, so browsers keep them until the next update
+    # instead of asking the server for every file on every page load.
+    html = STATIC_REF.sub(lambda m: f'{m[1]}="{m[2]}?v={ASSET_VERSION}"', html)
     html = html.replace("</head>", head, 1).replace(
         'content="width=device-width, initial-scale=1, maximum-scale=1"',
         'content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"', 1)
-    return web.Response(text=html, content_type="text/html", headers={"Cache-Control": "no-cache"})
+    return html
 
 
 MANIFEST = {
@@ -639,6 +735,7 @@ async def websocket(request: web.Request) -> web.WebSocketResponse:
     user = konten.user(request)
     ws = web.WebSocketResponse(heartbeat=25, max_msg_size=2 * 1024 * 1024)
     await ws.prepare(request)
+    hub.connect(ws)
     sockets_per_ip[ip] = sockets_per_ip.get(ip, 0) + 1
     token = None
     allowance, last = MSG_BURST, time.monotonic()
@@ -676,8 +773,7 @@ async def websocket(request: web.Request) -> web.WebSocketResponse:
             except (TypeError, ValueError):
                 await hub.send(ws, {"t": "error", "msg": "Ungültige Eingabe"})
     finally:
-        hub.sockets.pop(ws, None)
-        hub.accounts.pop(ws, None)
+        hub.disconnect(ws)
         sockets_per_ip[ip] -= 1
         if not sockets_per_ip[ip]:
             sockets_per_ip.pop(ip)
@@ -704,9 +800,11 @@ async def on_startup(app: web.Application) -> None:
 
 
 async def revalidate_static(request: web.Request, response: web.StreamResponse) -> None:
-    # Scripts and styles are checked with the server on every load, so an update is used right away.
     if request.path.startswith("/static/") and "Cache-Control" not in response.headers:
-        response.headers["Cache-Control"] = "no-cache"
+        # With the version in the address (?v=, set by the pages) the file never changes: keep it.
+        # Without, it is checked with the server on every load, so an update is used right away.
+        response.headers["Cache-Control"] = ("public, max-age=31536000, immutable"
+                                             if request.query.get("v") == ASSET_VERSION else "no-cache")
 
 
 def main() -> None:
