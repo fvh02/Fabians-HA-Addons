@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Fabians-HA-Karte: the person's restaurant map, reached through Fabians-HA-Master. Prints JSON.
+
+  karte standort                         where the person is now (Home Assistant app) with address
+  karte in-der-naehe [--lat L --lon L]   restaurants, cafés, bars within 150 m
+  karte besuch --daten JSON [--foto PFAD[:art]] ...
+      JSON: {"restaurant": {"name", "address", "phone", "website"},      (from the menu, all optional)
+             "speisekarte": [{"section", "name", "price", "description"}],
+             "bestellt": [{"name", "price", "qty", "note"}], "summe", "bewertung" (1–5), "notiz",
+             "lat", "lon" (only if the person sent a location; otherwise their current location),
+             "ort_id" (to add to a place already on the map), "zeit" (ISO, if not now), "nur_ort" (true: no visit)}
+      art: speisekarte | essen | beleg | foto (default foto)
+  karte orte [SUCHE]                     places on the map (search: name, cuisine, dish)
+  karte ort ID                           one place: online info, differences, visits, menu
+  karte bewerten ORT_ID BESUCH_ID STERNE [NOTIZ]
+  karte abgleich ID                      look the place up online again (result by iMessage)
+"""
+
+import json
+import mimetypes
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+BASE = os.environ.get("KARTE_URL", "").rstrip("/")
+MAX_PHOTO = 10 * 1024 * 1024
+
+
+def out(data) -> None:
+    print(json.dumps(data, ensure_ascii=False, indent=1))
+
+
+def fail(message: str) -> None:
+    out({"error": message})
+    sys.exit(1)
+
+
+def call(method: str, path: str, body=None, raw: bytes | None = None, ctype: str = "application/json", timeout: int = 90):
+    if not BASE:
+        fail("Fabians-HA-Karte ist nicht installiert.")
+    data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
+    req = urllib.request.Request(BASE + path, data=data, method=method, headers={"Content-Type": ctype})
+    try:
+        # The add-ons are inside Home Assistant: never through a proxy.
+        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout) as resp:
+            return json.loads(resp.read() or b"null")
+    except urllib.error.HTTPError as err:
+        try:
+            fail(json.loads(err.read()).get("error") or f"Fehler {err.code}")
+        except ValueError:
+            fail(f"Fehler {err.code}")
+    except (urllib.error.URLError, OSError) as err:
+        fail(f"Karte nicht erreichbar: {getattr(err, 'reason', err)}")
+
+
+def flag(args: list[str], name: str) -> list[str]:
+    """Remove every --name VALUE from args and return the values."""
+    values = []
+    while name in args:
+        i = args.index(name)
+        if i + 1 >= len(args):
+            fail(f"{name} braucht einen Wert")
+        values.append(args[i + 1])
+        del args[i:i + 2]
+    return values
+
+
+def cmd_besuch(args: list[str]) -> None:
+    raw = flag(args, "--daten")
+    photos = flag(args, "--foto")
+    if not raw:
+        fail("karte besuch --daten JSON [--foto PFAD[:art]]")
+    try:
+        data = json.loads(raw[0])
+    except ValueError as err:
+        fail(f"--daten ist kein gültiges JSON: {err}")
+    if not isinstance(data, dict):
+        fail("--daten muss ein JSON-Objekt sein")
+    for spec in photos:     # check the files before anything is saved
+        path = spec.rsplit(":", 1)[0] if spec.rsplit(":", 1)[-1] in ("speisekarte", "essen", "beleg", "foto") else spec
+        if not os.path.isfile(path):
+            fail(f"Foto nicht gefunden: {path}")
+    result = call("POST", "/api/besuch", data, timeout=120)
+    place_id, visit_id = result["ort"]["id"], result.get("besuch_id")
+    saved = []
+    for spec in photos:
+        path, kind = spec, "foto"
+        if spec.rsplit(":", 1)[-1] in ("speisekarte", "essen", "beleg", "foto"):
+            path, kind = spec.rsplit(":", 1)
+        blob = open(path, "rb").read()
+        if len(blob) > MAX_PHOTO:
+            saved.append({"datei": path, "fehler": "zu groß"})
+            continue
+        query = urllib.parse.urlencode({"art": kind, **({"besuch": visit_id} if visit_id else {})})
+        ctype = mimetypes.guess_type(path)[0] or "application/octet-stream"
+        saved.append({"datei": os.path.basename(path), **call("POST", f"/api/ort/{place_id}/foto?{query}", raw=blob, ctype=ctype)})
+    result["fotos"] = saved
+    out(result)
+
+
+def main(argv: list[str]) -> None:
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, args = argv[0], argv[1:]
+    if cmd == "standort":
+        out(call("GET", "/api/standort"))
+    elif cmd in ("in-der-naehe", "naehe"):
+        lat, lon = flag(args, "--lat"), flag(args, "--lon")
+        query = f"?lat={lat[0]}&lon={lon[0]}" if lat and lon else ""
+        out(call("GET", f"/api/in-der-naehe{query}"))
+    elif cmd == "besuch":
+        cmd_besuch(args)
+    elif cmd == "orte":
+        query = " ".join(args).strip()
+        out(call("GET", "/api/orte" + (f"?suche={urllib.parse.quote(query)}" if query else "")))
+    elif cmd == "ort" and args:
+        out(call("GET", f"/api/ort/{int(args[0])}"))
+    elif cmd == "bewerten" and len(args) >= 3:
+        body = {"besuch_id": int(args[1]), "bewertung": float(args[2].replace(",", "."))}
+        if len(args) > 3:
+            body["notiz"] = " ".join(args[3:])
+        result = call("PATCH", f"/api/ort/{int(args[0])}", body)
+        out({"ok": True, "ort": result["name"]})
+    elif cmd == "abgleich" and args:
+        out(call("POST", f"/api/ort/{int(args[0])}/abgleich?melden=1"))
+    else:
+        fail("karte standort|in-der-naehe|besuch|orte|ort|bewerten|abgleich")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

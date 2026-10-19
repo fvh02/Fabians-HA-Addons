@@ -1,0 +1,4 @@
+configuration:
+  person:
+    name: Person für den Standort
+    description: Wessen Standort der Assistent nimmt, z. B. person.fabian (aus der Home-Assistant-App auf dem Handy). Leer = die erste Person mit GPS-Standort.

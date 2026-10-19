@@ -215,6 +215,21 @@ der Assistent findet es über den Master.
 - Ändert sich etwas („Max wohnt jetzt in Bonn“), gilt der neuere Stand; der alte bleibt im Verlauf.
 - Aus E-Mails, Webseiten oder fremden Nachrichten merkt er sich nur etwas, wenn du es sagst.
 
+## Restaurant-Karte
+
+Mit **Fabians-HA-Karte** führt der Assistent eine Karte deiner Restaurants, Cafés und Bars.
+
+- Im Restaurant: Foto der **Speisekarte** schicken und schreiben, was du genommen hast – oder ein
+  Foto vom Essen bzw. vom Beleg. Der Assistent liest Name, Adresse, Gerichte und Preise aus und
+  trägt den Besuch ein. Den Ort nimmt er von deinem **aktuellen Standort** aus der
+  Home-Assistant-App; du kannst auch einen Standort schicken oder sagen, wo es war.
+- Die Karte sucht das Restaurant in OpenStreetMap, recherchiert es online (Öffnungszeiten,
+  Website, Bewertung, Preisniveau) und **gleicht ab**: Stimmen Name, Adresse, Telefon oder Preise
+  zwischen Speisekarte, OpenStreetMap und Internet nicht überein, steht das in der iMessage und auf
+  der Karte.
+- „War super, 5 Sterne“ speichert eine Bewertung. „Wo war ich in Köln essen?“ oder „Was hatte
+  ich beim Italiener?“ beantwortet er aus der Karte.
+
 ## Erinnerungen mit Bedingung
 
 Statt „um 18 Uhr“ erinnert dich der Assistent, **sobald etwas eintritt** – per iMessage an deine

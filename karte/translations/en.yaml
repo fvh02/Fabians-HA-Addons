@@ -1,0 +1,4 @@
+configuration:
+  person:
+    name: Person for the location
+    description: Whose location the assistant uses, e.g. person.fabian (from the Home Assistant app on the phone). Empty = the first person with a GPS location.

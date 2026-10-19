@@ -106,6 +106,7 @@ TOOLS = {
     "browser": ("Fabians-HA-Browser", 8096),
     "urlaub": ("Fabians-HA-Urlaub", 8100),
     "gedaechtnis": ("Fabians-HA-Gedächtnis", 8101),
+    "karte": ("Fabians-HA-Karte", 8102),
 }
 # Without these an add-on cannot work at all (everything else is optional: Claude also works with an
 # imported claude.ai login, the exchange keys are only needed for real money).
