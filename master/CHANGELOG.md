@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- **Inkbox-Fehler verständlich:** Statt nur „Inkbox meldet Fehler 401“ steht jetzt da, was los ist
+  und was zu tun ist (z. B. API-Key falsch oder gelöscht, Nummer noch nicht verbunden, Tageslimit).
+- Beim Speichern eines neuen Inkbox-API-Keys prüft der Master ihn sofort bei Inkbox.
+- API-Keys, Secrets und Tokens werden beim Speichern von Zeilenumbrüchen, Leerzeichen und
+  Anführungszeichen aus dem Kopieren befreit – auch bereits gespeicherte.
+
 ## 1.1.0
 
 - Neue Add-ons im Repository: **Fabians-HA-Bestenliste**, **Fabians-HA-Browser** und
