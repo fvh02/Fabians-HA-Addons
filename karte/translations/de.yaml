@@ -1,4 +1,4 @@
 configuration:
-  person:
-    name: Person für den Standort
-    description: Wessen Standort der Assistent nimmt, z. B. person.fabian (aus der Home-Assistant-App auf dem Handy). Leer = die erste Person mit GPS-Standort.
+  geraet:
+    name: Gerät für den Standort
+    description: "Leer = automatisch: zuerst ein iPhone aus „Wo ist?“ (iCloud-Integration von Home Assistant), sonst die Home-Assistant-App. Oder z. B. device_tracker.fabians_iphone eintragen."

@@ -8,6 +8,7 @@ import os
 import re
 import time
 import unicodedata
+from datetime import datetime, timezone
 
 import aiohttp
 
@@ -50,31 +51,105 @@ def name_score(a: str, b: str) -> float:
 
 
 # -- Home Assistant ----------------------------------------------------------------------------------
-async def current_location(session: aiohttp.ClientSession, person: str = "") -> dict:
-    """GPS position of a person from the Home Assistant app (or of the first person that has one)."""
+# Devices from Apple's Find My come from Home Assistant's iCloud integration; their trackers carry
+# these attributes (the companion app's trackers don't).
+FINDMY_ATTRS = ("device_status", "account_fetch_interval", "owner_fullname")
+FRESH_WAIT = float(os.environ.get("KARTE_FRESH_WAIT", "25"))
+
+
+async def _ha(session: aiohttp.ClientSession, method: str, path: str, body: dict | None = None):
     token = os.environ.get("SUPERVISOR_TOKEN", "")
     if not token:
         raise GeoError("Kein Zugriff auf Home Assistant")
-    headers = {"Authorization": f"Bearer {token}"}
     try:
-        async with session.get(f"{SUPERVISOR}/core/api/states", headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as r:
-            states = await r.json(content_type=None)
+        async with session.request(method, f"{SUPERVISOR}/core/api{path}", json=body,
+                                   headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=20)) as r:
+            if r.status >= 400:
+                raise GeoError(f"Home Assistant antwortet mit {r.status}")
+            return await r.json(content_type=None)
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
         raise GeoError(f"Home Assistant nicht erreichbar ({err.__class__.__name__})")
-    people = [s for s in states if str(s.get("entity_id", "")).startswith(("person.", "device_tracker."))]
-    if person:
-        people = [s for s in people if s["entity_id"] == person]
-        if not people:
-            raise GeoError(f"{person} gibt es in Home Assistant nicht")
-    else:
-        people.sort(key=lambda s: not s["entity_id"].startswith("person."))
-    for s in people:
-        a = s.get("attributes") or {}
-        if a.get("latitude") is not None and a.get("longitude") is not None:
-            return {"lat": float(a["latitude"]), "lon": float(a["longitude"]), "accuracy": a.get("gps_accuracy"),
-                    "entity": s["entity_id"], "name": a.get("friendly_name") or s["entity_id"],
-                    "updated": s.get("last_updated")}
-    raise GeoError("Kein GPS-Standort in Home Assistant – ist die Home-Assistant-App auf dem Handy mit Standort eingerichtet?")
+
+
+def is_findmy(state: dict) -> bool:
+    return state["entity_id"].startswith("device_tracker.") and any(k in (state.get("attributes") or {}) for k in FINDMY_ATTRS)
+
+
+def _has_gps(state: dict) -> bool:
+    a = state.get("attributes") or {}
+    return a.get("latitude") is not None and a.get("longitude") is not None
+
+
+def pick(states: list[dict], wanted: str = "") -> dict:
+    """The tracker to use: the configured one, otherwise an iPhone from Find My, otherwise a person."""
+    if wanted:
+        for s in states:
+            if s["entity_id"] == wanted:
+                if not _has_gps(s):
+                    raise GeoError(f"{wanted} hat gerade keinen Standort")
+                return s
+        raise GeoError(f"{wanted} gibt es in Home Assistant nicht")
+    findmy = [s for s in states if is_findmy(s) and _has_gps(s)]
+    findmy.sort(key=lambda s: ("iphone" not in (str((s.get("attributes") or {}).get("device_name", "")) + s["entity_id"]).lower(),
+                               s["entity_id"]))
+    if findmy:
+        return findmy[0]
+    people = [s for s in states if s["entity_id"].startswith("person.") and _has_gps(s)]
+    people += [s for s in states if s["entity_id"].startswith("device_tracker.") and _has_gps(s)]
+    if people:
+        return people[0]
+    raise GeoError("Kein Standort in Home Assistant – richte die iCloud-Integration (Wo ist?) oder die "
+                   "Home-Assistant-App auf dem Handy ein")
+
+
+async def refresh_findmy(session: aiohttp.ClientSession, state: dict, apple_id: str = "") -> bool:
+    """Asks Apple for a new position of a Find My device and waits (up to FRESH_WAIT s) until it is there."""
+    before = state.get("last_updated")
+    body = {"account": apple_id} if apple_id else {}
+    try:
+        await _ha(session, "POST", "/services/icloud/update", body)
+    except GeoError as err:
+        if not apple_id:
+            log.info("icloud.update ohne Konto: %s", err)
+        return False
+    deadline = time.monotonic() + FRESH_WAIT
+    while time.monotonic() < deadline:
+        await asyncio.sleep(2)
+        try:
+            now = await _ha(session, "GET", f"/states/{state['entity_id']}")
+        except GeoError:
+            return False
+        if now.get("last_updated") != before and _has_gps(now):
+            state.clear()
+            state.update(now)
+            return True
+    return False
+
+
+def age_seconds(state: dict) -> int | None:
+    stamp = (state.get("attributes") or {}).get("last_seen") or state.get("last_updated")
+    try:
+        ts = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return max(0, int((datetime.now(timezone.utc) - ts).total_seconds()))
+
+
+async def current_location(session: aiohttp.ClientSession, wanted: str = "", apple_id: str = "", fresh: bool = True) -> dict:
+    """The person's position: live from Find My (asked for a fresh fix) if set up in Home Assistant,
+    otherwise from the Home Assistant app."""
+    states = await _ha(session, "GET", "/states")
+    state = pick(states, wanted)
+    refreshed = False
+    if fresh and is_findmy(state):
+        refreshed = await refresh_findmy(session, state, apple_id)
+    a = state.get("attributes") or {}
+    return {"lat": float(a["latitude"]), "lon": float(a["longitude"]), "accuracy": a.get("gps_accuracy"),
+            "entity": state["entity_id"], "name": a.get("friendly_name") or state["entity_id"],
+            "quelle": "Wo ist? (iCloud)" if is_findmy(state) else "Home-Assistant-App",
+            "frisch_abgefragt": refreshed, "alter_s": age_seconds(state), "updated": state.get("last_updated")}
 
 
 # -- OpenStreetMap ------------------------------------------------------------------------------------

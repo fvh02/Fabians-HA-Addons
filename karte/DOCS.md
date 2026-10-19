@@ -12,8 +12,9 @@ Du schreibst einfach dem **Fabians-HA-Assistenten**, z. B.:
 - „Bin im Café Extrablatt, trag das ein“
 
 Der Assistent liest Name, Adresse, Gerichte und Preise von der Karte und deine Bestellung aus und
-schickt alles hierher. Den Ort nimmt er von deinem **aktuellen Standort** (Home-Assistant-App auf dem
-Handy). Warst du woanders oder trägst du es später ein, sag ihm wo – oder schick einen Standort.
+schickt alles hierher. Den Ort nimmt er von deinem **Live-Standort aus „Wo ist?“** (Find My): Die
+Karte bittet Apple jedes Mal um eine frische Position deines iPhones und wartet bis zu 25 Sekunden darauf.
+Warst du woanders oder trägst du es später ein, sag ihm wo – oder schick einen Standort.
 
 Die Karte
 
@@ -37,9 +38,15 @@ noch einmal.
 
 - **Fabians-HA-Master** und **Fabians-HA-Assistent** müssen laufen (der Abgleich nutzt Claude über
   den Assistenten, die Meldungen gehen über den Master).
-- Für den Standort braucht es die **Home-Assistant-App** auf dem Handy mit erlaubtem Standort.
-  Gibt es mehrere Personen, unter **Konfiguration** bei *Person für den Standort* z. B.
-  `person.fabian` eintragen.
+- **Standort aus „Wo ist?“ (empfohlen, am genauesten):** In Home Assistant unter *Einstellungen →
+  Geräte & Dienste → Integration hinzufügen* die **iCloud**-Integration einrichten: Apple-ID und dein
+  normales Apple-Passwort (kein App-Passwort – „Wo ist?“ geht nur so), dann den Bestätigungscode vom
+  iPhone eingeben. Danach gibt es z. B. `device_tracker.fabians_iphone`. Die Karte nimmt automatisch
+  ein iPhone aus „Wo ist?“; bei mehreren Geräten unter **Konfiguration** bei *Gerät für den Standort*
+  das richtige eintragen. Deine Apple-ID im **Fabians-HA-Master** (Apple-Kalender → Apple-ID) sagt der
+  Karte, welches Konto sie nach einer frischen Position fragt.
+- Ohne iCloud-Integration nimmt die Karte den Standort aus der **Home-Assistant-App** auf dem Handy
+  (weniger aktuell).
 
 Die Karte ist nur über Home Assistant und für den Assistenten erreichbar. Fotos und Daten liegen im
 Add-on (in Home-Assistant-Backups enthalten). Kartenbilder kommen von OpenStreetMap.

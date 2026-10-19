@@ -1,4 +1,4 @@
 configuration:
-  person:
-    name: Person for the location
-    description: Whose location the assistant uses, e.g. person.fabian (from the Home Assistant app on the phone). Empty = the first person with a GPS location.
+  geraet:
+    name: Device for the location
+    description: "Empty = automatic: first an iPhone from Find My (Home Assistant's iCloud integration), otherwise the Home Assistant app. Or enter e.g. device_tracker.fabians_iphone."

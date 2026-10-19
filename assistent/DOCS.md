@@ -221,8 +221,9 @@ Mit **Fabians-HA-Karte** führt der Assistent eine Karte deiner Restaurants, Caf
 
 - Im Restaurant: Foto der **Speisekarte** schicken und schreiben, was du genommen hast – oder ein
   Foto vom Essen bzw. vom Beleg. Der Assistent liest Name, Adresse, Gerichte und Preise aus und
-  trägt den Besuch ein. Den Ort nimmt er von deinem **aktuellen Standort** aus der
-  Home-Assistant-App; du kannst auch einen Standort schicken oder sagen, wo es war.
+  trägt den Besuch ein. Den Ort nimmt er von deinem **Live-Standort aus „Wo ist?“**
+  (über die iCloud-Integration von Home Assistant, sonst aus der Home-Assistant-App); du kannst auch
+  einen Standort schicken oder sagen, wo es war.
 - Die Karte sucht das Restaurant in OpenStreetMap, recherchiert es online (Öffnungszeiten,
   Website, Bewertung, Preisniveau) und **gleicht ab**: Stimmen Name, Adresse, Telefon oder Preise
   zwischen Speisekarte, OpenStreetMap und Internet nicht überein, steht das in der iMessage und auf

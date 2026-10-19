@@ -15,6 +15,6 @@ ingress_port: 8102
 panel_icon: mdi:map-marker-star
 panel_title: Karte
 options:
-  person: ""
+  geraet: ""
 schema:
-  person: str?
+  geraet: str?

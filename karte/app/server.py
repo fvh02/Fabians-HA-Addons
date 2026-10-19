@@ -49,7 +49,11 @@ def load_options() -> dict:
 
 
 OPTIONS = load_options()
-PERSON = str(os.environ.get("KARTE_PERSON") or OPTIONS.get("person") or "").strip()
+# The tracker for the location: a Find My device (iCloud integration) or a person; empty = automatic.
+DEVICE = str(os.environ.get("KARTE_GERAET") or OPTIONS.get("geraet") or OPTIONS.get("person") or "").strip()
+# The Apple ID (from the master) names the account when a fresh Find My position is requested.
+APPLE_ID = (os.environ["KARTE_APPLE_ID"] if "KARTE_APPLE_ID" in os.environ
+            else fabians_master.keys(wait=60).get("icloud_apple_id", ""))
 store = Store(DATA / "karte.sqlite3")
 routes = web.RouteTableDef()
 checking: set[int] = set()
@@ -200,7 +204,7 @@ async def index_page(_: web.Request) -> web.Response:
 @routes.get("/api/standort")
 async def api_location(request: web.Request) -> web.Response:
     try:
-        loc = await geo.current_location(request.app["http"], PERSON)
+        loc = await geo.current_location(request.app["http"], DEVICE, APPLE_ID)
     except geo.GeoError as err:
         raise Fail(503, str(err))
     loc["address"] = await geo.reverse(request.app["http"], loc["lat"], loc["lon"])
@@ -214,10 +218,14 @@ async def position(request: web.Request, data: dict) -> tuple[float, float, str]
         except (TypeError, ValueError):
             raise Fail(400, "Ungültige Koordinaten")
     try:
-        loc = await geo.current_location(request.app["http"], PERSON)
+        loc = await geo.current_location(request.app["http"], DEVICE, APPLE_ID)
     except geo.GeoError as err:
         raise Fail(503, str(err))
-    return loc["lat"], loc["lon"], f"Standort von {loc['name']}"
+    age = loc.get("alter_s")
+    when = "gerade eben" if loc["frisch_abgefragt"] or (age is not None and age < 90) else \
+        f"vor {age // 60} Min." if age is not None else "Zeit unbekannt"
+    accuracy = f", ±{int(loc['accuracy'])} m" if loc.get("accuracy") else ""
+    return loc["lat"], loc["lon"], f"{loc['name']} ({loc['quelle']}, {when}{accuracy})"
 
 
 @routes.get("/api/in-der-naehe")
@@ -426,7 +434,7 @@ async def on_startup(app: web.Application) -> None:
         if p["check_state"] == "läuft":
             store.update_place(p["id"], check_state="unterbrochen")
     log.info("Karte bereit auf Port %s – %d Orte%s", PORT, len(store.places()),
-             f", Standort von {PERSON}" if PERSON else "")
+             f", Standort von {DEVICE}" if DEVICE else ", Standort automatisch (Wo ist? vor Home-Assistant-App)")
 
 
 async def on_cleanup(app: web.Application) -> None:
