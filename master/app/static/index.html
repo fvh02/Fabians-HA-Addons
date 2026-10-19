@@ -134,6 +134,7 @@ function after(data, prefix) {
   render(data);
   const parts = [prefix];
   if (data.restarted && data.restarted.length) parts.push("Neu gestartet: " + data.restarted.join(", ") + ".");
+  if (data.warning) { parts.push(data.warning); say(parts.join(" "), "bad"); return; }
   say(parts.join(" "), "ok");
 }
 

@@ -34,6 +34,7 @@ SUPERVISOR = os.environ.get("SUPERVISOR_URL", "http://supervisor").rstrip("/")
 SUPERVISOR_TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
 INGRESS_IP = os.environ.get("MASTER_INGRESS_IP", "172.30.32.2")
 INKBOX = os.environ.get("INKBOX_IMESSAGE_URL", "https://inkbox.ai/api/v1/imessage")
+INKBOX_WHOAMI = os.environ.get("INKBOX_WHOAMI_URL", "https://inkbox.ai/api/whoami")
 MAX_IMAGE = 8 * 1024 * 1024
 
 # -- what the master keeps ------------------------------------------------------------------------
@@ -89,6 +90,8 @@ FIELDS = [
     ("E-Mail (Spieleabend)", "smtp_from", "Absender", False, "Leer = Benutzer", ["spieleabend"]),
 ]
 FIELD = {f[1]: f for f in FIELDS}
+# API keys, secrets and tokens never contain spaces: line breaks or quotes from copying are removed.
+TOKEN_FIELD = re.compile(r"(_key|_secret|_token)$")
 PHONE = re.compile(r"^\+[1-9][0-9]{6,14}$")
 
 # The add-ons of this repository: name → title, internal port (for the bridge).
@@ -138,6 +141,12 @@ class Store:
             self.data = json.loads(path.read_text())
         except (OSError, ValueError):
             self.data = {}
+        # Keys saved before 1.2.0 may still contain a line break or quotes from copying.
+        cleaned = {k: re.sub(r"\s+", "", str(v)).strip("\"'`") for k, v in self.data.items()
+                   if k in FIELD and TOKEN_FIELD.search(k) and isinstance(v, str)}
+        if any(self.data[k] != v for k, v in cleaned.items()):
+            self.data.update(cleaned)
+            self.save()
         if not self.data.get("bridge_key"):
             # Shared only between the master and the assistant's Claude bridge.
             self.data["bridge_key"] = secrets.token_urlsafe(32)
@@ -166,6 +175,8 @@ class Store:
             if key not in FIELD:
                 continue
             value = " ".join(str(value or "").split()) if not FIELD[key][3] else str(value or "").strip()
+            if TOKEN_FIELD.search(key):
+                value = re.sub(r"\s+", "", value).strip("\"'`")
             if key == "phone" and value:
                 value = re.sub(r"[\s/()-]", "", value)
                 if value.startswith("00"):
@@ -342,12 +353,48 @@ async def send_imessage(app: web.Application, text: str, image: bytes | None = N
                     log.warning("Bild-Upload fehlgeschlagen: %s", resp.status)
         async with session.post(f"{INKBOX}/messages", json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status >= 300:
-                log.warning("iMessage fehlgeschlagen: %s %s", resp.status, (await resp.text())[:200])
-                return f"Inkbox meldet Fehler {resp.status}"
+                body = (await resp.text())[:300]
+                log.warning("iMessage fehlgeschlagen: %s %s", resp.status, body)
+                return inkbox_error(resp.status, body)
     except (aiohttp.ClientError, asyncio.TimeoutError, KeyError, ValueError) as err:
         log.warning("iMessage fehlgeschlagen: %s", err)
         return "Inkbox nicht erreichbar"
     return None
+
+
+def inkbox_error(status: int, body: str) -> str:
+    """A message the person can act on, for an error answer from Inkbox."""
+    try:
+        detail = json.loads(body)
+        detail = detail.get("detail") or detail.get("error") or detail.get("message") or ""
+        if isinstance(detail, (dict, list)):
+            detail = json.dumps(detail, ensure_ascii=False)
+    except ValueError:
+        detail = ""
+    hint = {
+        401: "Inkbox lehnt den API-Key ab – er ist falsch, abgelaufen oder gelöscht. Auf inkbox.ai → Einstellungen → "
+             "API-Keys einen Key kopieren und hier unter „iMessage (Inkbox)“ neu eintragen",
+        403: "Inkbox erlaubt das Senden an diese Nummer nicht (Kontaktregel oder Key ohne Rechte für die Identität)",
+        404: "Für diese Nummer gibt es bei Inkbox noch keine iMessage-Verbindung – schreib der Inkbox-Identität "
+             "einmal von deinem Handy aus",
+        409: "Die iMessage-Verbindung ist noch nicht bereit – schreib der Inkbox-Identität einmal von deinem Handy aus",
+        429: "Inkbox: Tageslimit für Nachrichten erreicht",
+    }.get(status, f"Inkbox meldet Fehler {status}")
+    return f"{hint} (Fehler {status}{': ' + str(detail)[:160] if detail else ''})"
+
+
+async def check_inkbox_key(app: web.Application) -> str | None:
+    """Asks Inkbox whether the saved key is valid; returns a problem or None."""
+    key = app["store"].get("inkbox_api_key")
+    if not key:
+        return None
+    try:
+        async with app["http"].get(INKBOX_WHOAMI, headers={"X-API-Key": key}, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            if resp.status < 300:
+                return None
+            return inkbox_error(resp.status, (await resp.text())[:300])
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        return None      # Inkbox not reachable: nothing to say about the key
 
 
 # -- API for the other add-ons --------------------------------------------------------------------
@@ -510,7 +557,8 @@ async def ui_keys(request: web.Request) -> web.Response:
     if changed:
         log.info("Geändert: %s", ", ".join(FIELD[k][2] for k in changed))
     restarted = await restart_users(request.app, changed)
-    return web.json_response({**await state(request.app), "changed": len(changed), "restarted": restarted})
+    warning = await check_inkbox_key(request.app) if "inkbox_api_key" in changed else None
+    return web.json_response({**await state(request.app), "changed": len(changed), "restarted": restarted, "warning": warning})
 
 
 @routes.post("/ui/import")
