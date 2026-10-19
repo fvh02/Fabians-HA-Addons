@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Buzzer-Quiz</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .cat { font-size: .78rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .bzq { width: 100%; }
+    /* the big buzzer */
+    .buzz { position: relative; width: min(72vw, 260px); aspect-ratio: 1; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+      background: radial-gradient(circle at 35% 30%, #fecdd3 0 6%, #fb7185 18%, #e11d48 55%, #9f1239 100%);
+      box-shadow: 0 14px 0 #881337, 0 22px 40px rgba(159, 18, 57, .45), inset 0 -10px 24px rgba(0, 0, 0, .25);
+      color: #fff; font-size: clamp(1.5rem, 8vw, 2.2rem); font-weight: 900; letter-spacing: .04em; text-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+      transition: transform .08s, box-shadow .08s; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+      animation: popin .5s cubic-bezier(.2,.9,.3,1.3) both, breathe 2.4s 1s ease-in-out infinite; margin: 6px 0 18px; }
+    .buzz::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; border: 3px solid #fb7185; opacity: 0; animation: ring 2.4s 1s ease-out infinite; }
+    .buzz:active, .buzz.hit { transform: translateY(12px); box-shadow: 0 2px 0 #881337, 0 6px 16px rgba(159, 18, 57, .4), inset 0 -6px 18px rgba(0, 0, 0, .3); }
+    .buzz.small { width: min(44vw, 150px); font-size: 1.05rem; box-shadow: 0 9px 0 #881337, 0 14px 26px rgba(159, 18, 57, .4), inset 0 -8px 18px rgba(0, 0, 0, .25); margin-bottom: 12px; }
+    .buzz.small:active, .buzz.small.hit { transform: translateY(8px); box-shadow: 0 1px 0 #881337; }
+    .buzz:disabled { filter: grayscale(1) brightness(.8); cursor: default; animation: none; }
+    @keyframes breathe { 50% { transform: scale(1.03); } }
+    @keyframes ring { from { transform: scale(.9); opacity: .7; } to { transform: scale(1.25); opacity: 0; } }
+    .hint { font-size: .85rem; color: var(--muted); }
+    .lock { font-size: 1.05rem; font-weight: 750; padding: 14px 18px; border-radius: 18px; background: var(--glass-strong); border: 1px solid var(--glass-border); }
+    /* who is answering */
+    .turn { display: flex; flex-direction: column; align-items: center; gap: 8px; animation: popin .5s cubic-bezier(.2,.9,.3,1.3) both; }
+    .turn .avatar { width: 76px; height: 76px; font-size: 2rem; box-shadow: 0 0 0 4px #e11d48, 0 0 30px rgba(225, 29, 72, .55); animation: pulse 1s ease infinite; }
+    .turn b { font-size: clamp(1.3rem, 5vw, 1.8rem); }
+    .tvmain .turn .avatar { width: 9vw; height: 9vw; font-size: 4vw; }
+    .tvmain .turn b { font-size: 3.4vw; }
+    /* options */
+    .opts { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
+    .opt { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px; border-radius: 18px; border: 2px solid var(--glass-border); background: var(--glass-strong);
+      font-weight: 700; font-size: 1.05rem; line-height: 1.3; color: var(--text); animation: rise .35s ease both; transition: transform .12s, border-color .2s; overflow-wrap: anywhere; }
+    .opt:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent); }
+    .opt i { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-style: normal; font-weight: 900; color: #fff; }
+    .opt:nth-child(1) i { background: linear-gradient(135deg, #60a5fa, #4338ca); }
+    .opt:nth-child(2) i { background: linear-gradient(135deg, #f472b6, #be185d); }
+    .opt:nth-child(3) i { background: linear-gradient(135deg, #fbbf24, #b45309); }
+    .opt:nth-child(4) i { background: linear-gradient(135deg, #34d399, #047857); }
+    .opt span { flex: 1; }
+    .opt small { font-weight: 650; color: var(--muted); font-size: .78rem; }
+    .opt.wrong { opacity: .5; text-decoration: line-through; }
+    .opt.right { border-color: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 35%, transparent); opacity: 1; text-decoration: none; }
+    .opt:disabled { cursor: default; }
+    @media (min-width: 560px) { .opts { grid-template-columns: 1fr 1fr; } }
+    .tvmain .opts { grid-template-columns: 1fr 1fr; gap: 1vw; }
+    .tvmain .opt { font-size: clamp(1rem, 1.9vw, 2.1rem); padding: 1.1vw 1.3vw; }
+    .tvmain .opt i { width: 2.8vw; height: 2.8vw; border-radius: .8vw; font-size: 1.5vw; }
+    /* attempts and players */
+    .tries { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .try { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); text-align: left; animation: rise .35s ease both; }
+    .try .n { flex: 1; font-weight: 650; overflow-wrap: anywhere; }
+    .try .t { font-size: .85rem; color: var(--muted); }
+    .try .p { font-weight: 850; min-width: 30px; text-align: right; }
+    .try.ok { box-shadow: 0 0 0 2px var(--ok); } .try.ok .p { color: var(--ok); } .try.no .p { color: var(--danger); }
+    .tvmain .try { font-size: clamp(1rem, 1.5vw, 1.7rem); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .chip { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 650; font-size: .85rem; transition: opacity .3s; }
+    .chip .avatar { width: 26px; height: 26px; font-size: .7rem; }
+    .chip.off { opacity: .4; text-decoration: line-through; }
+    .chip.q { box-shadow: 0 0 0 2px #e11d48; }
+    .tvmain .chip { font-size: clamp(.9rem, 1.3vw, 1.5rem); }
+    .tvmain .chip .avatar { width: 2.4vw; height: 2.4vw; font-size: 1vw; }
+    .verdict { font-size: clamp(1.4rem, 5.5vw, 2.1rem); font-weight: 900; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+    .verdict.ok { color: var(--ok); } .verdict.no { color: var(--muted); }
+    .pscore .plus.minus { color: var(--danger); }
+    .tvmain .bzq { font-size: clamp(1.6rem, 3vw, 3.4rem); padding: 2vw; }
+    /* one phone screen */
+    .pstage .bzq { padding: clamp(10px, 2vh, 22px) 14px; border-radius: 18px; font-size: clamp(1.02rem, min(4.6vw, 3.1vh), 1.6rem); line-height: 1.3; }
+    .pstage .buzz { width: min(72vw, 260px, 32vh); margin: 2px 0 clamp(10px, 2vh, 18px); font-size: clamp(1.4rem, min(8vw, 4.4vh), 2.2rem); }
+    .pstage .buzz.small { width: min(44vw, 150px, 18vh); font-size: 1rem; margin-bottom: 10px; }
+    .pstage .turn { gap: 4px; }
+    .pstage .turn p { margin: 0; }
+    .pstage .turn .avatar { width: clamp(44px, 8vh, 76px); height: clamp(44px, 8vh, 76px); font-size: clamp(1.1rem, 3.4vh, 2rem); }
+    .pstage .lock { padding: 10px 14px; font-size: .95rem; }
+    .pstage .opts { gap: 6px; }
+    .pstage .opt { padding: 8px 12px; min-height: 46px; font-size: 1rem; gap: 10px; border-radius: 14px; }
+    .pstage .opt i { width: 28px; height: 28px; border-radius: 9px; }
+    .pstage .opts.rv { grid-template-columns: 1fr 1fr; }
+    .pstage .opts.rv .opt { padding: 6px 8px; min-height: 40px; font-size: .88rem; gap: 7px; }
+    .pstage .opts.rv .opt i { width: 22px; height: 22px; border-radius: 7px; font-size: .75rem; }
+    .pstage .opts.rv .opt small { font-size: .7rem; }
+    .pstage .tries { gap: 4px; }
+    .pstage .try { padding: 3px 10px 3px 4px; gap: 7px; border-radius: 12px; line-height: 1.2; }
+    .pstage .try .avatar { width: 24px; height: 24px; font-size: .65rem; }
+    .pstage .try .n { font-size: .85rem; }
+    .pstage .try .t { font-size: .72rem; }
+    .pstage .verdict { font-size: clamp(1.2rem, min(5.5vw, 3.6vh), 2.1rem); }
+    .pstage .note { font-size: .8rem; line-height: 1.3; }
+    /* result: one line per attempt */
+    .pstage .tries.pfill .try { min-height: 28px; }
+    .pstage .tries.pfill .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .82rem; }
+    .pstage .tries.pfill .n br { display: none; }
+    .pstage .tries.pfill .t { margin-left: 6px; }
+    .pstage .tries.pfill { gap: 3px; }
+    .pstage .tries.pfill .try { min-height: 26px; padding-top: 1px; padding-bottom: 1px; }
+    .pstage .tries.pfill .avatar { width: 21px; height: 21px; font-size: .6rem; }
+    .pstage .opts.rv .opt { min-height: 36px; }
+    .pstage:has(.opts.rv) .bzq { padding: clamp(8px, 1.4vh, 16px) 12px; font-size: clamp(.98rem, min(4.4vw, 2.8vh), 1.5rem); }
+    @media (max-height: 700px) { .pstage:has(.opts.rv) > .cat { display: none; } }
+    /* the zone shrinks: the list of attempts gets a scroll area of its own as a last resort */
+    #table.pfit .pstage > #zone { flex: 0 1 auto; min-height: 0; gap: clamp(6px, 1.3vh, 12px) !important; }
+    #zone > * { flex: none; }
+    #table.pfit #zone > .tries { flex: 0 1 auto; min-height: 30px; overflow-y: auto; }
+    .flash { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle, rgba(225, 29, 72, .35), transparent 70%); animation: flash .7s ease-out both; z-index: 40; }
+    @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden pfit">
+    <div class="topbar glass">
+      <span class="title">Buzzer-Quiz</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    // Lobby illustration (until art.js has its own entry)
+    window.ART = window.ART || {};
+    ART.buzzer = ART.buzzer || `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="bza" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#be123c"/></linearGradient><linearGradient id="bzb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#818cf8"/><stop offset="1" stop-color="#3730a3"/></linearGradient><linearGradient id="bzc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#b45309"/></linearGradient><linearGradient id="bzd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#047857"/></linearGradient><filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><g filter="url(#sh)"><rect x="58" y="80" width="104" height="28" rx="14" fill="url(#bzb)"/></g><rect x="76" y="62" width="68" height="26" rx="8" fill="#9f1239"/><g filter="url(#sh)"><ellipse cx="110" cy="62" rx="36" ry="14" fill="url(#bza)"/></g><ellipse cx="100" cy="57" rx="13" ry="4" fill="#fff" opacity=".45"/><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".55"><path d="M60 36 Q50 50 60 64"/><path d="M46 30 Q32 50 46 70"/><path d="M160 36 Q170 50 160 64"/><path d="M174 30 Q188 50 174 70"/></g><g transform="translate(170 6) rotate(10 17 17)" filter="url(#sh)"><rect width="34" height="34" rx="8" fill="url(#bzc)"/><text x="17" y="25" text-anchor="middle" font-size="21" font-weight="850" fill="#fff" font-family="Inter,system-ui,sans-serif">?</text></g><g transform="translate(16 8) rotate(-8 15 15)" filter="url(#sh)"><rect width="30" height="30" rx="7" fill="url(#bzd)"/><text x="15" y="21" text-anchor="middle" font-size="17" font-weight="850" fill="#fff" font-family="Inter,system-ui,sans-serif">A</text></g></svg>`;
+
+    const esc = s => Shell.esc(s);
+    const L = "ABCD";
+    const name = (g, id) => Party.nameOf(g, id);
+    const pl = (g, id) => g.players.find(p => p.id === id) || { name: "?" };
+    const pts = v => v > 0 ? "+" + v : v < 0 ? "−" + Math.abs(v) : "±0";
+    let lastBuzzer = null, sent = false;
+
+    // A short "buzz" sound for the screen (and the buzzing phone).
+    let audio = null;
+    function sound(kind) {
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), v = audio.createGain(), t = audio.currentTime;
+        const f = { buzz: [180, 140, .45, "sawtooth"], right: [660, 990, .35, "triangle"], wrong: [220, 110, .4, "square"] }[kind];
+        o.type = f[3]; o.frequency.setValueAtTime(f[0], t); o.frequency.linearRampToValueAtTime(f[1], t + f[2]);
+        v.gain.setValueAtTime(.18, t); v.gain.exponentialRampToValueAtTime(.001, t + f[2]);
+        o.connect(v); v.connect(audio.destination); o.start(t); o.stop(t + f[2]);
+      } catch (e) { /* no sound – fine */ }
+    }
+
+    function tries(g) {
+      if (!g.attempts.length) return "";
+      return `<div class="tries">${g.attempts.map((a, i) => `<div class="try ${a.ok ? "ok" : a.points ? "no" : ""}" style="animation-delay:${i * 60}ms">${Shell.avatar(pl(g, a.id))}
+        <span class="n">${esc(name(g, a.id))}<br><span class="t">${a.text == null ? (a.points ? "⏱ keine Antwort" : "🚪 hat das Spiel verlassen") : (a.ok ? "✓ " : "✗ ") + esc(a.text)}${a.ms != null ? ` · nach ${Party.num(Math.round(a.ms / 100) / 10)} s gebuzzert` : ""}</span></span>
+        <span class="p">${pts(a.points)}</span></div>`).join("")}</div>`;
+    }
+
+    // Like Party.ranking, but also shows the minus points of this question.
+    function ranking(g) {
+      const list = g.players.filter(p => !p.screen).sort((a, b) => b.score - a.score);
+      return `<div class="pscore compact">${list.map((p, i) => `
+        <div class="ps ${p.id === Shell.me ? "me" : ""}" style="animation-delay:${i * 40}ms"><span class="pos">${i + 1}</span>${Shell.avatar(p)}
+          <span class="n">${esc(p.name)}</span>${p.delta ? `<span class="plus ${p.delta < 0 ? "minus" : ""}">${pts(p.delta)}</span>` : ""}<span class="pts">${p.score}</span></div>`).join("")}</div>`;
+    }
+
+    function chips(g) {
+      return `<div class="chips">${g.players.filter(p => !p.screen).map(p => {
+        const off = g.locked.includes(p.id) || p.bot, q = g.queue.indexOf(p.id);
+        return `<span class="chip ${off ? "off" : ""} ${q >= 0 ? "q" : ""}">${Shell.avatar(p)}${esc(p.name)}${q >= 0 ? ` · ${q + 2}.` : ""}</span>`;
+      }).join("")}</div>`;
+    }
+
+    function options(g, clickable) {
+      return `<div class="opts ${clickable ? "" : "rv"}">${g.options.map((o, i) => {
+        const wrong = g.wrong.includes(i), right = g.right === i;
+        const who = g.attempts.filter(a => a.pick === i).map(a => esc(name(g, a.id))).join(", ");
+        return `<button class="opt ${wrong ? "wrong" : ""} ${right ? "right" : ""}" ${clickable && !wrong ? `data-pick="${i}"` : "disabled"} style="animation-delay:${i * 70}ms">
+          <i>${L[i]}</i><span>${esc(o)}${who ? `<br><small>${who}</small>` : ""}</span>${right ? "✓" : ""}</button>`;
+      }).join("")}</div>`;
+    }
+
+    function zone(g, ctx) {
+      const me = Shell.me, locked = g.locked.includes(me), queued = g.queue.indexOf(me);
+      if (g.phase === "buzz") {
+        if (ctx.tv) return `<p>Wer es weiß, drückt auf dem Handy den Buzzer!</p>${chips(g)}${tries(g)}`;
+        if (locked) return `<div class="lock">🔒 Du hast falsch geantwortet – für diese Frage bist du raus.</div>${tries(g)}`;
+        return `<button class="buzz" id="buzz">BUZZ!</button><p class="hint">Richtig: ${pts(g.points.right)} · Falsch: ${pts(g.points.wrong)}</p>${tries(g)}`;
+      }
+      // answer phase
+      if (g.buzzer === me && !ctx.tv) return `<div class="verdict ok">Du bist dran! 🔔</div><p class="hint">Wähle die richtige Antwort, bevor die Zeit abläuft.</p>${options(g, true)}${tries(g)}`;
+      const turn = `<div class="turn">${Shell.avatar(pl(g, g.buzzer))}<b>${esc(name(g, g.buzzer))}</b><p>antwortet …</p></div>`;
+      if (ctx.tv) return `${turn}${chips(g)}${tries(g)}`;
+      let extra = "";
+      if (locked) extra = `<p class="hint">🔒 Für diese Frage bist du raus.</p>`;
+      else if (queued >= 0) extra = `<div class="lock">✋ Du bist als ${queued + 2}. dran, falls es falsch ist.</div>`;
+      else extra = `<button class="buzz small" id="buzz">Vormerken</button><p class="hint">Falls die Antwort falsch ist, bist du als Nächste/r dran.</p>`;
+      return `${turn}${extra}${tries(g)}`;
+    }
+
+    function bindZone() {
+      const b = document.getElementById("buzz");
+      if (b) {
+        sent = false;
+        // pointerdown is faster than click – every millisecond counts here
+        const fire = e => { e.preventDefault(); if (sent) return; sent = true; b.classList.add("hit"); b.disabled = true;
+          if (navigator.vibrate) navigator.vibrate(60); Shell.send({ t: "buzz" }); };
+        b.addEventListener("pointerdown", fire);
+        b.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") fire(e); });
+      }
+      document.querySelectorAll("[data-pick]").forEach(btn => btn.onclick = () => {
+        document.querySelectorAll("[data-pick]").forEach(x => x.disabled = true);
+        btn.style.borderColor = "var(--accent)";
+        Shell.send({ t: "answer", pick: +btn.dataset.pick });
+      });
+    }
+
+    Party.start({
+      kind: "buzzer", title: "Buzzer-Quiz", art: "buzzer", minPlayers: 2, icon: "🔔",
+      inputPhases: ["buzz"], timerPhases: ["buzz", "answer"],
+      skipLabel: "⏭ Auflösen",
+      settings: [
+        { key: "rounds", label: "Runden", options: [[10, "10 Fragen"], [5, "5 Fragen"], [15, "15 Fragen"], [20, "20 Fragen"]] },
+        { key: "seconds", label: "Zeit", options: [[20, "20 Sekunden zum Buzzern"], [15, "15 Sekunden zum Buzzern"], [30, "30 Sekunden zum Buzzern"], [0, "Ohne Zeitlimit"]] },
+        { key: "category", label: "Kategorie", options: [[0, "Allgemeinwissen gemischt"], [1, "Erdkunde"], [2, "Geschichte"],
+          [3, "Natur & Wissenschaft"], [4, "Sport & Spiele"], [5, "Kunst, Musik & Bücher"], [6, "Essen & Alltag"], [7, "🔩 Metallbau (Ausbildung)"]] },
+      ],
+      key: g => `${g.buzzer}|${g.attempts.length}|${g.locked.length}`,
+      build(g, ctx) {
+        const head = `<span class="cat">${esc(g.category || "")}</span><div class="qcard bzq">${esc(g.question)}</div>`;
+        if (g.phase === "reveal") {
+          const win = g.attempts.find(a => a.ok);
+          const verdict = win ? `<div class="verdict ok">${esc(win.id === Shell.me ? "Du hast es gewusst!" : name(g, win.id) + " hat es gewusst!")} ${pts(win.points)}</div>`
+            : `<div class="verdict no">Niemand hat es gewusst 🤷</div>`;
+          return `${head}${verdict}${options(g, false)}${g.note ? `<p class="note">${esc(g.note)}</p>` : ""}
+            ${ctx.tv ? "" : `${tries(g).replace('class="tries"', 'class="tries pfill"')}<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${ranking(g)}`}`;
+        }
+        return `${head}<div id="zone" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px"></div>`;
+      },
+      bind(g, ctx) {
+        // sounds and flashes when something happened
+        if (g.phase === "answer" && g.buzzer !== lastBuzzer) {
+          if (ctx.tv || g.buzzer === Shell.me) sound("buzz");
+          if (g.buzzer === Shell.me && navigator.vibrate) navigator.vibrate([80, 40, 80]);
+          document.body.insertAdjacentHTML("beforeend", '<div class="flash"></div>');
+          setTimeout(() => document.querySelectorAll(".flash").forEach(n => n.remove()), 800);
+        }
+        if (g.phase === "reveal" && lastBuzzer !== "reveal" && ctx.tv) sound(g.attempts.some(a => a.ok) ? "right" : "wrong");
+        lastBuzzer = g.phase === "answer" ? g.buzzer : g.phase === "reveal" ? "reveal" : null;
+      },
+      update(g, ctx) {
+        if (g.phase === "reveal") return;
+        if (Party.set("zone", zone(g, ctx))) bindZone();
+      },
+      celebrate: g => g.attempts.some(a => a.ok && a.id === Shell.me),
+    });
+  </script>
+</body>
+</html>

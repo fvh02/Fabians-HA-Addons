@@ -1,0 +1,37 @@
+name: Fabians-HA-Assistent
+version: "0.15.0"
+slug: assistent
+description: Dein Assistent per iMessage und E-Mail (Claude über Inkbox) – Schlüssel kommen aus Fabians-HA-Master
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-assistent
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: auto
+hassio_api: true
+hassio_role: manager
+homeassistant_api: true
+map:
+  - share:rw
+backup_exclude:
+  - whisper-models
+  - whisper-models/**
+options:
+  claude_ai_login: true
+  reply_language: Deutsch
+  icloud_ai_calendar: Added by AI Agent
+  voice_transcription: small
+  project_dir: /share/claude-workspace
+  voice_ai: false
+  claude_model: ""
+  addon_management: true
+schema:
+  claude_ai_login: bool
+  reply_language: list(Automatisch|Deutsch|English|Español|Français|Italiano|Nederlands|Polski|Português|Türkçe)
+  icloud_ai_calendar: str?
+  voice_transcription: list(aus|tiny|base|small|medium|turbo)
+  project_dir: str
+  voice_ai: bool
+  claude_model: str?
+  addon_management: bool

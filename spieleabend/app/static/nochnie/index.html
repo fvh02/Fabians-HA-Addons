@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Ich hab noch nie …</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .lead { font-size: .8rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    /* ---- one screen, no scrolling (page-local; same block in every drinking game) ---- */
+    body:not(.tv) #table#table:not(.hidden) { height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 0; }
+    body:not(.tv) #stage#stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    body:not(.tv) #stage#stage > .pstage { flex: 1 1 0; min-height: 0; gap: clamp(6px, 1.6vh, 16px); padding: clamp(10px, 1.8vh, 18px) 14px; }
+    body:not(.tv) .pstage > .phead + * { margin-top: auto; }
+    body:not(.tv) .pstage > :last-child { margin-bottom: auto; }
+    body:not(.tv) .pstage .plabel { margin: 0 0 -2px; }
+    .topbar .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pctl { flex-wrap: nowrap; width: 100%; max-width: 420px; }
+    .pctl .btn { flex: 1 1 auto; min-height: 44px; padding: 10px; font-size: .95rem; white-space: nowrap; }
+    .pctl .btn.small { flex: 0 1 auto; min-height: 40px; }
+    /* scores: compact rows, two columns from 5 players on; shrinks (and scrolls) only as a last resort */
+    .pstage .pscore, #finished .pscore { gap: 5px; }
+    body:not(.tv) .pstage .pscore { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+    .pstage .pscore:has(.ps:nth-child(5)), #finished .pscore:has(.ps:nth-child(6)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pstage .pscore .ps, #finished .pscore .ps { padding: 4px 9px; gap: 7px; border-radius: 12px; }
+    .pstage .pscore .avatar, #finished .pscore .avatar { width: 26px; height: 26px; font-size: .75rem; }
+    .pstage .pscore .pos, #finished .pscore .pos { width: auto; min-width: 12px; font-size: .78rem; }
+    .pstage .pscore .pts, #finished .pscore .pts { min-width: 16px; }
+    .pstage .pscore:has(.ps:nth-child(5)) .ps { gap: 5px; padding: 4px 7px; font-size: .9rem; }
+    .pstage .pscore .plus { font-size: .78rem; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .ps { padding-top: 2px; padding-bottom: 2px; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .avatar { width: 22px; height: 22px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) { gap: 4px 8px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .d { font-size: .8rem; }
+    #finished .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    #finished .trophy { font-size: 2.8rem; }
+    body:not(.tv) .drinkers { gap: 6px 10px; }
+    body:not(.tv) .drinkers .d { gap: 3px; font-size: .9rem; }
+    body:not(.tv) .drinkers .avatar { width: clamp(34px, 6.4vh, 54px); height: clamp(34px, 6.4vh, 54px); font-size: 1.05rem; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .avatar { width: 28px; height: 28px; font-size: .8rem; }
+    body:not(.tv) .pbanner { font-size: clamp(1.25rem, 3.4vh, 2.1rem); }
+    /* game */
+    body:not(.tv) .pstage h2 { font-size: clamp(1.15rem, 3.3vh, 1.75rem); }
+    body:not(.tv) .bigchoice button { padding: clamp(14px, 3vh, 26px) 10px; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Ich hab noch nie …</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const sayIt = t => esc(t.replace(/^…\s*/, ""));
+    Party.start({
+      kind: "nochnie", title: "Ich hab noch nie …", art: "nochnie", minPlayers: 2, icon: "🍻", drink: true,
+      inputPhases: ["answer"], nextLabel: "Nächster Satz →",
+      settings: [
+        { key: "rounds", label: "Sätze", options: [[15, "15 Sätze"], [10, "10 Sätze"], [20, "20 Sätze"], [30, "30 Sätze"]] },
+        { key: "seconds", label: "Zeit", options: [[20, "20 Sekunden"], [15, "15 Sekunden"], [30, "30 Sekunden"], [0, "Ohne Zeitlimit"]] },
+        { key: "spicy", label: "Stufe", options: [[0, "Harmlos"], [1, "Mit frechen Sätzen"]] },
+      ],
+      build(g, ctx) {
+        if (g.phase === "answer") return `<span class="lead">Ich hab noch nie …</span><h2>${sayIt(g.statement)}</h2>
+          ${ctx.tv ? "<p>Antwortet geheim auf euren Handys!</p>" : `<div class="bigchoice">
+            <button class="yes" data-ans="1"><span>🍺</span>Hab ich schon</button><button data-ans="0"><span>😇</span>Nie</button></div>`}
+          <div data-status></div>`;
+        const drinkers = g.drinkers.map(id => g.players.find(p => p.id === id)).filter(Boolean);
+        return `<span class="lead">Ich hab noch nie …</span><h2>${sayIt(g.statement)}</h2>
+          ${drinkers.length ? `<div class="pbanner">🍻 Trinken!</div><div class="drinkers">${drinkers.map((p, i) =>
+            `<div class="d" style="animation-delay:${i * 90}ms">${Shell.avatar(p)}<span>${p.id === Shell.me ? "Du" : esc(p.name)}</span></div>`).join("")}</div>`
+            : `<div class="pbanner">😇 Niemand – alle bleiben trocken</div>`}
+          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Schlucke bisher</h3>${Party.ranking(g, { gained: true })}`}`;
+      },
+      bind() { document.querySelectorAll("[data-ans]").forEach(b => b.onclick = () => Shell.send({ t: "answer", yes: b.dataset.ans === "1" })); },
+      update(g) { document.querySelectorAll("[data-ans]").forEach(b => b.classList.toggle("on", g.my_answer != null && (b.dataset.ans === "1") === g.my_answer)); },
+      finished: (g, ranked) => ({ icon: "🍻", title: ranked[0] && ranked[0].score ? `${ranked[0].id === Shell.me ? "Du hast" : ranked[0].name + " hat"} am meisten erlebt!` : "Ihr seid ja brav!",
+        sub: Party.ranking(g) }),
+    });
+  </script>
+</body>
+</html>

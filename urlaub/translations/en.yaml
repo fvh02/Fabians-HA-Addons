@@ -1,0 +1,6 @@
+configuration:
+  model:
+    name: Claude model
+    description: Default claude-opus-5-5 (best recognition). Cheaper, slightly less accurate – claude-sonnet-5-5.
+network:
+  8100/tcp: Port for travel companions without Home Assistant access

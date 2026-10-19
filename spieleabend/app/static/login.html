@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Spieleabend</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <style>
+    .gate { max-width: 400px; margin: 0 auto; padding: 12vh 16px 40px; text-align: center; animation: rise .5s ease both; }
+    .gate img { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 16px 40px rgba(60, 20, 120, .4); }
+    .gate h1 {
+      margin: 18px 0 6px; font-size: 2.4rem; font-weight: 850; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .gate p { color: var(--muted); margin: 0 0 22px; }
+    .gate form { display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 24px; }
+    .gate input { text-align: center; font-size: 1.2rem; letter-spacing: .12em; }
+    .gate .err { color: var(--danger); font-weight: 650; min-height: 1.2em; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="backdrop"><i></i><i></i><i></i><i></i></div>
+  <main class="gate">
+    <img src="/static/icon-192.png" alt="">
+    <h1>Spieleabend</h1>
+    <p>Gib den Zugangscode ein, den du bekommen hast.</p>
+    <form class="glass" method="post" action="/__login">
+      <input type="hidden" name="next" value="{{next}}">
+      <input name="code" type="password" placeholder="Zugangscode" autocomplete="current-password" autofocus required>
+      <p class="err">{{error}}</p>
+      <button class="btn" type="submit">Los geht's</button>
+    </form>
+  </main>
+</body>
+</html>

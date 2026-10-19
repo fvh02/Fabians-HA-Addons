@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Spion</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    /* the secret card */
+    .role { width: min(260px, 66vw); aspect-ratio: 5 / 7; perspective: 1000px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    .role .in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.9,.3,1.1); }
+    .role.open .in { transform: rotateY(180deg); }
+    .role .face { position: absolute; inset: 0; border-radius: 28px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; box-shadow: 0 20px 50px rgba(20, 10, 60, .4); }
+    .role .back { background:
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,.2) 0 20%, transparent 21%),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,.07) 0 8px, transparent 8px 16px),
+        linear-gradient(145deg, #0f172a, #334155 50%, #7c3aed);
+      color: #fff; font-weight: 800; }
+    .role .back .q { font-size: 4rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
+    .role .front { transform: rotateY(180deg); background: linear-gradient(160deg, #ffffff, #eef2ff); color: #1e1b3a; }
+    .role .front.spy { background: linear-gradient(160deg, #020617, #1e293b 55%, #be123c); color: #fff; }
+    .role .front small { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+    .role .front .big { font-size: 3.6rem; line-height: 1; filter: drop-shadow(0 4px 8px rgba(0,0,0,.2)); }
+    .role .front .w { font-size: clamp(1.4rem, 7vw, 2.1rem); font-weight: 900; letter-spacing: -.02em; line-height: 1.1; overflow-wrap: anywhere; }
+    .role .front .r { font-size: 1rem; font-weight: 750; padding: 5px 14px; border-radius: 999px; background: rgba(124, 58, 237, .13); color: #5b21b6; }
+    .role .front.spy .r { background: rgba(255,255,255,.16); color: #fff; }
+    .role .front p { font-size: .82rem; color: inherit; opacity: .75; }
+
+    .clock { font-family: ui-monospace, monospace; font-weight: 900; font-size: clamp(3rem, 16vw, 5.4rem); letter-spacing: -.02em; line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .clock.low { background: linear-gradient(135deg, #f97316, #ef4444); -webkit-background-clip: text; background-clip: text; animation: pulse 1s ease infinite; }
+    .starter { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 20px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 700; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+    .starter .avatar { width: 40px; height: 40px; }
+    .hint { font-size: .9rem; }
+    .places { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px; width: 100%; }
+    .places span, .places button { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-size: .85rem; font-weight: 650; text-align: left; line-height: 1.2; color: var(--text); }
+    .places button { font-size: .95rem; padding: 10px 12px; transition: transform .15s, border-color .2s; }
+    .places button:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .places .right { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
+    .places .wrong { border-color: var(--danger); box-shadow: 0 0 0 2px var(--danger); }
+    details.list { width: 100%; text-align: left; }
+    details.list summary { cursor: pointer; font-weight: 700; color: var(--muted); padding: 6px 0; text-align: center; }
+    details.list[open] summary { margin-bottom: 8px; }
+    .votes { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; }
+    .vote { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 20px; border: 2px solid var(--glass-border); background: var(--glass-strong); font-weight: 700; color: var(--text); transition: transform .15s, border-color .2s, box-shadow .2s; }
+    .vote:hover { transform: translateY(-2px); }
+    .vote .avatar { width: 44px; height: 44px; font-size: 1.1rem; }
+    .vote.on { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 35%, transparent); }
+    .vote.abst { flex-direction: row; justify-content: center; grid-column: 1 / -1; padding: 10px; }
+    .vote.abst.on { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .banner { font-size: clamp(1.5rem, 6vw, 2.2rem); font-weight: 900; letter-spacing: -.02em; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+    .banner.ag { color: var(--ok); } .banner.sp { color: var(--danger); }
+    .placebox { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-radius: 22px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-size: 1.3rem; font-weight: 850; animation: popin .6s .15s cubic-bezier(.2,.9,.3,1.3) both; }
+    .placebox span { font-size: 2.2rem; }
+    .result { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+    .result .r { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); text-align: left; animation: rise .4s ease both; }
+    .result .r.spy { border-color: var(--danger); box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 40%, transparent); }
+    .result .r .n { flex: 1; min-width: 0; font-weight: 700; }
+    .result .r .n small { display: block; font-weight: 600; color: var(--muted); font-size: .78rem; }
+    .result .r .plus { color: var(--ok); font-weight: 850; }
+    .result .r .vv { font-size: .78rem; color: var(--muted); text-align: right; }
+    .tally { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .tally span { padding: 5px 12px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 700; font-size: .85rem; }
+    .spybtn { background: linear-gradient(135deg, #1e293b, #be123c); }
+    .peek { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .tvmain .clock { font-size: clamp(4rem, 9vw, 9rem); }
+    .tvmain .places { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+    .tvmain .places span { padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .tvmain .hint { font-size: clamp(.9rem, 1.4vw, 1.6rem); }
+    .tvmain .starter { font-size: clamp(1.2rem, 2vw, 2.2rem); }
+    .tvmain .places span { font-size: clamp(.75rem, .95vw, 1.15rem); }
+    .tvmain .placebox { font-size: clamp(1.6rem, 3vw, 3.4rem); }
+    .tvmain .result .r { font-size: clamp(1rem, 1.4vw, 1.6rem); }
+    .tvmain .banner { font-size: clamp(2rem, 4vw, 4.6rem); }
+
+    /* ---------- one phone screen, no scrolling ---------- */
+    body:not(.tv) .pstage .clock { font-size: clamp(2.6rem, 9vh, 5.4rem); }
+    body:not(.tv) .pstage .starter { padding: 8px 14px; }
+    body:not(.tv) .pstage .starter .avatar { width: 32px; height: 32px; }
+    body:not(.tv) .pstage .hint { font-size: .85rem; line-height: 1.35; }
+    .askbtns { flex-wrap: nowrap; gap: 8px; width: 100%; }
+    .askbtns .btn { flex: 1 1 auto; padding: 12px 10px; white-space: nowrap; }
+    .askbtns .btn.ghost { flex: 0 1 auto; }
+    /* the secret card fits the height that is left */
+    body:not(.tv) #card .role { width: min(260px, 66vw, 48vh * 5 / 7); }
+    body:not(.tv) .role .face { padding: 14px; gap: 6px; }
+    body:not(.tv) .role .front .big { font-size: clamp(2.4rem, 7vh, 3.6rem); }
+    body:not(.tv) .role .front p { margin: 0; }
+    #peekBox .role { width: min(220px, 56vw, 34vh * 5 / 7); }
+    #peekBox .role .front .big { font-size: 2.2rem; }
+    #peekBox .role .front .w { font-size: 1.35rem; }
+    #peekBox .role .front p { font-size: .76rem; }
+    #peekBox { gap: 8px; }
+    #peekBox:empty { display: none; }
+    .pstage:has(#peekBox:not(:empty)) > .hint, .pstage:has(#peekBox:not(:empty)) > details.list { display: none; }
+    .pstage:has(#peekBox:not(:empty)) .clock { font-size: clamp(2.2rem, 6vh, 3.4rem); }
+    /* all 36 places: three narrow columns */
+    body:not(.tv) .places { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+    body:not(.tv) .places span, body:not(.tv) .places button { display: block; padding: 4px 6px; font-size: .76rem; border-radius: 10px; min-width: 0; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; line-height: 1.15; }
+    body:not(.tv) .places button { min-height: 40px; font-size: .78rem; }
+    body:not(.tv) details.list summary { padding: 2px 0; }
+    body:not(.tv) details.list[open] summary { margin-bottom: 6px; }
+    /* voting */
+    body:not(.tv) .votes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 6px; }
+    body:not(.tv) .vote { flex-direction: row; justify-content: center; padding: 8px 10px; gap: 8px; border-radius: 16px; min-height: 48px; }
+    body:not(.tv) .vote .avatar { width: 30px; height: 30px; font-size: .8rem; }
+    body:not(.tv) .vote span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* result */
+    body:not(.tv) .pstage .banner { font-size: clamp(1.3rem, 5.5vw, 2rem); }
+    body:not(.tv) .placebox { padding: 6px 16px; font-size: 1.1rem; border-radius: 16px; }
+    body:not(.tv) .placebox span { font-size: 1.6rem; }
+    body:not(.tv) .tally { gap: 4px; }
+    body:not(.tv) .tally span { padding: 2px 9px; font-size: .78rem; }
+    body:not(.tv) .result { gap: 4px; }
+    body:not(.tv) .result .r { padding: 4px 10px; gap: 8px; border-radius: 12px; }
+    body:not(.tv) .result .r .avatar { width: 26px; height: 26px; font-size: .7rem; }
+    body:not(.tv) .result .r .n { line-height: 1.2; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body:not(.tv) .result .r .n small { font-size: .74rem; overflow: hidden; text-overflow: ellipsis; }
+    body:not(.tv) .result.many { display: grid; grid-template-columns: 1fr 1fr; }
+    body:not(.tv) .result.many .r { padding: 3px 8px; gap: 6px; min-width: 0; }
+    body:not(.tv) .result.many .r .vv { display: none; }
+    body:not(.tv) .result.many .r .avatar { width: 22px; height: 22px; font-size: .6rem; }
+    body:not(.tv) .result.many .r .n { font-size: .84rem; }
+    .pstage > .rmeta { margin: 0; font-size: .85rem; }
+    /* TV */
+    .tvmain .result { gap: .5vh; }
+    .tvmain .result .r { padding: .7vh 1vw; }
+    .tvmain .result.many { display: grid; grid-template-columns: 1fr 1fr; }
+    .tvmain .placebox { padding: 1vh 2vw; }
+    .tvmain .placebox span { font-size: 1.4em; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden pfit">
+    <div class="topbar glass">
+      <span class="title">Spion</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    window.ART = window.ART || {};
+    window.ART.spion = `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="spa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#0f172a"/></linearGradient><linearGradient id="spb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#7c3aed"/></linearGradient><linearGradient id="spc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#fdba74"/></linearGradient><filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><path d="M38 120 L48 98 L70 110 L92 98 L102 120 Z" fill="url(#spa)" filter="url(#sh)"/><g filter="url(#sh)"><circle cx="70" cy="76" r="26" fill="url(#spc)"/></g><rect x="50" y="68" width="17" height="10" rx="4" fill="#1e1b3a"/><rect x="73" y="68" width="17" height="10" rx="4" fill="#1e1b3a"/><path d="M66 72 h8" stroke="#1e1b3a" stroke-width="3"/><path d="M62 90 q8 -3 16 0" stroke="#1e1b3a" stroke-width="2.6" fill="none" stroke-linecap="round"/><g filter="url(#sh)"><path d="M50 56 q1 -28 20 -28 q19 0 20 28 Z" fill="url(#spa)"/><path d="M36 56 h68 q-4 7 -12 7 h-44 q-8 0 -12 -7 Z" fill="url(#spa)"/></g><rect x="50" y="48" width="40" height="6" fill="#ec4899"/><ellipse cx="164" cy="108" rx="22" ry="5" fill="currentColor" opacity=".18"/><g filter="url(#sh)"><path d="M164 106 C146 82 140 70 140 58 a24 24 0 0 1 48 0 c0 12 -6 24 -24 48 Z" fill="url(#spb)"/></g><circle cx="164" cy="58" r="13" fill="#fff"/><text x="164" y="65" text-anchor="middle" font-size="19" font-weight="900" fill="#7c3aed" font-family="Inter,system-ui,sans-serif">?</text><text x="124" y="30" text-anchor="middle" font-size="17" font-family="system-ui">🏥</text><text x="204" y="34" text-anchor="middle" font-size="17" font-family="system-ui">✈️</text><text x="122" y="96" text-anchor="middle" font-size="15" font-family="system-ui">🏰</text><text x="206" y="88" text-anchor="middle" font-size="15" font-family="system-ui">🎪</text></svg>`;
+
+    const esc = s => Shell.esc(s);
+    const send = msg => Shell.send(msg);
+    const nameOf = (g, id) => Party.nameOf(g, id);
+    const pl = (g, id) => g.players.find(p => p.id === id) || { name: "?" };
+    const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    const HOW = {
+      survived: "Niemand wurde mehrheitlich beschuldigt.",
+      innocent: "Ihr habt einen Unschuldigen beschuldigt.",
+      guessed: "Enttarnt – aber den Ort richtig erraten!",
+      caught: "Enttarnt und den Ort nicht erraten.",
+      revealed_right: "Selbst aufgedeckt und den Ort erraten!",
+      revealed_wrong: "Selbst aufgedeckt – aber falsch getippt.",
+    };
+    let askEnd = null, peeking = false;
+
+    function roleCard(g, open) {
+      const front = g.role === "spy"
+        ? `<div class="face front spy"><div class="big">🕵️</div><small>Psst …</small><div class="w">Du bist der Spion</div>
+            ${g.spy_count > 1 ? '<div class="r">Es gibt 2 Spione</div>' : ""}
+            <p>Finde heraus, wo ihr seid – ohne aufzufliegen.</p></div>`
+        : `<div class="face front"><div class="big">${g.emoji || "📍"}</div><small>Ort</small><div class="w">${esc(g.location || "")}</div>
+            <div class="r">${esc(g.my_role || "")}</div><p>${g.spy_count > 1 ? "Zwei von euch sind Spione." : "Einer von euch ist der Spion."}</p></div>`;
+      return `<div class="role ${open ? "open" : ""}"><div class="in">
+        <div class="face back"><div class="q">🕵️</div><div>Tippen zum Aufdecken</div><small style="opacity:.75">Nur du darfst hinschauen</small></div>${front}</div></div>`;
+    }
+
+    const placeList = (g, attr = "") => `<div class="places" ${attr}>${g.locations.map(([n, e]) => `<span>${e} ${esc(n)}</span>`).join("")}</div>`;
+
+    function build(g, ctx) {
+      const playing = !ctx.tv;
+      if (g.phase === "cards") {
+        if (!playing) return `<h2>Schaut euch heimlich eure Karte an 🤫</h2>
+          <p>Alle bekommen denselben Ort und eine Rolle – nur ${g.spy_count > 1 ? "zwei Spione wissen" : "der Spion weiß"} nichts.</p><div data-status></div>`;
+        return `<h2>Deine geheime Karte</h2><div id="card">${roleCard(g, false)}</div>
+          <div id="seenBox"></div><div data-status></div>`;
+      }
+      if (g.phase === "ask") {
+        const lv = g.last_vote;
+        return `<div class="starter">${Shell.avatar(pl(g, g.starter))}<span>🎤 ${esc(nameOf(g, g.starter))} stellt die erste Frage</span></div>
+          <div class="clock" id="clock">--:--</div>
+          ${lv ? `<p class="hint">Letzte Abstimmung: keine Mehrheit – weiter geht's!</p>` : ""}
+          <p class="hint">Stellt euch reihum Fragen zum Ort. Wer gefragt wurde, fragt als Nächstes – aber nicht zurück.</p>
+          <div class="row askbtns" style="justify-content:center"><button class="btn" id="callVote">🗳️ Abstimmung starten</button>
+          ${playing ? '<button class="btn ghost" id="peekBtn">👁️ Karte</button>' : ""}</div>
+          <div id="peekBox" class="peek"></div>
+          ${ctx.tv ? placeList(g) : `<details class="list pfill"><summary>📍 Alle möglichen Orte (${g.locations.length})</summary>${placeList(g)}</details>`}`;
+      }
+      if (g.phase === "vote") {
+        const caller = g.caller ? `${esc(nameOf(g, g.caller))} ruft zur Abstimmung!` : g.final_vote ? "Die Zeit ist um!" : "Abstimmung!";
+        const need = Math.floor(g.players.filter(p => !p.screen && !p.bot).length / 2) + 1;
+        return `<h2>Wer ist ${g.spy_count > 1 ? "ein" : "der"} Spion?</h2>
+          <p>${caller} Für eine Anklage braucht es <b>${need} Stimmen</b>.${g.final_vote ? " Ohne Mehrheit gewinnt der Spion." : " Ohne Mehrheit geht die Fragerunde weiter."}</p>
+          ${playing ? '<div class="votes" id="votes"></div>' : "<p>Stimmt auf euren Handys ab!</p>"}<div data-status></div>`;
+      }
+      if (g.phase === "guess") {
+        const who = esc(nameOf(g, g.guesser));
+        const head = g.self_reveal ? `<div class="banner sp">🕵️ ${who} deckt sich auf!</div>` : `<div class="banner sp">🚨 ${who} ist ${g.spy_count > 1 ? "ein" : "der"} Spion!</div>`;
+        if (g.guesser === Shell.me)
+          return `${head}<p>${g.self_reveal ? "Tippe auf den Ort – liegst du richtig, gewinnst du die Runde." : "Letzte Chance: Errätst du den Ort, gewinnst du trotzdem!"}</p>
+            <div class="places pfill">${g.locations.map(([n, e]) => `<button data-place="${esc(n)}">${e} ${esc(n)}</button>`).join("")}</div>`;
+        return `${head}<p>${who} tippt jetzt auf den Ort … 🤔</p><div class="trophy">🗺️</div>`;
+      }
+      // reveal: round result
+      const spiesWin = g.winner === "spies", many = g.spies.length > 1;
+      const tally = g.last_vote ? Object.entries(g.last_vote.tally).sort((a, b) => b[1] - a[1]) : [];
+      const rows = g.players.filter(p => !p.screen).sort((a, b) => g.spies.includes(b.id) - g.spies.includes(a.id) || b.gained - a.gained);
+      const votes = g.last_vote ? g.last_vote.votes : {};
+      return `<div class="banner ${spiesWin ? "sp" : "ag"}">${spiesWin ? (many ? "🕵️ Die Spione gewinnen!" : "🕵️ Der Spion gewinnt!") : "🎉 Die Agenten gewinnen!"}</div>
+        <p class="rmeta">${esc(HOW[g.how] || "")}</p>
+        <div class="placebox"><span>${g.emoji || "📍"}</span>${esc(g.location || "")}</div>
+        ${g.guesser ? `<p class="rmeta">Tipp von ${esc(nameOf(g, g.guesser))}: <b>${esc(g.guess || "– keiner –")}</b> ${g.guess === g.location ? "✅" : "❌"}</p>` : ""}
+        ${tally.length ? `<div class="tally">${tally.map(([id, n]) => `<span>${esc(nameOf(g, id))}: ${n}</span>`).join("")}</div>` : ""}
+        <div class="result pfill ${rows.length > 5 ? "many" : ""}">${rows.map((p, i) => `<div class="r ${g.spies.includes(p.id) ? "spy" : ""}" style="animation-delay:${i * 50}ms">${Shell.avatar(p)}
+          <span class="n">${esc(p.name)}${p.id === Shell.me ? " (du)" : ""}<small>${g.spies.includes(p.id) ? "🕵️ Spion" : esc(g.roles[p.id] || "")}</small></span>
+          <span class="vv">${votes[p.id] ? "→ " + esc(nameOf(g, votes[p.id])) : ""}</span>
+          ${p.gained ? `<span class="plus">+${p.gained}</span>` : ""}</div>`).join("")}</div>
+        ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${Party.ranking(g, { gained: true, compact: true })}`}`;
+    }
+
+    function bind(g, ctx) {
+      peeking = false;
+      const card = document.querySelector("#card .role");
+      if (card) card.onclick = () => card.classList.toggle("open");
+      const cv = document.getElementById("callVote");
+      if (cv) cv.onclick = () => { if (confirm("Jetzt abstimmen, wer der Spion ist?")) send({ t: "call_vote" }); };
+      const pk = document.getElementById("peekBtn");
+      if (pk) pk.onclick = () => {
+        const box = document.getElementById("peekBox");
+        peeking = !peeking;
+        box.innerHTML = peeking ? roleCard(Shell.game, true) + (Shell.game.role === "spy"
+          ? '<button class="btn spybtn" id="revealBtn">🕵️ Ich bin der Spion – Ort tippen</button>' : "") : "";
+        const rb = document.getElementById("revealBtn");
+        if (rb) rb.onclick = () => { if (confirm("Dich aufdecken und auf den Ort tippen? Liegst du falsch, gewinnen die Agenten.")) send({ t: "spy_reveal" }); };
+        const c = box.querySelector(".role");
+        if (c) c.onclick = () => pk.onclick();
+      };
+      document.querySelectorAll("[data-place]").forEach(b => b.onclick = () => {
+        if (confirm(`„${b.dataset.place}“ – sicher?`)) send({ t: "guess", place: b.dataset.place });
+      });
+    }
+
+    function update(g, ctx) {
+      askEnd = g.phase === "ask" && g.remaining != null ? Date.now() + g.remaining * 1000 : null;
+      clock();
+      if (g.phase === "cards" && !ctx.tv) {
+        const mine = g.players.find(p => p.id === Shell.me);
+        Party.set("seenBox", mine && mine.done ? '<p class="pdone">✓ Warte auf die anderen …</p>' : '<button class="btn" id="seenBtn">Gesehen ✓</button>');
+        const b = document.getElementById("seenBtn");
+        if (b) b.onclick = () => { const c = document.querySelector("#card .role"); if (c) c.classList.remove("open"); send({ t: "seen" }); };
+      }
+      if (g.phase === "vote" && document.getElementById("votes")) {
+        const html = g.players.filter(p => p.id !== Shell.me && !p.screen).map(p => `
+          <button class="vote ${g.my_vote === p.id ? "on" : ""}" data-vote="${p.id}">${Shell.avatar(p)}<span>${esc(p.name)}</span></button>`).join("")
+          + `<button class="vote abst ${g.my_vote === "" ? "on" : ""}" data-vote="">🤷 Enthalten</button>`;
+        if (Party.set("votes", html))
+          document.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => send({ t: "vote", id: b.dataset.vote }));
+      }
+    }
+
+    function clock() {
+      const el = document.getElementById("clock");
+      if (!el || askEnd == null) return;
+      const left = Math.max(0, Math.ceil((askEnd - Date.now()) / 1000));
+      el.textContent = mmss(left);
+      el.classList.toggle("low", left <= 30);
+    }
+    setInterval(clock, 250);
+
+    Party.start({
+      kind: "spion", title: "Spion", art: "spion", minPlayers: 3, icon: "🕵️",
+      inputPhases: ["cards", "vote"], timerPhases: ["vote", "guess"],
+      skipLabel: "⏭ Nicht mehr warten",
+      settings: [
+        { key: "rounds", label: "Runden", options: [[5, "5 Runden"], [3, "3 Runden"], [8, "8 Runden"], [10, "10 Runden"]] },
+        { key: "seconds", label: "Zeit", options: [[480, "8 Minuten"], [300, "5 Minuten"], [600, "10 Minuten"]] },
+        { key: "spies", label: "Spione", options: [[1, "1 Spion"], [2, "2 Spione (ab 5 Spielern)"]] },
+      ],
+      key: g => g.phase === "ask" ? String(!!g.last_vote) : "",
+      build, bind, update,
+      celebrate: (g, ctx) => !ctx.tv && g.spies.length && (g.winner === "spies") === g.spies.includes(Shell.me),
+    });
+  </script>
+</body>
+</html>

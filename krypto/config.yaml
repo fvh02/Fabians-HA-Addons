@@ -1,0 +1,65 @@
+name: Fabians-HA-Krypto-Trader
+version: "0.7.0"
+slug: krypto
+description: Claude handelt alle paar Stunden Kryptowährungen mit deinem Budget – zuerst nur auf Papier, mit festen Verlustgrenzen
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-krypto
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8094
+panel_icon: mdi:chart-line
+panel_title: Krypto
+options:
+  mode: paper
+  budget_eur: 500
+  coins: auto
+  news_sources:
+    - https://www.coindesk.com/arc/outboundfeeds/rss/
+    - https://cointelegraph.com/rss
+    - https://decrypt.co/feed
+    - https://www.btc-echo.de/feed/
+  profit_step_pct: 10
+  auto_top: 40
+  min_volume_eur: 250000
+  decision_every_hours: 3
+  check_minutes: 15
+  report_hour: 20
+  max_trade_pct: 25
+  max_position_pct: 40
+  min_cash_pct: 10
+  max_small_pct: 10
+  max_orders_day: 12
+  stop_loss_pct: 12
+  max_drawdown_pct: 20
+  fee_pct: 0.4
+  exchange: kraken
+  live_confirm: ""
+  claude_model: ""
+schema:
+  mode: list(paper|live)
+  budget_eur: float(10,)
+  coins: str
+  news_sources:
+    - str
+  profit_step_pct: int(0,100)
+  auto_top: int(5,100)
+  min_volume_eur: float(0,)
+  decision_every_hours: int(1,24)
+  check_minutes: int(5,60)
+  report_hour: int(0,23)
+  max_trade_pct: int(1,100)
+  max_position_pct: int(1,100)
+  min_cash_pct: int(0,90)
+  max_small_pct: int(1,100)
+  max_orders_day: int(1,50)
+  stop_loss_pct: int(1,90)
+  max_drawdown_pct: int(1,90)
+  fee_pct: float(0,5)
+  exchange: list(kraken|coinbase|binance|bitvavo)
+  live_confirm: str?
+  claude_model: str?

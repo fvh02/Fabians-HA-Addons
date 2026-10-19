@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Pyramide</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .card.red { --c1: #f43f5e; --c2: #9f1239; } .card.black { --c1: #475569; --c2: #0f172a; }
+    .card.rf .front { display: grid; place-content: center; }
+    .card.rf .v { font-size: calc(var(--w) * .46); }
+    .card.rf .suit { position: relative; z-index: 1; display: block; text-align: center; font-size: calc(var(--w) * .26); color: var(--c2); margin-top: calc(var(--w) * -.04); }
+    .pyr { display: flex; flex-direction: column; align-items: center; gap: 6px; --cw: min(52px, 15vw); }
+    .tvmain .pyr { --cw: min(4.4vw, 6.2vh); gap: .5vw; }
+    .pyr .rowx { display: flex; gap: 6px; align-items: center; }
+    .pyr .rowx .lbl { width: 54px; font-size: .68rem; font-weight: 800; color: var(--muted); text-align: right; }
+    .tvmain .pyr .rowx .lbl { width: 6vw; font-size: 1vw; }
+    .pyr .rowx .lbl.r { text-align: left; }
+    .pyr .card.last { animation: flipin .7s cubic-bezier(.3,.9,.3,1.2) both; }
+    .pyr .card.last .front { box-shadow: 0 0 0 3px #f59e0b, 0 8px 22px rgba(245, 158, 11, .45); }
+    @keyframes flipin { from { transform: rotateY(90deg) scale(1.2); } }
+    .hand { display: flex; gap: 8px; justify-content: center; --cw: min(64px, 18vw); }
+    .hand .card.hit { transform: translateY(-10px); }
+    .hand .card.hit .front { box-shadow: 0 0 0 3px #f59e0b, 0 10px 24px rgba(245, 158, 11, .45); }
+    .verdict { font-size: clamp(1.5rem, 6.5vw, 2.2rem); font-weight: 900; animation: popin .6s .25s cubic-bezier(.2,.9,.3,1.3) both; }
+    .verdict.drink { color: #f59e0b; } .verdict.give { color: var(--accent); } .verdict.safe { color: var(--ok); }
+    .rowinfo { font-weight: 750; }
+    /* ---- one screen, no scrolling (page-local; same block in every drinking game) ---- */
+    body:not(.tv) #table#table:not(.hidden) { height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 0; }
+    body:not(.tv) #stage#stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    body:not(.tv) #stage#stage > .pstage { flex: 1 1 0; min-height: 0; gap: clamp(6px, 1.6vh, 16px); padding: clamp(10px, 1.8vh, 18px) 14px; }
+    body:not(.tv) .pstage > .phead + * { margin-top: auto; }
+    body:not(.tv) .pstage > :last-child { margin-bottom: auto; }
+    body:not(.tv) .pstage .plabel { margin: 0 0 -2px; }
+    .topbar .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pctl { flex-wrap: nowrap; width: 100%; max-width: 420px; }
+    .pctl .btn { flex: 1 1 auto; min-height: 44px; padding: 10px; font-size: .95rem; white-space: nowrap; }
+    .pctl .btn.small { flex: 0 1 auto; min-height: 40px; }
+    /* scores: compact rows, two columns from 5 players on; shrinks (and scrolls) only as a last resort */
+    .pstage .pscore, #finished .pscore { gap: 5px; }
+    body:not(.tv) .pstage .pscore { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+    .pstage .pscore:has(.ps:nth-child(5)), #finished .pscore:has(.ps:nth-child(6)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pstage .pscore .ps, #finished .pscore .ps { padding: 4px 9px; gap: 7px; border-radius: 12px; }
+    .pstage .pscore .avatar, #finished .pscore .avatar { width: 26px; height: 26px; font-size: .75rem; }
+    .pstage .pscore .pos, #finished .pscore .pos { width: auto; min-width: 12px; font-size: .78rem; }
+    .pstage .pscore .pts, #finished .pscore .pts { min-width: 16px; }
+    .pstage .pscore:has(.ps:nth-child(5)) .ps { gap: 5px; padding: 4px 7px; font-size: .9rem; }
+    .pstage .pscore .plus { font-size: .78rem; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .ps { padding-top: 2px; padding-bottom: 2px; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .avatar { width: 22px; height: 22px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) { gap: 4px 8px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .d { font-size: .8rem; }
+    #finished .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    #finished .trophy { font-size: 2.8rem; }
+    body:not(.tv) .drinkers { gap: 6px 10px; }
+    body:not(.tv) .drinkers .d { gap: 3px; font-size: .9rem; }
+    body:not(.tv) .drinkers .avatar { width: clamp(34px, 6.4vh, 54px); height: clamp(34px, 6.4vh, 54px); font-size: 1.05rem; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .avatar { width: 28px; height: 28px; font-size: .8rem; }
+    body:not(.tv) .pbanner { font-size: clamp(1.25rem, 3.4vh, 2.1rem); }
+    /* game (phones): smaller pyramid, own cards next to the verdict, hits shown in the score list */
+    body:not(.tv) .pyr { --cw: clamp(24px, 4.6vh, 52px); gap: clamp(3px, .6vh, 6px); }
+    body:not(.tv) .pyr .rowx { gap: clamp(3px, .6vh, 6px); }
+    body:not(.tv) .pyr .rowx .lbl { width: 42px; font-size: .75rem; }
+    body:not(.tv) .rowinfo { font-size: .92rem; line-height: 1.3; }
+    .mine { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; }
+    .mine .verdict { flex: 0 1 auto; min-width: 0; text-align: left; font-size: clamp(1.1rem, 3.2vh, 1.7rem); line-height: 1.2; }
+    .handw { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+    .handw small { font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    body:not(.tv) .hand { --cw: clamp(32px, 5.8vh, 64px); gap: 5px; padding-top: 6px; }
+    body:not(.tv) .hand .card.hit { transform: translateY(-6px); }
+    .pscore .plus.hit { color: #f59e0b; white-space: nowrap; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(3)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body:not(.tv) .pstage .pscore .ps { gap: 5px; padding: 4px 7px; font-size: .9rem; }
+    /* many players: a bit smaller still */
+    body:not(.tv) .pstage:has(.pscore .ps:nth-child(7)) .pyr { --cw: clamp(24px, 4.1vh, 52px); }
+    body:not(.tv) .pstage:has(.pscore .ps:nth-child(7)) .plabel { display: none; }
+    body:not(.tv) .pstage:has(.pscore .ps:nth-child(7)) .mine .verdict { font-size: clamp(1rem, 2.8vh, 1.7rem); }
+    body:not(.tv) .pstage:has(.pscore .ps:nth-child(7)) .hand { --cw: clamp(30px, 5.2vh, 64px); }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Pyramide</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const RED = new Set(["♥", "♦"]);
+    const card = (c, extra = "") => c ? Shell.card(`rf ${RED.has(c.suit) ? "red" : "black"} ${extra}`, `<span class="v">${esc(c.rank)}</span><span class="suit">${c.suit}</span>`)
+      : `<div class="card facedown ${extra}"><div class="inner"><div class="face front"></div><div class="face back"><span>★</span></div></div></div>`;
+    const giveRow = (g, row) => g.settings.give && row % 2 === 0;
+
+    function pyramid(g) {
+      const rows = []; let i = 0;
+      g.rows.forEach((size, r) => { rows.push({ row: r + 1, cards: g.pyramid.slice(i, i + size).map((c, k) => ({ c, idx: i + k })) }); i += size; });
+      return `<div class="pyr">${rows.reverse().map(({ row, cards }) => `<div class="rowx"><span class="lbl">${row} ${giveRow(g, row) ? "🎁" : "🍺"}</span>
+        ${cards.map(({ c, idx }) => card(c, idx === g.last ? "last" : "")).join("")}<span class="lbl r">${row}×</span></div>`).join("")}</div>`;
+    }
+
+    // Score list for phones: like Party.ranking, plus what everyone gets for the current card.
+    const board = (g, give) => `<div class="pscore">${g.players.filter(p => !p.screen).sort((a, b) => b.score - a.score).map((p, i) => `
+      <div class="ps ${p.id === Shell.me ? "me" : ""}" style="animation-delay:${i * 40}ms"><span class="pos">${i + 1}</span>${Shell.avatar(p)}
+        <span class="n">${esc(p.name)}</span>${g.hits[p.id] ? `<span class="plus hit">${give ? "🎁" : "🍺"} ${g.hits[p.id]}</span>` : ""}<span class="pts">${p.score}</span></div>`).join("")}</div>`;
+
+    Party.start({
+      kind: "pyramide", title: "Pyramide", minPlayers: 2, timerPhases: ["reveal"], icon: "🔺", drink: true,
+      fan: [["5", "♥"], ["5", "♠"], ["K", "♦"], ["A", "♣"]].map(([r, s]) => card({ rank: r, suit: s })).join(""),
+      nextLabel: "Nächste Karte →",
+      head: g => `Karte ${Math.max(0, g.last + 1)} / 15`,
+      settings: [
+        { key: "give", label: "Regeln", options: [[1, "Reihe 2 und 4: verteilen statt trinken"], [0, "Immer trinken"]] },
+        { key: "seconds", label: "Tempo", options: [[0, "Gastgeber deckt auf"], [12, "Automatisch alle 12 s"], [20, "Automatisch alle 20 s"]] },
+      ],
+      build(g, ctx) {
+        const c = g.pyramid[g.last], mineHits = g.hits[Shell.me] || 0, give = g.give;
+        const hitPlayers = Object.keys(g.hits).map(id => g.players.find(p => p.id === id)).filter(Boolean);
+        const verdict = ctx.tv ? "" : mineHits
+          ? (give ? `<div class="verdict give">🎁 Du verteilst ${mineHits}!</div>` : `<div class="verdict drink">🍺 Du trinkst ${mineHits}!</div>`)
+          : `<div class="verdict safe">😇 Keine ${esc(c.rank)} – Glück gehabt</div>`;
+        return `${pyramid(g)}
+          <p class="rowinfo">Reihe ${g.row}: Wer eine <b>${esc(c.rank)}</b> hat, ${give ? "verteilt" : "trinkt"} ${g.row} pro Karte</p>
+          ${ctx.tv ? (hitPlayers.length ? `<div class="drinkers">${hitPlayers.map((p, i) => `<div class="d" style="animation-delay:${300 + i * 80}ms">${Shell.avatar(p)}<span>${esc(p.name)} · ${give ? "🎁" : "🍺"} ${g.hits[p.id]}</span></div>`).join("")}</div>` : "")
+            : `<div class="mine"><div class="handw"><small>Deine Karten</small><div class="hand">${g.hand.map(h => card(h, h.rank === c.rank ? "hit" : "")).join("")}</div></div>${verdict}</div>
+              <h3 class="plabel" style="align-self:flex-start">Getrunken</h3>${board(g, give)}`}`;
+      },
+      celebrate: () => false,
+      finished: (g, ranked) => ({ icon: "🔺", title: ranked[0] && ranked[0].score ? `${ranked[0].id === Shell.me ? "Du hast" : ranked[0].name + " hat"} am meisten getrunken!` : "Pyramide geschafft",
+        sub: Party.ranking(g) }),
+    });
+  </script>
+</body>
+</html>

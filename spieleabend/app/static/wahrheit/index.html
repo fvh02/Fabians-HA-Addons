@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Wahrheit oder Trinken</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .turn { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 800; }
+    .turn .avatar { width: 46px; height: 46px; font-size: 1.1rem; box-shadow: 0 0 0 3px var(--accent); }
+    .tvmain .turn { font-size: 2.4vw; } .tvmain .turn .avatar { width: 5vw; height: 5vw; font-size: 2vw; }
+    .swap { border: 0; background: none; color: var(--muted); font-weight: 700; text-decoration: underline; }
+    /* ---- one screen, no scrolling (page-local; same block in every drinking game) ---- */
+    body:not(.tv) #table#table:not(.hidden) { height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 0; }
+    body:not(.tv) #stage#stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    body:not(.tv) #stage#stage > .pstage { flex: 1 1 0; min-height: 0; gap: clamp(6px, 1.6vh, 16px); padding: clamp(10px, 1.8vh, 18px) 14px; }
+    body:not(.tv) .pstage > .phead + * { margin-top: auto; }
+    body:not(.tv) .pstage > :last-child { margin-bottom: auto; }
+    body:not(.tv) .pstage .plabel { margin: 0 0 -2px; }
+    .topbar .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pctl { flex-wrap: nowrap; width: 100%; max-width: 420px; }
+    .pctl .btn { flex: 1 1 auto; min-height: 44px; padding: 10px; font-size: .95rem; white-space: nowrap; }
+    .pctl .btn.small { flex: 0 1 auto; min-height: 40px; }
+    /* scores: compact rows, two columns from 5 players on; shrinks (and scrolls) only as a last resort */
+    .pstage .pscore, #finished .pscore { gap: 5px; }
+    body:not(.tv) .pstage .pscore { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+    .pstage .pscore:has(.ps:nth-child(5)), #finished .pscore:has(.ps:nth-child(6)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pstage .pscore .ps, #finished .pscore .ps { padding: 4px 9px; gap: 7px; border-radius: 12px; }
+    .pstage .pscore .avatar, #finished .pscore .avatar { width: 26px; height: 26px; font-size: .75rem; }
+    .pstage .pscore .pos, #finished .pscore .pos { width: auto; min-width: 12px; font-size: .78rem; }
+    .pstage .pscore .pts, #finished .pscore .pts { min-width: 16px; }
+    .pstage .pscore:has(.ps:nth-child(5)) .ps { gap: 5px; padding: 4px 7px; font-size: .9rem; }
+    .pstage .pscore .plus { font-size: .78rem; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .ps { padding-top: 2px; padding-bottom: 2px; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .avatar { width: 22px; height: 22px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) { gap: 4px 8px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .d { font-size: .8rem; }
+    #finished .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    #finished .trophy { font-size: 2.8rem; }
+    body:not(.tv) .drinkers { gap: 6px 10px; }
+    body:not(.tv) .drinkers .d { gap: 3px; font-size: .9rem; }
+    body:not(.tv) .drinkers .avatar { width: clamp(34px, 6.4vh, 54px); height: clamp(34px, 6.4vh, 54px); font-size: 1.05rem; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .avatar { width: 28px; height: 28px; font-size: .8rem; }
+    body:not(.tv) .pbanner { font-size: clamp(1.25rem, 3.4vh, 2.1rem); }
+    /* game */
+    body:not(.tv) .qcard { padding: clamp(14px, 3vh, 26px) 16px; font-size: clamp(1.1rem, 3.2vh, 1.7rem); }
+    body:not(.tv) .qcard:has(+ .pbanner) { padding: clamp(10px, 2vh, 20px) 14px; font-size: clamp(1rem, 2.6vh, 1.5rem); }
+    body:not(.tv) .turn .avatar { width: clamp(36px, 6vh, 46px); height: clamp(36px, 6vh, 46px); }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Wahrheit oder Trinken</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const who = g => g.players.find(p => p.id === g.active) || { name: "?" };
+    Party.start({
+      kind: "wahrheit", title: "Wahrheit oder Trinken", art: "wahrheit", minPlayers: 2, icon: "🍺", drink: true,
+      inputPhases: ["turn"], nextLabel: "Nächste Person →", skipLabel: "🍺 Zeit um – trinken", endAnytime: false,
+      key: g => g.question,
+      isLast: g => g.turn >= g.total_turns,
+      canNext: g => g.active === Shell.me,
+      head: g => `Runde ${g.round} / ${g.rounds}`,
+      settings: [
+        { key: "rounds", label: "Runden", options: [[2, "2 Runden – jeder 2-mal dran"], [1, "1 Runde"], [3, "3 Runden"], [5, "5 Runden"]] },
+        { key: "seconds", label: "Zeit", options: [[0, "Ohne Zeitlimit"], [60, "60 Sekunden zum Antworten"], [90, "90 Sekunden zum Antworten"]] },
+      ],
+      build(g, ctx) {
+        const p = who(g), mine = g.active === Shell.me;
+        const turn = `<div class="turn">${Shell.avatar(p)}<span>${mine ? "Du bist dran!" : esc(p.name) + " ist dran"}</span></div>`;
+        if (g.phase === "turn") return `${turn}<div class="qcard">${esc(g.question)}</div>
+          ${mine && !ctx.tv ? `<div class="bigchoice"><button data-choice="truth"><span>😇</span>Ich antworte</button><button class="yes" data-choice="drink"><span>🍺</span>Ich trinke lieber</button></div>
+            <button class="swap" id="swap">Andere Frage</button>` : `<p>${ctx.tv ? "Ehrlich antworten – oder trinken!" : `Hör gut zu – ${esc(p.name)} antwortet laut oder trinkt.`}</p>`}`;
+        return `${turn}<div class="qcard" style="opacity:.75">${esc(g.question)}</div>
+          <div class="pbanner">${g.choice === "truth" ? `😇 ${mine ? "Du hast" : esc(p.name) + " hat"} ehrlich geantwortet` : `🍺 ${mine ? "Du trinkst" : esc(p.name) + " trinkt"}!`}</div>
+          ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Getrunken statt geantwortet</h3>${Party.ranking(g, { gained: true })}`}`;
+      },
+      bind() {
+        document.querySelectorAll("[data-choice]").forEach(b => b.onclick = () => Shell.send({ t: "choose", choice: b.dataset.choice }));
+        const s = document.getElementById("swap"); if (s) s.onclick = () => Shell.send({ t: "new_question" });
+      },
+      finished: (g, ranked) => {
+        const honest = [...ranked].reverse()[0];
+        return { icon: "😇", title: honest ? `${honest.id === Shell.me ? "Du warst" : honest.name + " war"} am ehrlichsten!` : "Spiel beendet", sub: Party.ranking(g) };
+      },
+    });
+  </script>
+</body>
+</html>

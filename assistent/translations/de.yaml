@@ -1,0 +1,25 @@
+configuration:
+  claude_ai_login:
+    name: claude.ai-Anmeldung verwenden
+    description: Nutzt eine importierte claude.ai-Anmeldung (für deine claude.ai-Connectoren), siehe Doku. Ausschalten löscht sie, dann gilt wieder das OAuth-Token.
+  reply_language:
+    name: Antwortsprache
+    description: Sprache, in der Claude antwortet. Schreibst du in einer anderen Sprache oder schickst eine Datei in einer anderen Sprache, antwortet Claude in dieser. „Automatisch“ = keine Vorgabe.
+  icloud_ai_calendar:
+    name: Kalender für KI-Termine
+    description: Alle Termine, die Claude anlegt, landen in diesem Kalender. Muss in der Kalender-App existieren. Leer = Claude wählt den Kalender.
+  voice_transcription:
+    name: Sprachnachrichten
+    description: Whisper-Modell zum Transkribieren von Sprachnachrichten. tiny/base = schnell, small = guter Kompromiss, medium/turbo = genauer, aber langsamer und mehr RAM. „aus“ = keine Transkription.
+  project_dir:
+    name: Arbeitsordner
+    description: Ordner, in dem Claude arbeitet. Unter /share auch per Samba erreichbar.
+  voice_ai:
+    name: Voice AI
+    description: Sprachanrufe einrichten. Nur sinnvoll, wenn die Identität eine Telefonnummer hat.
+  claude_model:
+    name: Claude-Modell
+    description: Optional. Leer lassen für das Standardmodell.
+  addon_management:
+    name: Add-ons verwalten
+    description: Claude darf Add-ons und Repositories anzeigen und – nach deiner Bestätigung per Nachricht – Repositories hinzufügen/entfernen sowie Add-ons installieren, aktualisieren und deinstallieren.

@@ -1,0 +1,423 @@
+#!/usr/bin/env python3
+"""Reminders on a condition instead of a time: the person gets an iMessage as soon as it is true.
+
+  erinnern add TEXT BEDINGUNG [--wiederholen] [--bis TT.MM.[JJJJ]]
+      BEDINGUNG (exactly one):
+        --paket ID|NUMMER|NAME [--status zugestellt|in_zustellung|abholbereit|problem]
+        --temp-ueber GRAD | --temp-unter GRAD | --regen | --schnee | --frost   [--ort ORT]
+        --nachricht-von NAME         when this person writes (the assistant reports it)
+        --ha ENTITY (--ist WERT | --nicht WERT | --ueber ZAHL | --unter ZAHL) [--seit MINUTEN]
+        --um "TT.MM. HH:MM" | "JJJJ-MM-TT HH:MM"   plain time, for completeness
+      --wiederholen   report again every time the condition becomes true again (default: once)
+  erinnern list
+  erinnern remove ID
+  erinnern nachricht NAME       a message from NAME has arrived (called by the assistant)
+  erinnern geraete SUCHWORT     Home Assistant entities matching a word (to find --ha)
+  erinnern check                run by the add-on every minute: check and report
+
+Prints JSON. Weather comes from Open-Meteo (no key), the home location from Home Assistant.
+"""
+
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+
+STATE_DIR = Path(os.environ.get("ERINNERN_STATE_DIR", "/data/erinnern"))
+SUPERVISOR = os.environ.get("SUPERVISOR_URL", "http://supervisor").rstrip("/")
+PAKETE_FILE = Path(os.environ.get("PAKETE_STATE_DIR", "/data/pakete")) / "pakete.json"
+WEATHER_TTL = 15 * 60
+MAX_RULES = 60
+STATUS = ("zugestellt", "in_zustellung", "abholbereit", "problem")
+STATUS_ORDER = ["unbekannt", "angekuendigt", "unterwegs", "in_zustellung", "abholbereit", "zugestellt"]
+
+
+def out(data) -> None:
+    print(json.dumps(data, ensure_ascii=False, indent=1))
+
+
+def fail(message: str) -> None:
+    out({"error": message})
+    sys.exit(1)
+
+
+# -- storage ----------------------------------------------------------------------
+def load(name: str, default):
+    try:
+        return json.loads((STATE_DIR / name).read_text())
+    except (OSError, ValueError):
+        return default
+
+
+def save(name: str, data) -> None:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_DIR / (name + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    tmp.replace(STATE_DIR / name)
+
+
+def fold(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip().casefold()
+
+
+# -- outside world ----------------------------------------------------------------
+def get_json(url: str, headers: dict | None = None, timeout: float = 20):
+    request = urllib.request.Request(url, headers={"User-Agent": "Fabians-HA-Assistent", **(headers or {})})
+    with urllib.request.urlopen(request, timeout=timeout) as resp:
+        return json.loads(resp.read() or b"null")
+
+
+def ha(path: str):
+    token = os.environ.get("SUPERVISOR_TOKEN", "")
+    if not token:
+        raise OSError("Kein Zugriff auf Home Assistant")
+    return get_json(f"{SUPERVISOR}/core/api{path}", {"Authorization": f"Bearer {token}"})
+
+
+def place(name: str) -> dict:
+    """Coordinates of a place name, or of the Home Assistant home without a name."""
+    cache = load("orte.json", {})
+    key = fold(name) or "_zuhause"
+    if key in cache:
+        return cache[key]
+    if name:
+        query = urllib.parse.urlencode({"name": name, "count": 1, "language": "de"})
+        hits = (get_json(f"https://geocoding-api.open-meteo.com/v1/search?{query}") or {}).get("results") or []
+        if not hits:
+            raise ValueError(f"Ort „{name}“ nicht gefunden")
+        found = {"lat": hits[0]["latitude"], "lon": hits[0]["longitude"], "name": hits[0].get("name") or name}
+    else:
+        config = ha("/config")
+        found = {"lat": config["latitude"], "lon": config["longitude"], "name": config.get("location_name") or "zu Hause"}
+    cache[key] = found
+    save("orte.json", cache)
+    return found
+
+
+def weather(loc: dict) -> dict:
+    cache = load("wetter.json", {})
+    key = f"{loc['lat']:.2f},{loc['lon']:.2f}"
+    hit = cache.get(key)
+    if hit and time.time() - hit["at"] < WEATHER_TTL:
+        return hit
+    query = urllib.parse.urlencode({"latitude": loc["lat"], "longitude": loc["lon"], "timezone": "auto",
+                                    "current": "temperature_2m,precipitation,rain,snowfall",
+                                    "hourly": "precipitation,snowfall", "forecast_hours": 3})
+    data = get_json(f"https://api.open-meteo.com/v1/forecast?{query}")
+    cur, hourly = data.get("current") or {}, data.get("hourly") or {}
+    hit = {"at": time.time(), "temp": cur.get("temperature_2m"),
+           "regen": max([cur.get("precipitation") or 0] + [x or 0 for x in hourly.get("precipitation") or []]),
+           "schnee": max([cur.get("snowfall") or 0] + [x or 0 for x in hourly.get("snowfall") or []])}
+    cache[key] = hit
+    save("wetter.json", cache)
+    return hit
+
+
+def send_imessage(text: str) -> bool:
+    to, key = os.environ.get("ERINNERN_NOTIFY_TO", "").strip(), os.environ.get("INKBOX_API_KEY", "").strip()
+    if not to or not key:
+        return False
+    url = os.environ.get("INKBOX_IMESSAGE_URL", "https://inkbox.ai/api/v1/imessage/messages")
+    request = urllib.request.Request(url, data=json.dumps({"to": to, "text": text}).encode(), method="POST")
+    request.add_header("X-API-Key", key)
+    request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=30):
+            return True
+    except (urllib.error.URLError, OSError):
+        return False
+
+
+# -- conditions -------------------------------------------------------------------
+def parse_time(text: str) -> datetime:
+    text = text.strip()
+    now = datetime.now()
+    m = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.? (\d{1,2}:\d\d)", text)
+    if m:   # without a year: this year, or next year if the day has passed
+        ts = datetime.strptime(f"{m[1]}.{m[2]}.{now.year} {m[3]}", "%d.%m.%Y %H:%M")
+        return ts if ts > now - timedelta(days=1) else ts.replace(year=now.year + 1)
+    for fmt in ("%Y-%m-%d %H:%M", "%d.%m.%Y %H:%M", "%H:%M"):
+        try:
+            ts = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        if fmt == "%H:%M":
+            ts = now.replace(hour=ts.hour, minute=ts.minute, second=0, microsecond=0)
+            return ts if ts > now else ts + timedelta(days=1)
+        return ts
+    fail(f"Zeit nicht verstanden: {text} (z. B. \"20.10. 18:00\")")
+
+
+def parse_date(text: str) -> str:
+    m = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{4})?", text.strip())
+    if not m:
+        fail("--bis bitte als TT.MM. oder TT.MM.JJJJ")
+    now = datetime.now()
+    day = datetime(int(m[3] or now.year), int(m[2]), int(m[1]), 23, 59)
+    if not m[3] and day < now:
+        day = day.replace(year=now.year + 1)
+    return day.isoformat(timespec="minutes")
+
+
+def number(text: str) -> float:
+    try:
+        return float(str(text).replace(",", "."))
+    except ValueError:
+        fail(f"Keine Zahl: {text}")
+
+
+def find_parcel(ref: str) -> dict | None:
+    try:
+        parcels = json.loads(PAKETE_FILE.read_text())
+    except (OSError, ValueError):
+        return None
+    ref_f = fold(ref)
+    for p in parcels:
+        if fold(p.get("id")) == ref_f or fold(p.get("number")) == ref_f.replace(" ", ""):
+            return p
+    return next((p for p in parcels if ref_f and ref_f in fold(p.get("name"))), None)
+
+
+def describe(c: dict) -> str:
+    kind = c["art"]
+    if kind == "paket":
+        return f"Paket {c.get('paket_name') or c['paket']} {c['status'].replace('_', ' ')}"
+    if kind == "wetter":
+        where = f" in {c['ort_name']}" if c.get("ort") else ""
+        if c["wetter"] in ("temp_ueber", "temp_unter"):
+            return f"{'über' if c['wetter'] == 'temp_ueber' else 'unter'} {c['wert']:g} °C{where}"
+        return {"regen": "Regen", "schnee": "Schnee", "frost": "Frost"}[c["wetter"]] + where
+    if kind == "nachricht":
+        return f"Nachricht von {c['von']}"
+    if kind == "ha":
+        op = {"ist": "ist", "nicht": "ist nicht", "ueber": "über", "unter": "unter"}[c["op"]]
+        seit = f" seit {c['seit']:g} Min." if c.get("seit") else ""
+        return f"{c.get('name') or c['entity']} {op} {c['wert']}{seit}"
+    return "um " + datetime.fromisoformat(c["um"]).strftime("%d.%m. %H:%M")
+
+
+def is_true(rule: dict, now: datetime, messages: list[dict]) -> bool:
+    c = rule["wenn"]
+    kind = c["art"]
+    if kind == "zeit":
+        return now >= datetime.fromisoformat(c["um"])
+    if kind == "nachricht":
+        return any(m["at"] > rule.get("seen", rule["created"]) and fold(c["von"]) in fold(m["von"]) for m in messages)
+    if kind == "paket":
+        p = find_parcel(c["paket"])
+        if not p:
+            return False
+        status = p.get("status") or "unbekannt"
+        if c["status"] in ("problem", "abholbereit"):
+            return status == c["status"]
+        return status in STATUS_ORDER and STATUS_ORDER.index(status) >= STATUS_ORDER.index(c["status"])
+    if kind == "wetter":
+        w = weather(c["loc"])
+        if c["wetter"] == "temp_ueber":
+            return w["temp"] is not None and w["temp"] > c["wert"]
+        if c["wetter"] in ("temp_unter", "frost"):
+            return w["temp"] is not None and w["temp"] < c.get("wert", 0)
+        if c["wetter"] == "regen":
+            return w["regen"] >= 0.3
+        return w["schnee"] > 0
+    if kind == "ha":
+        state = ha(f"/states/{urllib.parse.quote(c['entity'])}")["state"]
+        if c["op"] in ("ist", "nicht"):
+            match = fold(state) == fold(c["wert"])
+            ok = match if c["op"] == "ist" else not match
+        else:
+            try:
+                value = float(state)
+            except ValueError:
+                return False
+            ok = value > float(c["wert"]) if c["op"] == "ueber" else value < float(c["wert"])
+        if not c.get("seit"):
+            return ok
+        # Must hold for a while (e.g. power below 5 W for 3 minutes = washing machine done).
+        if not ok:
+            rule.pop("true_since", None)
+            return False
+        rule.setdefault("true_since", now.isoformat(timespec="seconds"))
+        return now - datetime.fromisoformat(rule["true_since"]) >= timedelta(minutes=c["seit"])
+    return False
+
+
+# -- commands ---------------------------------------------------------------------
+def cmd_add(args: list[str]) -> None:
+    text, cond, repeat, until, opts = "", None, False, None, {}
+    i = 0
+    while i < len(args):
+        a = args[i]
+        val = args[i + 1] if i + 1 < len(args) else None
+        if a in ("--regen", "--schnee", "--frost"):
+            cond = {"art": "wetter", "wetter": a[2:]}
+            i += 1
+            continue
+        if a == "--wiederholen":
+            repeat = True
+            i += 1
+            continue
+        if a.startswith("--"):
+            if val is None:
+                fail(f"{a} braucht einen Wert")
+            if a == "--paket":
+                cond = {"art": "paket", "paket": val}
+            elif a in ("--temp-ueber", "--temp-unter"):
+                cond = {"art": "wetter", "wetter": a[2:].replace("-", "_"), "wert": number(val)}
+            elif a == "--nachricht-von":
+                cond = {"art": "nachricht", "von": " ".join(val.split())[:60]}
+            elif a == "--ha":
+                cond = {"art": "ha", "entity": val.strip()}
+            elif a == "--um":
+                cond = {"art": "zeit", "um": parse_time(val).isoformat(timespec="minutes")}
+            elif a == "--bis":
+                until = parse_date(val)
+            elif a in ("--status", "--ort", "--ist", "--nicht", "--ueber", "--unter", "--seit"):
+                opts[a[2:]] = val
+            else:
+                fail(f"Unbekannte Option {a}")
+            i += 2
+            continue
+        text = f"{text} {a}".strip()
+        i += 1
+    if not text:
+        fail("Woran soll ich erinnern? erinnern add TEXT BEDINGUNG")
+    if not cond:
+        fail("Bedingung fehlt: --paket, --temp-ueber, --temp-unter, --regen, --schnee, --frost, --nachricht-von, --ha oder --um")
+    if cond["art"] == "paket":
+        cond["status"] = opts.get("status", "zugestellt")
+        if cond["status"] not in STATUS:
+            fail("--status: zugestellt, in_zustellung, abholbereit oder problem")
+        p = find_parcel(cond["paket"])
+        if not p:
+            fail(f"Kein Paket „{cond['paket']}“ in der Paketverfolgung – erst mit pakete add hinzufügen")
+        cond["paket"], cond["paket_name"] = p["id"], p.get("name") or p.get("number")
+    if cond["art"] == "wetter":
+        cond["ort"] = opts.get("ort", "")
+        try:
+            cond["loc"] = place(cond["ort"])
+        except (OSError, ValueError, KeyError) as err:
+            fail(f"Ort für das Wetter nicht gefunden ({err}) – bitte mit --ort angeben")
+        cond["ort_name"] = cond["loc"]["name"]
+    if cond["art"] == "ha":
+        op = next((o for o in ("ist", "nicht", "ueber", "unter") if o in opts), None)
+        if not op:
+            fail("--ha braucht --ist, --nicht, --ueber oder --unter")
+        cond.update(op=op, wert=opts[op])
+        if op in ("ueber", "unter"):
+            number(opts[op])
+        if opts.get("seit"):
+            cond["seit"] = number(opts["seit"])
+        try:
+            state = ha(f"/states/{urllib.parse.quote(cond['entity'])}")
+        except (OSError, ValueError, urllib.error.URLError) as err:
+            fail(f"Gerät {cond['entity']} nicht gefunden ({err}) – mit erinnern geraete SUCHWORT suchen")
+        cond["name"] = (state.get("attributes") or {}).get("friendly_name") or cond["entity"]
+    rules = load("regeln.json", [])
+    if len(rules) >= MAX_RULES:
+        fail(f"Schon {MAX_RULES} Erinnerungen – bitte erst alte löschen")
+    rule = {"id": uuid.uuid4().hex[:6], "text": " ".join(text.split())[:300], "wenn": cond, "wiederholen": repeat,
+            "bis": until, "created": datetime.now().isoformat(timespec="seconds")}
+    rules.append(rule)
+    save("regeln.json", rules)
+    out({"added": view(rule)})
+
+
+def view(rule: dict) -> dict:
+    return {"id": rule["id"], "text": rule["text"], "wenn": describe(rule["wenn"]),
+            "wiederholen": rule["wiederholen"], "bis": rule.get("bis"), "zuletzt": rule.get("fired")}
+
+
+def cmd_list() -> None:
+    rules = load("regeln.json", [])
+    out({"reminders": [view(r) for r in rules],
+         "summary": "\n".join(f"{r['id']}: {r['text']} – wenn {describe(r['wenn'])}" for r in rules) or "Keine Erinnerungen"})
+
+
+def cmd_remove(args: list[str]) -> None:
+    if not args:
+        fail("erinnern remove ID")
+    rules = load("regeln.json", [])
+    keep = [r for r in rules if r["id"] != args[0].strip().lower()]
+    if len(keep) == len(rules):
+        fail(f"Keine Erinnerung {args[0]}")
+    save("regeln.json", keep)
+    out({"removed": args[0]})
+
+
+def cmd_nachricht(args: list[str]) -> None:
+    name = " ".join(" ".join(args).split())[:60]
+    if not name:
+        fail("erinnern nachricht NAME")
+    messages = [m for m in load("nachrichten.json", []) if time.time() - datetime.fromisoformat(m["at"]).timestamp() < 86400]
+    messages.append({"von": name, "at": datetime.now().isoformat(timespec="seconds")})
+    save("nachrichten.json", messages[-100:])
+    waiting = [r["id"] for r in load("regeln.json", []) if r["wenn"]["art"] == "nachricht" and fold(r["wenn"]["von"]) in fold(name)]
+    out({"noted": name, "reminders": waiting})
+
+
+def cmd_geraete(args: list[str]) -> None:
+    word = fold(" ".join(args))
+    try:
+        states = ha("/states")
+    except (OSError, ValueError, urllib.error.URLError) as err:
+        fail(f"Home Assistant nicht erreichbar ({err})")
+    hits = []
+    for s in states:
+        name = (s.get("attributes") or {}).get("friendly_name") or ""
+        if not word or word in fold(s["entity_id"]) or word in fold(name):
+            hits.append({"entity": s["entity_id"], "name": name, "state": s["state"],
+                         "unit": (s.get("attributes") or {}).get("unit_of_measurement", "")})
+    out({"entities": hits[:40], "more": max(0, len(hits) - 40)})
+
+
+def cmd_check() -> None:
+    rules = load("regeln.json", [])
+    messages = load("nachrichten.json", [])
+    now = datetime.now()
+    keep, sent, errors = [], [], {}
+    for rule in rules:
+        if rule.get("bis") and now > datetime.fromisoformat(rule["bis"]):
+            continue        # expired without the condition coming true
+        try:
+            true = is_true(rule, now, messages)
+        except (OSError, ValueError, KeyError, TypeError, urllib.error.URLError) as err:
+            errors[rule["id"]] = str(err)[:200]
+            keep.append(rule)
+            continue
+        if true and not rule.get("active"):
+            if send_imessage(f"⏰ Erinnerung: {rule['text']}\n({describe(rule['wenn'])})"):
+                sent.append(rule["id"])
+                rule["fired"] = rule["seen"] = now.isoformat(timespec="seconds")
+                rule["active"] = True
+                if not rule["wiederholen"] or rule["wenn"]["art"] == "zeit":
+                    continue      # done
+        elif not true:
+            rule["active"] = False      # can come true again (only matters with --wiederholen)
+        keep.append(rule)
+    save("regeln.json", keep)
+    out({"checked": len(rules), "notified": sent, "errors": errors})
+
+
+def main(argv: list[str]) -> None:
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, args = argv[0], argv[1:]
+    commands = {"add": lambda: cmd_add(args), "list": cmd_list, "remove": lambda: cmd_remove(args),
+                "nachricht": lambda: cmd_nachricht(args), "geraete": lambda: cmd_geraete(args),
+                "geräte": lambda: cmd_geraete(args), "check": cmd_check}
+    if cmd not in commands:
+        fail("erinnern add|list|remove|nachricht|geraete|check")
+    commands[cmd]()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

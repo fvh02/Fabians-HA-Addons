@@ -1,0 +1,6 @@
+configuration:
+  theme:
+    name: Farbschema
+    description: Dunkler (dark) oder heller (light) Modus.
+network:
+  8098/tcp: Spiele für Mitspieler ohne Home-Assistant-Zugang (Heimnetz oder Tunnel)

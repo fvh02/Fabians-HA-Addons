@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Konto · Spieleabend</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <style>
+    .acc { max-width: 420px; margin: 0 auto; padding: 7vh 16px 40px; animation: rise .5s ease both; }
+    .acc .head { text-align: center; margin-bottom: 18px; }
+    .acc .head img { width: 72px; height: 72px; border-radius: 20px; box-shadow: 0 16px 40px rgba(60, 20, 120, .4); }
+    .acc h1 { margin: 12px 0 4px; font-size: 2rem; font-weight: 850; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .acc .head p { color: var(--muted); margin: 0; }
+    .kbox { padding: 22px; border-radius: 24px; display: flex; flex-direction: column; gap: 12px; }
+    .kbox h2 { margin: 0 0 2px; font-size: 1.2rem; }
+    .kbox a.btn { text-decoration: none; text-align: center; }
+    .kbox input { width: 100%; }
+    .kbox .otp { text-align: center; font-size: 1.6rem; letter-spacing: .4em; font-variant-numeric: tabular-nums; }
+    .kerr { color: var(--danger); font-weight: 650; margin: 0; min-height: 1.2em; }
+    .kok { color: var(--ok); font-weight: 650; margin: 0; }
+    .klinks { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: .9rem; }
+    .klinks a, .klnk { color: var(--muted); cursor: pointer; text-decoration: underline; background: none; border: 0; padding: 0; font: inherit; }
+    .khint { color: var(--muted); font-size: .88rem; margin: 0; }
+    .kme { display: flex; align-items: center; gap: 12px; }
+    .kme .kav { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-weight: 850; font-size: 1.3rem; color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .kperks { margin: 0; padding-left: 20px; color: var(--muted); font-size: .92rem; }
+    details { border-top: 1px solid var(--glass-border); padding-top: 10px; }
+    summary { cursor: pointer; color: var(--muted); font-weight: 650; }
+    details .kbox { padding: 12px 0 0; }
+    .home { display: inline-block; margin-bottom: 14px; color: var(--muted); text-decoration: none; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="backdrop"><i></i><i></i><i></i><i></i></div>
+  <main class="acc">
+    <a class="home" href="../" id="home">← Zu den Spielen</a>
+    <div class="head">
+      <img src="../static/icon-192.png" alt="">
+      <h1>Dein Konto</h1>
+      <p id="tagline">Angemeldet sammelst du Punkte und Achievements.</p>
+    </div>
+
+    <!-- logged in -->
+    <section class="kbox glass" id="v-me" hidden>
+      <div class="kme"><span class="kav" id="meAv"></span><div><b id="meName"></b><br><small class="khint" id="meMail"></small></div></div>
+      <ul class="kperks"><li>Deine Partien zählen für die Rangliste des Monats.</li><li>Du sammelst Achievements – für immer.</li>
+        <li>In den Spielen spielst du automatisch unter deinem Namen.</li></ul>
+      <a class="btn" id="back" href="../">Weiter spielen</a>
+      <a class="btn ghost" href="../bestenliste/">🏆 Bestenliste</a>
+      <button class="btn ghost" id="logout">Abmelden</button>
+      <details><summary>Passwort ändern</summary>
+        <form class="kbox" id="f-pw"><input type="password" name="old" placeholder="Aktuelles Passwort" autocomplete="current-password" required>
+          <input type="password" name="new" placeholder="Neues Passwort (mind. 8 Zeichen)" autocomplete="new-password" minlength="8" required>
+          <button class="btn">Ändern</button><p class="kerr"></p></form></details>
+      <details><summary>Konto löschen</summary>
+        <form class="kbox" id="f-del"><p class="khint">Löscht dein Konto und nimmt dich aus der Bestenliste. Das lässt sich nicht rückgängig machen.</p>
+          <input type="password" name="password" placeholder="Passwort zur Bestätigung" autocomplete="current-password" required>
+          <button class="btn" style="background:var(--danger)">Endgültig löschen</button><p class="kerr"></p></form></details>
+    </section>
+
+    <!-- login -->
+    <form class="kbox glass" id="v-login" hidden>
+      <h2>Anmelden</h2>
+      <input name="login" placeholder="Name oder E-Mail" autocomplete="username" required>
+      <input name="password" type="password" placeholder="Passwort" autocomplete="current-password" required>
+      <button class="btn">Anmelden</button>
+      <p class="kerr"></p>
+      <div class="klinks"><button type="button" class="klnk" data-go="register">Noch kein Konto? Registrieren</button>
+        <button type="button" class="klnk" data-go="forgot">Passwort vergessen?</button></div>
+      <p class="khint">Ohne Anmeldung kannst du trotzdem mitspielen – dann werden aber keine Punkte und Achievements gesammelt.</p>
+    </form>
+
+    <!-- register -->
+    <form class="kbox glass" id="v-register" hidden>
+      <h2>Registrieren</h2>
+      <input name="name" placeholder="Name im Spiel (2–20 Zeichen)" maxlength="20" autocomplete="nickname" required>
+      <input name="email" type="email" placeholder="E-Mail" autocomplete="email" required>
+      <input name="password" type="password" placeholder="Passwort (mind. 8 Zeichen)" minlength="8" autocomplete="new-password" required>
+      <button class="btn">Konto anlegen</button>
+      <p class="kerr"></p>
+      <p class="khint">Du bekommst einen Bestätigungscode per E-Mail. Deine Adresse wird nur dafür und zum Zurücksetzen des Passworts genutzt.</p>
+      <div class="klinks"><button type="button" class="klnk" data-go="login">Schon registriert? Anmelden</button></div>
+    </form>
+
+    <!-- verify -->
+    <form class="kbox glass" id="v-verify" hidden>
+      <h2>E-Mail bestätigen</h2>
+      <p class="khint">Wir haben einen 6-stelligen Code an <b data-email></b> geschickt.</p>
+      <input class="otp" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" required>
+      <button class="btn">Bestätigen</button>
+      <p class="kerr"></p>
+      <div class="klinks"><button type="button" class="klnk" id="resend">Code erneut senden</button>
+        <button type="button" class="klnk" data-go="register">Andere E-Mail</button></div>
+    </form>
+
+    <!-- forgot -->
+    <form class="kbox glass" id="v-forgot" hidden>
+      <h2>Passwort vergessen</h2>
+      <p class="khint">Gib die E-Mail deines Kontos ein. Du bekommst einen Code zum Zurücksetzen.</p>
+      <input name="email" type="email" placeholder="E-Mail" autocomplete="email" required>
+      <button class="btn">Code schicken</button>
+      <p class="kerr"></p>
+      <div class="klinks"><button type="button" class="klnk" data-go="login">Zurück zum Anmelden</button></div>
+    </form>
+
+    <!-- reset -->
+    <form class="kbox glass" id="v-reset" hidden>
+      <h2>Neues Passwort</h2>
+      <p class="khint">Falls es zu <b data-email></b> ein Konto gibt, ist ein Code unterwegs.</p>
+      <input class="otp" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" required>
+      <input name="password" type="password" placeholder="Neues Passwort (mind. 8 Zeichen)" minlength="8" autocomplete="new-password" required>
+      <button class="btn">Passwort speichern</button>
+      <p class="kerr"></p>
+      <div class="klinks"><button type="button" class="klnk" data-go="forgot">Code erneut anfordern</button></div>
+    </form>
+
+    <p class="khint" id="nomail" hidden style="text-align:center;margin-top:14px">E-Mail-Versand ist noch nicht eingerichtet: Den Code findet der Gastgeber im Protokoll des Spieleabend-Add-ons.</p>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const back = /^[a-z]{3,20}$/.test(params.get("zurueck") || "") ? `../${params.get("zurueck")}/` : "../";
+    $("home").href = back; $("back").href = back;
+    let email = "";
+
+    function show(view) {
+      for (const v of ["me", "login", "register", "verify", "forgot", "reset"]) $("v-" + v).hidden = v !== view;
+      for (const el of document.querySelectorAll("[data-email]")) el.textContent = email;
+      for (const el of document.querySelectorAll(".kerr")) el.textContent = "";
+      const first = document.querySelector(`#v-${view} input`);
+      if (first) first.focus();
+    }
+    async function api(path, body) {
+      const res = await fetch("../api/konto" + path, body === undefined ? { cache: "no-store" } :
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({ error: "Keine Verbindung" }));
+      return { ok: res.ok, ...data };
+    }
+    function me(user) {
+      $("meAv").textContent = user.name.charAt(0).toUpperCase();
+      $("meName").textContent = user.name;
+      $("meMail").textContent = user.email;
+      $("tagline").textContent = "Du bist angemeldet.";
+      show("me");
+    }
+    function form(id, handler) {
+      $(id).addEventListener("submit", async e => {
+        e.preventDefault();
+        const f = e.target, btn = f.querySelector("button:not([type=button])"), err = f.querySelector(".kerr, .kok");
+        btn.disabled = true; err.className = "kerr"; err.textContent = "";
+        try { await handler(Object.fromEntries(new FormData(f)), err, f); } finally { btn.disabled = false; }
+      });
+    }
+    const loggedIn = r => { if (params.get("zurueck")) location.href = back; else me(r.user); };
+
+    form("v-login", async (d, err) => {
+      const r = await api("/login", d);
+      if (r.ok) return loggedIn(r);
+      if (r.next === "verify") { email = r.email; show("verify"); return; }
+      err.textContent = r.error;
+    });
+    form("v-register", async (d, err) => {
+      const r = await api("/register", d);
+      if (!r.ok) { err.textContent = r.error; return; }
+      email = r.email; show("verify");
+    });
+    form("v-verify", async (d, err) => {
+      const r = await api("/verify", { email, code: d.code });
+      if (r.ok) return loggedIn(r);
+      err.textContent = r.error;
+    });
+    form("v-forgot", async (d, err) => {
+      const r = await api("/forgot", d);
+      if (!r.ok) { err.textContent = r.error; return; }
+      email = r.email; show("reset");
+    });
+    form("v-reset", async (d, err) => {
+      const r = await api("/reset", { email, code: d.code, password: d.password });
+      if (r.ok) return loggedIn(r);
+      err.textContent = r.error;
+    });
+    form("f-pw", async (d, err, f) => {
+      const r = await api("/password", d);
+      err.className = r.ok ? "kok" : "kerr";
+      err.textContent = r.ok ? "Passwort geändert" : r.error;
+      if (r.ok) f.reset();
+    });
+    form("f-del", async (d, err) => {
+      const r = await api("/delete", d);
+      if (!r.ok) { err.textContent = r.error; return; }
+      $("tagline").textContent = "Dein Konto wurde gelöscht.";
+      show("login");
+    });
+    $("resend").onclick = async () => {
+      await api("/resend", { email });
+      document.querySelector("#v-verify .kerr").textContent = "";
+      $("resend").textContent = "Neuer Code ist unterwegs ✓";
+    };
+    $("logout").onclick = async () => { await api("/logout", {}); $("tagline").textContent = "Du bist abgemeldet."; show("login"); };
+    for (const b of document.querySelectorAll("[data-go]")) b.onclick = () => show(b.dataset.go);
+
+    api("").then(r => {
+      $("nomail").hidden = r.mail !== false;
+      if (r.user) me(r.user); else show(params.get("neu") ? "register" : "login");
+    });
+  </script>
+</body>
+</html>

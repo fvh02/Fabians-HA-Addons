@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Ring of Fire</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .card.red { --c1: #f43f5e; --c2: #9f1239; } .card.black { --c1: #475569; --c2: #0f172a; }
+    .card.rf .v { font-size: calc(var(--w) * .5); }
+    .card.rf .suit { position: relative; z-index: 1; display: block; text-align: center; font-size: calc(var(--w) * .26); color: var(--c2); margin-top: calc(var(--w) * -.06); }
+    .card.rf .front { place-content: center; display: grid; }
+    .big { --cw: min(170px, 42vw); }
+    .tvmain .big { --cw: 15vw; }
+    .drawn { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .drawn .card { animation: deal .7s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes deal { from { transform: translateY(-40px) rotate(-14deg) scale(.7); opacity: 0; } }
+    .rulebox h2 { margin: 0; } .rulebox p { margin: 6px 0 0; }
+    .deck { position: relative; width: 120px; height: 170px; border: 0; background: none; padding: 0; }
+    .deck i { position: absolute; inset: 0; border-radius: 18px; border: 1px solid rgba(255,255,255,.35);
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.22) 0 18%, transparent 19%), repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 6px, transparent 6px 12px), linear-gradient(145deg, #6d28d9, #db2777);
+      box-shadow: 0 8px 20px rgba(20, 10, 60, .3); }
+    .deck i:nth-child(2) { transform: translate(4px, -4px); } .deck i:nth-child(3) { transform: translate(8px, -8px); display: grid; place-items: center; color: #fff; font-weight: 850; font-size: 1.05rem; font-style: normal; }
+    .deck:hover i:nth-child(3) { transform: translate(8px, -14px); }
+    .deck.my { animation: wiggle 1.6s ease-in-out infinite; }
+    @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .stats span { padding: 6px 12px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 750; font-size: .9rem; }
+    .history { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; --cw: 34px; }
+    .rules { width: 100%; text-align: left; display: grid; grid-template-columns: 34px 1fr; gap: 4px 10px; font-size: .88rem; }
+    .rules b { text-align: center; }
+    details { width: 100%; } summary { cursor: pointer; color: var(--muted); font-weight: 700; }
+    .tvmain .stats span { font-size: 1.4vw; }
+    /* ---- one screen, no scrolling (page-local; same block in every drinking game) ---- */
+    body:not(.tv) #table#table:not(.hidden) { height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 0; }
+    body:not(.tv) #stage#stage { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    body:not(.tv) #stage#stage > .pstage { flex: 1 1 0; min-height: 0; gap: clamp(6px, 1.6vh, 16px); padding: clamp(10px, 1.8vh, 18px) 14px; }
+    body:not(.tv) .pstage > .phead + * { margin-top: auto; }
+    body:not(.tv) .pstage > :last-child { margin-bottom: auto; }
+    body:not(.tv) .pstage .plabel { margin: 0 0 -2px; }
+    .topbar .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pctl { flex-wrap: nowrap; width: 100%; max-width: 420px; }
+    .pctl .btn { flex: 1 1 auto; min-height: 44px; padding: 10px; font-size: .95rem; white-space: nowrap; }
+    .pctl .btn.small { flex: 0 1 auto; min-height: 40px; }
+    /* scores: compact rows, two columns from 5 players on; shrinks (and scrolls) only as a last resort */
+    .pstage .pscore, #finished .pscore { gap: 5px; }
+    body:not(.tv) .pstage .pscore { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+    .pstage .pscore:has(.ps:nth-child(5)), #finished .pscore:has(.ps:nth-child(6)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pstage .pscore .ps, #finished .pscore .ps { padding: 4px 9px; gap: 7px; border-radius: 12px; }
+    .pstage .pscore .avatar, #finished .pscore .avatar { width: 26px; height: 26px; font-size: .75rem; }
+    .pstage .pscore .pos, #finished .pscore .pos { width: auto; min-width: 12px; font-size: .78rem; }
+    .pstage .pscore .pts, #finished .pscore .pts { min-width: 16px; }
+    .pstage .pscore:has(.ps:nth-child(5)) .ps { gap: 5px; padding: 4px 7px; font-size: .9rem; }
+    .pstage .pscore .plus { font-size: .78rem; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .ps { padding-top: 2px; padding-bottom: 2px; }
+    body:not(.tv) .pstage .pscore:has(.ps:nth-child(7)) .avatar { width: 22px; height: 22px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) { gap: 4px 8px; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .d { font-size: .8rem; }
+    #finished .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    #finished .trophy { font-size: 2.8rem; }
+    body:not(.tv) .drinkers { gap: 6px 10px; }
+    body:not(.tv) .drinkers .d { gap: 3px; font-size: .9rem; }
+    body:not(.tv) .drinkers .avatar { width: clamp(34px, 6.4vh, 54px); height: clamp(34px, 6.4vh, 54px); font-size: 1.05rem; }
+    body:not(.tv) .drinkers:has(.d:nth-child(6)) .avatar { width: 28px; height: 28px; font-size: .8rem; }
+    body:not(.tv) .pbanner { font-size: clamp(1.25rem, 3.4vh, 2.1rem); }
+    /* game: drawn card next to its rule, deck next to "your turn"; the full rule list opens as a panel */
+    .drawn { flex-direction: row; justify-content: center; text-align: left; gap: clamp(10px, 1.6vw, 28px); width: 100%; }
+    .drawn .rulebox { flex: 0 1 auto; min-width: 0; max-width: 34em; }
+    body:not(.tv) .drawn .big { --cw: clamp(68px, 13vh, 150px); }
+    .tvmain .drawn .big { --cw: min(13vw, 24vh); }
+    body:not(.tv) .rulebox h2 { font-size: clamp(1.1rem, 3vh, 1.6rem); }
+    body:not(.tv) .rulebox p { font-size: .92rem; line-height: 1.35; }
+    body:not(.tv) .rulebox p.pmuted { font-size: .82rem; margin-top: 4px; }
+    .tvmain .turn { font-size: clamp(1.1rem, 2vw, 2.2rem); }
+    .turnrow { display: flex; align-items: center; justify-content: center; gap: 16px; }
+    body:not(.tv) .deck { width: clamp(62px, 11vh, 120px); height: calc(clamp(62px, 11vh, 120px) * 1.42); flex: none; }
+    body:not(.tv) .deck i { border-radius: 12px; }
+    body:not(.tv) .stats { gap: 6px; }
+    body:not(.tv) .stats span { padding: 4px 10px; font-size: .82rem; }
+    body:not(.tv) .history { --cw: clamp(26px, 4.6vh, 34px); gap: 5px; }
+    details { position: static; }
+    details[open] .rules { position: fixed; z-index: 30; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top)); max-width: 520px; margin: 0 auto;
+      max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px 16px 14px; border-radius: 22px; background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--bg-1);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), 0 0 0 100vmax rgba(10, 5, 30, .35); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); cursor: pointer; animation: popin .3s ease both; }
+    details[open] .rules::after { content: "Tippen zum Schließen"; grid-column: 1 / -1; text-align: center; color: var(--muted); font-size: .8rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden">
+    <div class="topbar glass">
+      <span class="title">Ring of Fire</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    const esc = s => Shell.esc(s);
+    const RED = new Set(["♥", "♦"]);
+    const card = (c, extra = "") => Shell.card(`rf ${RED.has(c.suit) ? "red" : "black"} ${extra}`, `<span class="v">${esc(c.rank)}</span><span class="suit">${c.suit}</span>`);
+    const nm = (g, id) => id === Shell.me ? "Du" : Party.nameOf(g, id);
+    const ROLE = { "5": "👍 Daumenmeister", "8": "🤝 Trinkpartner gewählt von", "D": "❓ Fragemeister" };
+    Party.start({
+      kind: "ringoffire", title: "Ring of Fire", minPlayers: 2, icon: "👑", drink: true,
+      fan: [["A", "♠"], ["K", "♥"], ["7", "♣"], ["D", "♦"]].map(([r, s]) => card({ rank: r, suit: s })).join(""),
+      inputPhases: ["draw"], skipLabel: "⏭ Für die Person ziehen", endAnytime: true,
+      key: g => g.left,
+      head: g => `Noch ${g.left} Karten`,
+      settings: [],
+      build(g, ctx) {
+        const active = g.players.find(p => p.id === g.active) || { name: "?" }, mine = g.active === Shell.me;
+        const c = g.card;
+        return `<div class="stats"><span>👑 Könige: ${g.kings} / 4</span><span>🃏 ${g.left} übrig</span></div>
+          ${c ? `<div class="drawn">${card(c, "big")}<div class="rulebox"><h2>${esc(c.title)}</h2><p>${esc(c.rule)}</p>
+            <p class="pmuted">gezogen von ${esc(nm(g, g.drawn_by))}</p></div></div>` : `<p>Legt einen Becher in die Mitte – los geht's!</p>`}
+          <div class="turnrow">${mine && !ctx.tv ? `<button class="deck my" id="draw" aria-label="Karte ziehen"><i></i><i></i><i>Ziehen</i></button>` : ""}
+            <div class="turn" style="font-weight:800">${mine ? "Du bist dran – zieh eine Karte!" : `${esc(active.name)} ist dran`}</div></div>
+          ${Object.keys(g.holders).length ? `<div class="stats">${Object.entries(g.holders).map(([r, id]) => `<span>${ROLE[r]}: ${esc(nm(g, id))}</span>`).join("")}</div>` : ""}
+          ${g.history.length > 1 ? `<div class="history">${g.history.slice(1).map(h => card(h)).join("")}</div>` : ""}
+          ${ctx.tv ? "" : `<details><summary>Alle Regeln</summary><div class="rules">${Object.entries(g.rules).map(([r, t]) => `<b>${r}</b><span>${esc(t)}</span>`).join("")}</div></details>`}`;
+      },
+      bind() {
+        const d = document.getElementById("draw"); if (d) d.onclick = () => { d.disabled = true; Shell.send({ t: "draw" }); };
+        const r = document.querySelector("#stage details .rules"); if (r) r.onclick = () => { r.parentElement.open = false; };
+      },
+      finished: g => ({ icon: g.kings >= 4 ? "👑" : "🃏", title: g.kings >= 4 ? `${Party.nameOf(g, g.drawn_by)} trinkt den King's Cup!` : "Alle Karten gezogen",
+        sub: g.card ? `<div style="display:flex;justify-content:center;margin-top:10px">${card(g.card, "big")}</div>` : "" }),
+    });
+  </script>
+</body>
+</html>

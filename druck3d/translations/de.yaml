@@ -1,0 +1,16 @@
+configuration:
+  material:
+    name: Filament
+    description: Was meistens im Drucker ist. Der Assistent kann pro Druck ein anderes wählen.
+  plate:
+    name: Druckplatte
+    description: Welche Platte auf dem Drucker liegt (ab Werk beim P1S die Textured PEI Plate).
+  use_ams:
+    name: AMS benutzen
+    description: Mit AMS aus dem gewählten Fach drucken, sonst von der externen Spule.
+  ams_slot:
+    name: AMS-Fach
+    description: Aus welchem Fach (1–4) gedruckt wird, wenn das AMS benutzt wird.
+  camera_entity:
+    name: Kamera-Entität
+    description: Optional. Kamera des Druckers aus der Bambu-Lab-Integration, z. B. camera.p1s_kamera. Leer = automatisch suchen.

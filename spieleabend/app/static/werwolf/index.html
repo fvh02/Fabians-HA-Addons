@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Werwolf</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    /* the role card */
+    .role { width: min(250px, 64vw); aspect-ratio: 5 / 7; perspective: 1000px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+    .role .in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.9,.3,1.1); }
+    .role.open .in { transform: rotateY(180deg); }
+    .role .face { position: absolute; inset: 0; border-radius: 28px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px; box-shadow: 0 20px 50px rgba(20, 10, 60, .4); }
+    .role .back { color: #fff; font-weight: 800;
+      background: radial-gradient(circle at 70% 26%, #fef3c7 0 9%, rgba(254,243,199,.25) 10%, transparent 24%),
+        linear-gradient(170deg, #0b1026, #1e1b4b 55%, #4c1d95); }
+    .role .back .q { font-size: 3.6rem; }
+    .role .front { transform: rotateY(180deg); color: #fff; text-align: center; }
+    .role .front small { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
+    .role .front .big { font-size: 4rem; line-height: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.3)); }
+    .role .front .w { font-size: clamp(1.5rem, 7vw, 2.1rem); font-weight: 900; letter-spacing: -.02em; }
+    .role .front p { font-size: .84rem; color: rgba(255,255,255,.85); line-height: 1.35; }
+    .role .front .x { font-size: .8rem; font-weight: 750; padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,.18); }
+    .r-werwolf { background: linear-gradient(160deg, #1f0a0a, #7f1d1d 55%, #dc2626); }
+    .r-dorf { background: linear-gradient(160deg, #14532d, #15803d 55%, #65a30d); }
+    .r-seherin { background: linear-gradient(160deg, #1e1b4b, #4338ca 55%, #8b5cf6); }
+    .r-hexe { background: linear-gradient(160deg, #1a2e05, #4d7c0f 50%, #7c3aed); }
+    .r-jaeger { background: linear-gradient(160deg, #422006, #92400e 55%, #d97706); }
+    .r-amor { background: linear-gradient(160deg, #500724, #be185d 55%, #f472b6); }
+
+    .narr { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise .5s ease both; }
+    .narr .icon { font-size: clamp(3rem, 14vw, 4.6rem); line-height: 1; animation: bob 3s ease-in-out infinite; }
+    .narr .t { font-size: clamp(1.25rem, 5vw, 1.8rem); font-weight: 850; letter-spacing: -.02em; line-height: 1.25; }
+    .night-sky { position: relative; width: 100%; border-radius: 22px; padding: 22px 14px; overflow: hidden; color: #fff;
+      background: radial-gradient(circle at 80% 18%, #fef3c7 0 5%, rgba(254,243,199,.18) 6%, transparent 18%), linear-gradient(170deg, #0b1026, #1e1b4b 60%, #312e81); }
+    .night-sky p { color: rgba(255,255,255,.8); }
+    .night-sky::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .8;
+      background-image: radial-gradient(1.5px 1.5px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 55% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 75%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 88% 50%, #fff, transparent), radial-gradient(1px 1px at 42% 12%, #fff, transparent); animation: twinkle 4s ease-in-out infinite; }
+    @keyframes twinkle { 50% { opacity: .35; } }
+    .day-sky { width: 100%; border-radius: 22px; padding: 18px 14px; background: linear-gradient(170deg, color-mix(in srgb, #fbbf24 22%, transparent), color-mix(in srgb, #38bdf8 14%, transparent)); border: 1px solid var(--glass-border); }
+
+    .village { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; width: 100%; }
+    .vg { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 16px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 700; font-size: .85rem; transition: opacity .4s, filter .4s; min-width: 0; }
+    .vg .nm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vg .rl { font-size: .72rem; font-weight: 650; color: var(--muted); }
+    .vg.dead { opacity: .5; filter: grayscale(1); }
+    .vg.dead .avatar { position: relative; }
+    .vg.me { box-shadow: 0 0 0 2px var(--accent); }
+    .pick { cursor: pointer; transition: transform .15s, border-color .2s, box-shadow .2s; color: var(--text); }
+    .pick:hover { transform: translateY(-2px); }
+    .pick.on { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 35%, transparent); }
+    .pick.love.on { border-color: #ec4899; box-shadow: 0 0 0 3px rgba(236, 72, 153, .4); }
+    .pick .who { display: flex; gap: 3px; min-height: 20px; flex-wrap: wrap; justify-content: center; }
+    .pick .who .avatar { width: 20px; height: 20px; font-size: .55rem; }
+    .nobody { grid-column: 1 / -1; flex-direction: row; justify-content: center; }
+    .events { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .ev { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--glass-strong); border: 1px solid var(--glass-border); text-align: left; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+    .ev .avatar { width: 42px; height: 42px; filter: grayscale(.6); }
+    .ev .tx { flex: 1; } .ev .tx b { display: block; font-size: 1.05rem; } .ev .tx span { color: var(--muted); font-size: .88rem; }
+    .ev .rb { font-size: .82rem; font-weight: 800; padding: 5px 10px; border-radius: 999px; color: #fff; white-space: nowrap; }
+    .seen { font-size: 1.2rem; font-weight: 850; padding: 14px 18px; border-radius: 18px; animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+    .seen.wolf { background: linear-gradient(135deg, #7f1d1d, #dc2626); color: #fff; }
+    .seen.ok { background: linear-gradient(135deg, #065f46, #10b981); color: #fff; }
+    .potions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .potion { padding: 14px 8px; border-radius: 18px; border: 2px solid var(--glass-border); background: var(--glass-strong); font-weight: 800; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 4px; transition: border-color .2s, box-shadow .2s, transform .15s; }
+    .potion span { font-size: 2rem; }
+    .potion small { font-weight: 600; color: var(--muted); font-size: .75rem; }
+    .potion.on { border-color: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 35%, transparent); }
+    .potion.poison.on { border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, .4); }
+    .potion:disabled { opacity: .4; }
+    .clock { font-family: ui-monospace, monospace; font-weight: 900; font-size: clamp(2.6rem, 13vw, 4.4rem); line-height: 1;
+      background: linear-gradient(135deg, #f59e0b, #ef4444); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tally { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .tally span { padding: 5px 12px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 700; font-size: .85rem; }
+    .info { font-size: .9rem; padding: 8px 14px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); }
+    .ghost-note { font-weight: 700; color: var(--muted); }
+    .final { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; text-align: left; }
+    .final .f { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-size: .9rem; }
+    .final .f.win { box-shadow: 0 0 0 2px var(--ok); }
+    .final .f.dead .n { text-decoration: line-through; opacity: .7; }
+    .final .f .n { flex: 1; font-weight: 700; }
+    #tvVillage .vg { padding: 6px; font-size: clamp(.8rem, 1vw, 1.1rem); }
+    .tvside #tvVillage .village { grid-template-columns: repeat(auto-fill, minmax(clamp(80px, 7vw, 130px), 1fr)); }
+    .tvmain .narr .t { font-size: clamp(2rem, 3.6vw, 4.2rem); }
+    .tvmain .narr .icon { font-size: clamp(4rem, 8vw, 9rem); }
+    .tvmain .night-sky, .tvmain .day-sky { padding: 3vw; }
+    .tvmain .ev { font-size: clamp(1rem, 1.6vw, 1.8rem); }
+    .tvmain .clock { font-size: clamp(4rem, 10vw, 10rem); }
+
+    /* ---------- one phone screen, no scrolling ---------- */
+    body:not(.tv) #card .role { width: min(250px, 64vw, 46vh * 5 / 7); }
+    body:not(.tv) .role .face { padding: 14px; gap: 6px; }
+    body:not(.tv) .role .front .big { font-size: clamp(2.4rem, 7vh, 4rem); }
+    body:not(.tv) .role .front p { margin: 0; font-size: .8rem; }
+    body:not(.tv) .pstage .info { font-size: .8rem; padding: 6px 12px; line-height: 1.35; }
+    body:not(.tv) .narr { gap: clamp(2px, .8vh, 10px); }
+    body:not(.tv) .narr .icon { font-size: clamp(2rem, 7vh, 4.6rem); }
+    body:not(.tv) .narr .t { font-size: clamp(1.1rem, 3.3vh, 1.8rem); }
+    body:not(.tv) .narr p { font-size: .88rem; line-height: 1.35; }
+    body:not(.tv) .night-sky, body:not(.tv) .day-sky { padding: clamp(8px, 1.8vh, 22px) 12px; }
+    body:not(.tv) .pstage .clock { font-size: clamp(2rem, 7vh, 4.4rem); }
+    /* players: compact tiles, three per row */
+    body:not(.tv) .village { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+    body:not(.tv) .vg { padding: clamp(4px, .9vh, 10px) 4px; gap: 2px; border-radius: 14px; font-size: .82rem; }
+    body:not(.tv) .vg .avatar { width: clamp(24px, 4.4vh, 32px); height: clamp(24px, 4.4vh, 32px); font-size: .72rem; }
+    body:not(.tv) .vg .rl { font-size: .72rem; line-height: 1.1; }
+    body:not(.tv) .pick { min-height: 44px; }
+    body:not(.tv) .pick .who { min-height: 0; }
+    body:not(.tv) .pick .who:empty { display: none; }
+    body:not(.tv) .nobody { min-height: 40px; }
+    body:not(.tv) .vg .nm, body:not(.tv) .vg .rl { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body:not(.tv) .village.many { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    body:not(.tv) .village.many .vg { font-size: .78rem; padding: 4px 3px; }
+    body:not(.tv) .village.many .vg .rl { font-size: .7rem; }
+    /* night and day reports */
+    body:not(.tv) .events { gap: 5px; }
+    body:not(.tv) .ev { padding: clamp(3px, .7vh, 6px) 10px; gap: 10px; border-radius: 14px; }
+    body:not(.tv) .ev .avatar { width: 32px; height: 32px; }
+    body:not(.tv) .ev .tx { line-height: 1.25; } body:not(.tv) .ev .tx b { font-size: .95rem; } body:not(.tv) .ev .tx span { font-size: .78rem; display: block; line-height: 1.2; }
+    body:not(.tv) .tally { gap: 4px; }
+    body:not(.tv) .tally span { padding: 2px 9px; font-size: .78rem; }
+    body:not(.tv) .tally + .pmuted { font-size: .76rem; line-height: 1.35; }
+    body:not(.tv) .ghost-note { font-size: .8rem; margin: 0; line-height: 1.3; }
+    body:not(.tv) .seen { padding: 10px 14px; font-size: 1.05rem; }
+    body:not(.tv) .potions { gap: 8px; }
+    body:not(.tv) .potion { padding: 8px; gap: 2px; border-radius: 14px; }
+    body:not(.tv) .potion span { font-size: 1.5rem; }
+    /* "my role" opens as a pop-up card instead of growing the page */
+    details.peekrole { width: 100%; }
+    details.peekrole[open] > div { position: fixed; inset: 0; z-index: 35; display: grid !important; place-items: center; margin: 0 !important;
+      background: rgba(10, 5, 30, .45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: rise .25s ease both; }
+    details.peekrole[open] .role { width: min(250px, 64vw, 60vh * 5 / 7); }
+    /* end of game: compact list of everyone */
+    .overlay .final { gap: 4px; margin-top: 8px; }
+    .overlay .final .f { padding: 4px 8px; font-size: .84rem; gap: 6px; }
+    .overlay .final .f .avatar { width: 24px; height: 24px; font-size: .66rem; }
+    .overlay .final:has(> .f:nth-child(6)) { display: grid; grid-template-columns: 1fr 1fr; }
+    .overlay .final:has(> .f:nth-child(6)) .f { flex-wrap: wrap; row-gap: 0; min-width: 0; }
+    .overlay .final:has(> .f:nth-child(6)) .f .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .overlay .final:has(> .f:nth-child(6)) .f > span:last-child { flex-basis: 100%; font-size: .74rem; padding-left: 30px; color: var(--muted); }
+    .overlay .panel:has(.final) p.pmuted { font-size: .8rem; line-height: 1.35; }
+    /* TV */
+    .tvmain .narr { gap: 1vh; }
+    .tvmain .narr .icon { font-size: clamp(3rem, 12vh, 9rem); }
+    .tvmain .night-sky, .tvmain .day-sky { padding: 2.4vh 3vw; }
+    .tvmain .clock { font-size: clamp(3rem, 14vh, 10rem); }
+    .tvmain .tally + .pmuted { font-size: clamp(.8rem, min(1.2vw, 2.2vh), 1.4rem); }
+    .tvmain .village { grid-template-columns: repeat(auto-fill, minmax(clamp(80px, 8vw, 150px), 1fr)); gap: .6vw; }
+    .tvmain .vg { padding: .6vh .4vw; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden pfit">
+    <div class="topbar glass">
+      <span class="title">Werwolf</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    window.ART = window.ART || {};
+    window.ART.werwolf = `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="wwa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fbbf24"/></linearGradient><linearGradient id="wwb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#64748b"/><stop offset="1" stop-color="#1e293b"/></linearGradient><linearGradient id="wwc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#5b21b6"/></linearGradient><linearGradient id="wwd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#be185d"/></linearGradient><filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><g filter="url(#sh)"><circle cx="150" cy="38" r="26" fill="url(#wwa)"/></g><circle cx="142" cy="32" r="4" fill="#f59e0b" opacity=".35"/><circle cx="158" cy="46" r="3" fill="#f59e0b" opacity=".35"/><path d="M186 14 l2 5 l5 1 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -1 Z M118 16 l1.5 3.5 l3.5 1 l-3.5 1.5 l-1.5 3.5 l-1.5 -3.5 l-3.5 -1.5 l3.5 -1 Z" fill="currentColor" opacity=".55"/><g filter="url(#sh)"><path d="M34 66 L44 26 L58 50 L76 50 L90 26 L100 66 L96 86 L80 100 L67 106 L54 100 L38 86 Z" fill="url(#wwb)"/></g><path d="M48 40 L56 54 L50 56 Z M86 40 L78 54 L84 56 Z" fill="#94a3b8"/><path d="M50 66 L62 70 L52 74 Z M84 66 L72 70 L82 74 Z" fill="#facc15"/><path d="M60 88 L67 96 L74 88 Z" fill="#0f172a"/><path d="M60 98 q7 5 14 0" stroke="#0f172a" stroke-width="2.5" fill="none" stroke-linecap="round"/><g filter="url(#sh)"><path d="M120 112 V84 L140 68 L160 84 V112 Z" fill="url(#wwc)"/><path d="M164 112 V90 L182 76 L200 90 V112 Z" fill="url(#wwd)"/></g><rect x="134" y="92" width="12" height="20" rx="2" fill="#1e1b3a" opacity=".55"/><rect x="176" y="94" width="11" height="10" rx="2" fill="#fef3c7"/><path d="M110 113 H210" stroke="currentColor" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+    const esc = s => Shell.esc(s);
+    const send = msg => Shell.send(msg);
+    const nameOf = (g, id) => Party.nameOf(g, id);
+    const pl = (g, id) => g.players.find(p => p.id === id) || { name: "?" };
+    const ROLES = {
+      werwolf: ["🐺", "Werwolf", "Jede Nacht sucht ihr Werwölfe euch gemeinsam ein Opfer. Tagsüber: bloß nicht auffliegen!"],
+      dorf: ["🧑‍🌾", "Dorfbewohner", "Finde mit den anderen die Werwölfe und stimme tagsüber gegen sie."],
+      seherin: ["🔮", "Seherin", "Jede Nacht erfährst du von einem Spieler, ob er ein Werwolf ist."],
+      hexe: ["🧪", "Hexe", "Du hast einen Heiltrank und einen Gifttrank – jeden nur einmal im ganzen Spiel."],
+      jaeger: ["🏹", "Jäger", "Wenn du stirbst, reißt du einen Spieler deiner Wahl mit in den Tod."],
+      amor: ["💘", "Amor", "In der ersten Nacht verliebst du zwei Spieler. Stirbt einer, stirbt auch der andere."],
+    };
+    const ROLE_BG = { werwolf: "#b91c1c", dorf: "#15803d", seherin: "#4338ca", hexe: "#4d7c0f", jaeger: "#b45309", amor: "#be185d" };
+    const CAUSE = { werwolf: "wurde von den Werwölfen gefressen", hexe: "wurde von der Hexe vergiftet", liebe: "ist vor Liebeskummer gestorben",
+      jaeger: "wurde vom Jäger erschossen", dorf: "wurde vom Dorf gehängt" };
+    const NIGHT = { amor: ["💘", "Amor erwacht und verliebt zwei Menschen ineinander …"], seherin: ["🔮", "Die Seherin erwacht und blickt in eine Seele …"],
+      werwolf: ["🐺", "Die Werwölfe erwachen und suchen sich ein Opfer …"], hexe: ["🧪", "Die Hexe erwacht und greift zu ihren Tränken …"] };
+    const isNight = g => !!NIGHT[g.phase];
+    const vil = (g, id) => g.village.find(v => v.id === id) || {};
+    const roleTag = r => r ? `${ROLES[r][0]} ${ROLES[r][1]}` : "";
+    const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    let sel = [], heal = false, poison = "", dayEnd = null;
+
+    function roleCard(g, open) {
+      const [emo, name, desc] = ROLES[g.role] || ["❓", "?", ""];
+      const mates = g.role === "werwolf" ? g.village.filter(v => v.role === "werwolf" && v.id !== Shell.me).map(v => nameOf(g, v.id)) : [];
+      const lover = g.lovers.includes(Shell.me) ? g.lovers.find(i => i !== Shell.me) : null;
+      return `<div class="role ${open ? "open" : ""}"><div class="in">
+        <div class="face back"><div class="q">🌕</div><div>Tippen zum Aufdecken</div><small style="opacity:.75">Nur du darfst hinschauen</small></div>
+        <div class="face front r-${g.role}"><small>Deine Rolle</small><div class="big">${emo}</div><div class="w">${name}</div><p>${desc}</p>
+          ${mates.length ? `<div class="x">Mit dir: ${esc(mates.join(", "))}</div>` : ""}${lover ? `<div class="x">💘 Verliebt in ${esc(nameOf(g, lover))}</div>` : ""}</div></div></div>`;
+    }
+
+    function village(g) {
+      // Living players' roles stay hidden here (others may glance at the phone); ghosts see everything.
+      const all = g.alive === false || g.state === "finished";
+      return `<div class="village ${g.village.length > 6 ? "many" : ""}">${g.village.map(v => {
+        const p = pl(g, v.id), role = v.alive && !all ? null : v.role;
+        return `<div class="vg ${v.alive ? "" : "dead"} ${v.id === Shell.me ? "me" : ""}">${Shell.avatar(p)}<span class="nm">${v.alive ? "" : "💀 "}${esc(p.name)}</span>
+          <span class="rl">${role ? roleTag(role) : (v.alive ? "lebt" : "")}${all && g.lovers.includes(v.id) ? " 💘" : ""}</span></div>`; }).join("")}</div>`;
+    }
+
+    function events(g) {
+      if (!g.events.length) return `<p class="info">🌤️ Niemand ist gestorben.</p>`;
+      return `<div class="events">${g.events.map((e, i) => `<div class="ev" style="animation-delay:${i * 250}ms">${Shell.avatar(pl(g, e.id))}
+        <div class="tx"><b>${esc(nameOf(g, e.id))}</b><span>${CAUSE[e.cause] || "ist gestorben"}</span></div>
+        <span class="rb" style="background:${ROLE_BG[e.role]}">${roleTag(e.role)}</span></div>`).join("")}</div>`;
+    }
+
+    function tally(g) {
+      const lv = g.last_vote;
+      if (!lv) return "";
+      const t = Object.entries(lv.tally).sort((a, b) => b[1] - a[1]);
+      return `<div class="tally">${t.map(([id, n]) => `<span>${id ? esc(nameOf(g, id)) : "Niemand"}: ${n}</span>`).join("")}</div>
+        <p class="pmuted">${Object.entries(lv.votes).map(([a, b]) => `${esc(nameOf(g, a))} → ${b ? esc(nameOf(g, b)) : "niemand"}`).join(" · ")}</p>`;
+    }
+
+    // A grid of players to pick: data-pick buttons; `marks(id)` adds e.g. the wolves' votes.
+    function pickGrid(g, ids, cls = "", nobody = "") {
+      return `<div class="village ${ids.length > 6 ? "many" : ""}" id="grid">${ids.map(id => `<button class="vg pick ${cls}" data-pick="${id}">${Shell.avatar(pl(g, id))}<span class="nm">${esc(nameOf(g, id))}</span><span class="who"></span></button>`).join("")}
+        ${nobody ? `<button class="vg pick nobody" data-pick="">${nobody}</button>` : ""}</div>`;
+    }
+    const aliveIds = (g, exceptMe) => g.village.filter(v => v.alive && !(exceptMe && v.id === Shell.me)).map(v => v.id);
+
+    function sleeping(g, ctx) {
+      const [icon, text] = NIGHT[g.phase];
+      const ghost = !ctx.tv && g.alive === false;
+      return `<div class="night-sky narr"><div class="icon">${ctx.tv ? icon : "😴"}</div>
+          <div class="t">${ctx.tv ? text : "Augen zu – es ist Nacht!"}</div>
+          <p>${ctx.tv ? `Nacht ${g.night} · Alle anderen schlafen tief und fest.` : ghost ? `👻 Du bist tot und schaust zu: ${esc(text)}` : esc(text)}</p></div>
+        ${ctx.tv || ghost ? village(g) : `<p class="pmuted">Leg das Handy weg, bis das Dorf erwacht.</p>`}`;
+    }
+
+    function acting(g) {
+      if (g.phase === "amor") return `<div class="narr"><div class="icon">💘</div><div class="t">Wen verliebst du?</div>
+        <p>Wähle zwei Spieler (du darfst dich selbst wählen). Sie erfahren voneinander – stirbt einer, stirbt auch der andere.</p></div>
+        ${pickGrid(g, aliveIds(g), "love")}<button class="btn" id="amorBtn" disabled>Verlieben 💘</button>`;
+      if (g.phase === "seherin") {
+        const log = (g.seer_log || []).filter(s => !g.seer_result || s.night !== g.night);
+        const history = log.length ? `<p class="pmuted">Bisher: ${log.map(s => `${esc(nameOf(g, s.id))} ${s.wolf ? "🐺" : "✅"}`).join(" · ")}</p>` : "";
+        if (g.seer_result) return `<div class="narr"><div class="icon">🔮</div><div class="t">Deine Vision</div></div>
+          <div class="seen ${g.seer_result.wolf ? "wolf" : "ok"}">${esc(nameOf(g, g.seer_result.id))} ist ${g.seer_result.wolf ? "ein Werwolf 🐺" : "kein Werwolf ✅"}</div>
+          ${history}<button class="btn" id="seerDone">Augen schließen</button>`;
+        return `<div class="narr"><div class="icon">🔮</div><div class="t">Wessen Seele willst du sehen?</div></div>${pickGrid(g, aliveIds(g, true))}${history}`;
+      }
+      if (g.phase === "werwolf") {
+        const prey = g.village.filter(v => v.alive && v.role !== "werwolf").map(v => v.id);
+        const pack = g.village.filter(v => v.role === "werwolf" && v.alive).length;
+        return `<div class="narr"><div class="icon">🐺</div><div class="t">Wen fresst ihr heute Nacht?</div>
+          <p>${pack > 1 ? "Ihr seht, wen die anderen Werwölfe wählen – einigt euch auf ein Opfer." : "Du bist allein auf der Jagd – wähle dein Opfer."}</p></div>
+          ${pickGrid(g, prey)}`;
+      }
+      if (g.phase === "hexe") {
+        const w = g.witch || {};
+        return `<div class="narr"><div class="icon">🧪</div><div class="t">${w.victim ? `Die Werwölfe haben <b>${esc(nameOf(g, w.victim))}</b> gewählt.` : "Heute Nacht haben die Werwölfe niemanden erwischt."}</div></div>
+          <div class="potions"><button class="potion" id="healBtn" ${w.heal && w.victim ? "" : "disabled"}><span>💚</span>Heiltrank<small>${w.heal ? (w.victim ? "Opfer retten" : "kein Opfer") : "verbraucht"}</small></button>
+          <button class="potion poison" id="poisonBtn" ${w.poison ? "" : "disabled"}><span>☠️</span>Gifttrank<small>${w.poison ? "jemanden vergiften" : "verbraucht"}</small></button></div>
+          <div id="poisonBox" style="width:100%"></div><button class="btn" id="witchDone">Fertig – Augen schließen</button>`;
+      }
+      return "";
+    }
+
+    function build(g, ctx) {
+      sel = []; heal = false; poison = "";
+      const ghost = !ctx.tv && g.alive === false;
+      const me = g.players.find(p => p.id === Shell.me) || {};
+      if (g.phase === "roles") {
+        const specials = Object.entries(g.has).filter(([, v]) => v).map(([r]) => roleTag(r)).join(" · ");
+        const info = `<p class="info">🐺 ${g.wolves_total} ${g.wolves_total > 1 ? "Werwölfe" : "Werwolf"}${specials ? " · " + specials : ""}</p>`;
+        if (ctx.tv) return `<div class="night-sky narr"><div class="icon">🌕</div><div class="t">Jeder schaut sich heimlich seine Rolle an …</div>
+          <p>Gleich bricht die erste Nacht herein.</p></div>${info}<div data-status></div>`;
+        return `<h2>Deine Rolle</h2><div id="card">${roleCard(g, false)}</div><div id="readyBox"></div>${info}<div data-status></div>`;
+      }
+      if (isNight(g)) {
+        const active = !ctx.tv && g.alive && g.role === g.phase;
+        return active ? acting(g) : sleeping(g, ctx);
+      }
+      const peek = ctx.tv || !g.role ? "" : `<details class="list peekrole"><summary class="pmuted" style="cursor:pointer;text-align:center">👁️ Meine Rolle ansehen</summary><div style="display:flex;justify-content:center;margin-top:10px" onclick="this.parentElement.open=false">${roleCard(g, true)}</div></details>`;
+      const ghostNote = ghost ? `<p class="ghost-note">👻 Du bist tot – du darfst zuschauen, aber nichts mehr verraten.</p>` : "";
+      if (g.phase === "dawn") return `<div class="day-sky narr"><div class="icon">☀️</div><div class="t">Das Dorf erwacht …</div>
+          <p>${g.events.length ? "Doch nicht alle haben die Nacht überlebt:" : "Und alle haben die Nacht überlebt!"}</p></div>
+          ${events(g)}${ghostNote}<button class="btn" data-act="continue">Weiter zur Diskussion →</button>${ctx.tv || ghost ? village(g) : peek}`;
+      if (g.phase === "hunter") {
+        const mine = g.hunter === Shell.me && !ctx.tv;
+        return `<div class="narr"><div class="icon">🏹</div><div class="t">${esc(nameOf(g, g.hunter))} war der Jäger!</div>
+          <p>${mine ? "Mit letzter Kraft drückst du ab – wen nimmst du mit in den Tod?" : "Mit letzter Kraft greift er zur Flinte …"}</p></div>
+          ${events(g)}${mine ? pickGrid(g, aliveIds(g, true), "", "🙅 Niemanden") : ""}`;
+      }
+      if (g.phase === "day") return `<div class="day-sky narr"><div class="icon">🗣️</div><div class="t">Tag ${g.night}: Wer ist ein Werwolf?</div>
+          <p>Diskutiert! Verdächtigt, verteidigt, schwindelt – danach stimmt das Dorf ab.</p></div>
+          <div class="clock" id="clock">${g.remaining == null ? "" : "--:--"}</div>${ghostNote}
+          ${ctx.tv || g.alive ? '<button class="btn" data-act="to_vote">🗳️ Zur Abstimmung</button>' : ""}${village(g)}${peek}`;
+      if (g.phase === "vote") {
+        if (ctx.tv || !g.alive) return `<div class="narr"><div class="icon">⚖️</div><div class="t">Das Dorf stimmt ab …</div><p>Wer soll heute hängen?</p></div>
+          ${ghostNote}<div id="voted"></div>${village(g)}`;
+        return `<div class="narr"><div class="icon">⚖️</div><div class="t">Wer soll hängen?</div><p>Bei Gleichstand stirbt niemand. Du kannst deine Stimme ändern, bis alle abgestimmt haben.</p></div>
+          ${pickGrid(g, aliveIds(g, true), "", "🙅 Niemand")}<div id="voted"></div>`;
+      }
+      if (g.phase === "verdict") {
+        const l = g.last_vote && g.last_vote.lynched;
+        return `<div class="narr"><div class="icon">${l ? "⚰️" : "🤝"}</div><div class="t">${l ? `Das Dorf hat ${esc(nameOf(g, l))} gehängt.` : "Keine Mehrheit – heute stirbt niemand."}</div></div>
+          ${g.events.length ? events(g) : ""}${tally(g)}${ghostNote}
+          <button class="btn" data-act="continue">🌙 Die Nacht bricht herein →</button>${ctx.tv || ghost ? village(g) : peek}`;
+      }
+      return `<div class="narr"><div class="icon">🐺</div><div class="t">Spiel beendet</div></div>${village(g)}`;
+    }
+
+    function bind(g, ctx) {
+      // TV: the side panel shows the village instead of points.
+      const rank = document.getElementById("tvRank");
+      if (rank) { rank.id = "tvVillage"; const h = rank.parentElement.querySelector(".plabel"); if (h) h.textContent = "Dorf"; }
+      const card = document.querySelector("#card .role");
+      if (card) card.onclick = () => card.classList.toggle("open");
+      document.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+        if (b.dataset.act === "to_vote" && !confirm("Diskussion beenden und abstimmen?")) return;
+        send({ t: b.dataset.act });
+      });
+      const grid = document.getElementById("grid");
+      if (grid) grid.onclick = e => {
+        const b = e.target.closest("[data-pick]");
+        if (!b) return;
+        const id = b.dataset.pick;
+        if (g.phase === "amor") {
+          sel = sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id].slice(-2);
+          grid.querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("on", sel.includes(x.dataset.pick)));
+          document.getElementById("amorBtn").disabled = sel.length !== 2;
+        } else if (g.phase === "seherin") {
+          if (confirm(`${nameOf(g, id)} ansehen?`)) send({ t: "see", id });
+        } else if (g.phase === "werwolf") send({ t: "wolf", id });
+        else if (g.phase === "vote") send({ t: "vote", id });
+        else if (g.phase === "hunter") { if (confirm(id ? `${nameOf(g, id)} erschießen?` : "Niemanden mitnehmen?")) send({ t: "shoot", id }); }
+      };
+      const amor = document.getElementById("amorBtn");
+      if (amor) amor.onclick = () => send({ t: "amor", ids: sel });
+      const sd = document.getElementById("seerDone");
+      if (sd) sd.onclick = () => send({ t: "seer_done" });
+      const hb = document.getElementById("healBtn"), pb = document.getElementById("poisonBtn");
+      if (hb) hb.onclick = () => { heal = !heal; hb.classList.toggle("on", heal); };
+      if (pb) pb.onclick = () => {
+        const box = document.getElementById("poisonBox");
+        if (box.innerHTML) { box.innerHTML = ""; poison = ""; pb.classList.remove("on"); return; }
+        box.innerHTML = `<p class="pmuted" style="margin-bottom:8px">Wen vergiftest du?</p>` + pickGrid(g, aliveIds(g, true)).replace('id="grid"', 'id="pgrid"');
+        box.querySelector("#pgrid").onclick = e => {
+          const b = e.target.closest("[data-pick]"); if (!b) return;
+          poison = poison === b.dataset.pick ? "" : b.dataset.pick;
+          box.querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("on", x.dataset.pick === poison));
+          pb.classList.toggle("on", !!poison);
+        };
+      };
+      const wd = document.getElementById("witchDone");
+      if (wd) wd.onclick = () => {
+        const parts = [heal && "Heiltrank", poison && `Gift für ${nameOf(g, poison)}`].filter(Boolean);
+        if (parts.length && !confirm(`${parts.join(" und ")} – sicher?`)) return;
+        send({ t: "witch", heal, poison });
+      };
+    }
+
+    function update(g, ctx) {
+      dayEnd = g.phase === "day" && g.remaining != null ? Date.now() + g.remaining * 1000 : null;
+      clock();
+      if (g.phase === "roles" && !ctx.tv) {
+        const me = g.players.find(p => p.id === Shell.me);
+        Party.set("readyBox", me && me.done ? '<p class="pdone">✓ Warte auf die anderen …</p>' : '<button class="btn" id="readyBtn">Verstanden ✓</button>');
+        const b = document.getElementById("readyBtn");
+        if (b) b.onclick = () => { const c = document.querySelector("#card .role"); if (c) c.classList.remove("open"); send({ t: "ready" }); };
+      }
+      const grid = document.getElementById("grid");
+      if (grid && g.phase === "werwolf" && g.wolf_votes) {
+        grid.querySelectorAll("[data-pick]").forEach(b => {
+          const who = Object.entries(g.wolf_votes).filter(([, t]) => t === b.dataset.pick).map(([w]) => Shell.avatar(pl(g, w)));
+          Party.set(b.querySelector(".who"), who.join(""));
+          b.classList.toggle("on", g.wolf_votes[Shell.me] === b.dataset.pick);
+        });
+      }
+      if (grid && g.phase === "vote") grid.querySelectorAll("[data-pick]").forEach(b => b.classList.toggle("on", g.my_vote === b.dataset.pick));
+      if (g.phase === "vote") {
+        const alive = g.players.filter(p => vil(g, p.id).alive);
+        Party.set("voted", `<div class="pstatus">${alive.map(p => Shell.avatar(p).replace('class="avatar"', `class="avatar ${p.done ? "ok" : ""}" title="${esc(p.name)}"`)).join("")}</div>`);
+      }
+      const tv = document.getElementById("tvVillage");
+      if (tv) Party.set(tv, village(g));
+    }
+
+    function clock() {
+      const el = document.getElementById("clock");
+      if (!el || dayEnd == null) return;
+      el.textContent = mmss(Math.max(0, Math.ceil((dayEnd - Date.now()) / 1000)));
+    }
+    setInterval(clock, 250);
+
+    const WIN = { dorf: ["🏡", "Das Dorf gewinnt!"], werwolf: ["🐺", "Die Werwölfe gewinnen!"], liebe: ["💘", "Das Liebespaar gewinnt!"] };
+    function winnerOf(g, v) {
+      if (g.winner === "dorf") return v.role !== "werwolf";
+      if (g.winner === "werwolf") return v.role === "werwolf";
+      if (g.winner === "liebe") return g.lovers.includes(v.id);
+      return false;
+    }
+
+    Party.start({
+      kind: "werwolf", title: "Werwolf", art: "werwolf", minPlayers: 5, icon: "🐺",
+      inputPhases: ["roles", "vote"], timerPhases: ["roles", "amor", "seherin", "werwolf", "hexe", "hunter", "vote"],
+      settings: [
+        { key: "wolves", label: "Werwölfe", options: [[0, "Werwölfe: automatisch"], [1, "1 Werwolf"], [2, "2 Werwölfe"], [3, "3 Werwölfe"]] },
+        { key: "seconds", label: "Diskussion", options: [[180, "3 Min. Diskussion"], [120, "2 Min. Diskussion"], [300, "5 Min. Diskussion"], [0, "Diskussion ohne Zeitlimit"]] },
+        { key: "specials", label: "Rollen", options: [[2, "Seherin, Hexe, Jäger & Amor"], [1, "Seherin, Hexe & Jäger"], [0, "Seherin & Hexe"]] },
+      ],
+      head: g => g.night ? (isNight(g) ? `🌙 Nacht ${g.night}` : `☀️ Tag ${g.night}`) : "Werwolf",
+      key: g => `${g.alive}|${!!g.seer_result}|${g.events.length}|${g.hunter}`,
+      build, bind, update,
+      finished: g => {
+        const w = WIN[g.winner] || ["🌙", "Spiel beendet"];
+        const mine = g.village.find(v => v.id === Shell.me);
+        const sub = (mine && g.winner ? `<p class="pmuted">${winnerOf(g, mine) ? "Du gehörst zu den Gewinnern! 🎉" : "Diesmal hat deine Seite verloren."}</p>` : "")
+          + (g.events.length ? `<p class="pmuted" style="margin-top:8px">${g.events.map(e => `${esc(nameOf(g, e.id))} ${CAUSE[e.cause] || "ist gestorben"}`).join(" · ")}</p>` : "")
+          + `<div class="final">${g.village.map(v => `<div class="f ${winnerOf(g, v) ? "win" : ""} ${v.alive ? "" : "dead"}">${Shell.avatar(pl(g, v.id))}
+            <span class="n">${esc(nameOf(g, v.id))}${g.lovers.includes(v.id) ? " 💘" : ""}</span><span>${roleTag(v.role)}</span></div>`).join("")}</div>`;
+        return { icon: w[0], title: w[1], sub };
+      },
+    });
+  </script>
+</body>
+</html>

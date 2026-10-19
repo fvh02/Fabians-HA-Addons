@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Filmoji</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <style>
+    .wrap { max-width: 520px; margin: 0 auto; padding: 14px 12px 22px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; animation: rise .5s ease both; }
+    .bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 18px; }
+    .bar .title { font-weight: 850; font-size: 1.25rem; background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .bar .spacer { flex: 1; }
+    .bar .home { padding: 5px 10px; font-size: .85rem; }
+    .icon { border: 1px solid var(--glass-border); background: var(--glass-strong); border-radius: 12px; width: 38px; height: 38px; display: grid; place-items: center; font-size: 1.05rem; }
+
+    .hud { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 18px; }
+    .lives { font-size: 1.35rem; letter-spacing: .1em; }
+    .lives .gone { filter: grayscale(1); opacity: .3; }
+    .lives .lost { animation: lose .6s ease both; }
+    @keyframes lose { 30% { transform: scale(1.5); } 100% { transform: scale(1); filter: grayscale(1); opacity: .3; } }
+    .num { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+    .num b { font-size: 1.35rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+    .num span { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+    .num b.pop { animation: pop .5s ease; }
+    @keyframes pop { 40% { transform: scale(1.35); color: var(--ok); } }
+
+    .film { border-radius: 26px; padding: 22px 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+    .fcount { font-size: .78rem; font-weight: 750; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .emojis { font-size: clamp(2.8rem, 15vw, 4.4rem); line-height: 1.15; letter-spacing: .06em; word-break: break-word; animation: popin .5s cubic-bezier(.2,.9,.3,1.3) both; }
+    .hints { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .hint { font-size: .85rem; padding: 7px 12px; border-radius: 999px; }
+    .shown { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .chip { padding: 6px 14px; border-radius: 999px; background: var(--glass-strong); border: 1px solid var(--glass-border); font-weight: 700; animation: popin .4s ease both; }
+    .chip.mask { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; font-size: 1.05rem; white-space: pre-wrap; }
+    .tries { display: flex; gap: 6px; justify-content: center; }
+    .tries i { width: 10px; height: 10px; border-radius: 50%; background: var(--glass-strong); border: 1px solid var(--glass-border); }
+    .tries i.used { background: var(--danger); border-color: transparent; }
+    form.guess { display: flex; gap: 8px; width: 100%; }
+    form.guess input { flex: 1; min-width: 0; }
+    form.guess.shake { animation: shake .45s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+    .giveup { font-size: .85rem; }
+    .result { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .result .tt { font-size: 1.5rem; font-weight: 850; line-height: 1.2;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .result .yr { color: var(--muted); font-weight: 650; }
+    .result .gain { font-weight: 850; font-size: 1.1rem; color: var(--ok); }
+    .result .miss { font-weight: 750; color: var(--danger); }
+    .overlay .panel { max-width: 400px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+    .stats div { display: flex; flex-direction: column; align-items: center; }
+    .stats b { font-size: 1.7rem; font-weight: 850; }
+    .stats span { font-size: .7rem; color: var(--muted); text-align: center; line-height: 1.2; }
+    .help p { color: var(--muted); text-align: left; line-height: 1.5; margin: 8px 0; }
+    .solved { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; max-height: 160px; overflow: auto; }
+    .solved span { font-size: 1.2rem; padding: 4px 8px; border-radius: 10px; background: var(--glass-strong); }
+    .toast { bottom: auto; top: calc(86px + env(safe-area-inset-top)); transform: translateX(-50%) translateY(-12px); }
+    .toast.show { transform: translateX(-50%); }
+    /* ---------- one screen, no scrolling: the film card fills the screen, content centred ---------- */
+    .wrap { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; gap: clamp(8px, 1.5vh, 12px); padding-top: clamp(8px, 1.6vh, 14px); padding-bottom: clamp(10px, 2vh, 22px); }
+    .wrap > .bar, .wrap > .hud { flex: none; }
+    .wrap > .film { flex: 1 1 auto; min-height: 0; justify-content: center; gap: clamp(10px, 2vh, 18px); overflow: hidden; }
+    .emojis { font-size: clamp(2.6rem, min(15vw, 9vh), 4.4rem); }
+    .overlay .panel { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    @media (max-height: 700px) {
+      .help p { margin: 5px 0; line-height: 1.4; font-size: .92rem; }
+      .help .artwrap { height: 72px !important; }
+      .overlay h3 { margin: 2px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="backdrop"><i></i><i></i><i></i><i></i></div>
+  <main class="wrap">
+    <div class="bar glass">
+      <a class="home" href="../">← Spiele</a>
+      <span class="spacer"></span><span class="title">Filmoji</span><span class="spacer"></span>
+      <button class="icon" id="helpBtn" title="Spielregeln">?</button>
+      <button class="icon" id="statsBtn" title="Statistik">📊</button>
+    </div>
+    <div class="hud glass">
+      <span class="lives" id="lives"></span>
+      <div class="num"><b id="score">0</b><span>Punkte</span></div>
+      <div class="num"><b id="streak">0</b><span>🔥 Serie</span></div>
+    </div>
+    <section class="film glass" id="card">
+      <p style="color:var(--muted)">Filme werden geladen …</p>
+    </section>
+  </main>
+
+  <div class="overlay hidden" id="endBox">
+    <div class="panel glass">
+      <div class="trophy" id="endIcon">🎬</div>
+      <h3 id="endTitle">Abspann!</h3>
+      <div class="stats" id="endStats"></div>
+      <div class="solved" id="endSolved"></div>
+      <div class="row" style="justify-content:center;margin-top:14px">
+        <button class="btn" id="againBtn">Nochmal spielen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="statsBox">
+    <div class="panel glass">
+      <h3 style="font-size:1.4rem">Deine Statistik</h3>
+      <div class="stats" id="allStats"></div>
+      <button class="btn" id="closeStats">Schließen</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="helpBox">
+    <div class="panel glass help">
+      <div class="fan artwrap" data-art="filmoji" style="height:96px"></div>
+      <h3 style="font-size:1.4rem">So geht's</h3>
+      <p>Welcher Film steckt hinter den Emojis? Tippe den Titel ein – deutsch oder im Original. Groß- und Kleinschreibung, Artikel und kleine Tippfehler sind egal.</p>
+      <p>Pro Film hast du <b>3 Versuche</b>. Richtig geraten gibt <b>3 Punkte</b>, ab einer Serie von 3 Filmen einen Bonuspunkt.</p>
+      <p><b>💡 Tipps</b> zeigen das Erscheinungsjahr oder die Anfangsbuchstaben – jeder Tipp kostet einen Punkt.</p>
+      <p>Wer aufgibt oder dreimal danebenliegt, verliert ein ❤️. Mit drei Herzen ist Schluss – schaffst du einen neuen Rekord?</p>
+      <button class="btn" id="closeHelp">Los geht's</button>
+    </div>
+  </div>
+  <div class="confetti" id="confetti"></div>
+  <div class="toast glass" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const esc = s => Shell.esc(s);
+    const store = Shell.store;
+    const LIVES = 3, TRIES = 3, BASE = 3;
+    const load = (k, d) => { try { return JSON.parse(store.get(k)) ?? d; } catch { return d; } };
+    const save = (k, v) => store.set(k, JSON.stringify(v));
+
+    let films = [], run = null, busy = false;
+    let stats = load("filmoji-stats", { games: 0, best: 0, solved: 0, bestStreak: 0 });
+
+    async function api(path, body) {
+      const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      return res.json();
+    }
+
+    // Films not seen for the longest time come first, so you rarely get one twice.
+    function pick() {
+      const seen = load("filmoji-seen", []);
+      const fresh = films.filter(f => !seen.includes(f.id) && !run.done.some(d => d.id === f.id));
+      const pool = fresh.length ? fresh : films.filter(f => !run.done.some(d => d.id === f.id));
+      const list = pool.length ? pool : films;
+      const film = list[Math.random() * list.length | 0];
+      const next = [...seen.filter(id => id !== film.id), film.id];
+      save("filmoji-seen", next.length >= films.length ? [film.id] : next);
+      return film.id;
+    }
+
+    function newRun() {
+      run = { lives: LIVES, score: 0, streak: 0, done: [], cur: null };
+      next();
+    }
+    function next() {
+      run.cur = { id: pick(), tries: 0, hints: [], state: "play", wrong: [] };
+      persist(); render(true);
+    }
+    const persist = () => save("filmoji-run", run);
+    const film = () => films.find(f => f.id === run.cur.id);
+
+    function hud(lostIndex = -1) {
+      $("lives").innerHTML = Array.from({ length: LIVES }, (_, i) =>
+        `<span class="${i >= run.lives ? (i === lostIndex ? "lost" : "gone") : ""}">❤️</span>`).join("");
+      $("score").textContent = run.score;
+      $("streak").textContent = run.streak;
+    }
+
+    function render(fresh) {
+      const f = film(), c = run.cur;
+      hud();
+      const hints = c.hints.map(h => h === "y" ? `<span class="chip">📅 ${f.y}</span>` : `<span class="chip mask">${esc(f.m)}</span>`).join("");
+      const head = `<span class="fcount">Film ${run.done.length + 1}</span><div class="emojis" ${fresh ? "" : 'style="animation:none"'}>${f.e}</div>`;
+      if (c.state === "play") {
+        $("card").innerHTML = `${head}
+          <div class="shown">${hints}</div>
+          <div class="tries" title="Versuche">${Array.from({ length: TRIES }, (_, i) => `<i class="${i < c.tries ? "used" : ""}"></i>`).join("")}</div>
+          <form class="guess" id="guess" autocomplete="off">
+            <input name="v" maxlength="120" placeholder="Filmtitel" enterkeyhint="send" autocapitalize="words" required>
+            <button class="btn">Raten</button>
+          </form>
+          <div class="hints">
+            ${c.hints.includes("y") ? "" : '<button class="btn ghost hint" data-hint="y">💡 Jahr (−1)</button>'}
+            ${c.hints.includes("m") ? "" : '<button class="btn ghost hint" data-hint="m">🔤 Buchstaben (−1)</button>'}
+          </div>
+          <button class="btn ghost small giveup" id="giveup">Aufgeben (kostet ein ❤️)</button>`;
+        $("guess").onsubmit = e => { e.preventDefault(); guess($("guess").v.value.trim()); };
+        document.querySelectorAll("[data-hint]").forEach(b => b.onclick = () => { c.hints.push(b.dataset.hint); persist(); render(false); });
+        $("giveup").onclick = () => { if (confirm("Wirklich aufgeben? Du verlierst ein Herz.")) reveal(); };
+        if (matchMedia("(pointer: fine)").matches) $("guess").v.focus();
+      } else {
+        const won = c.state === "won";
+        $("card").innerHTML = `${head}
+          <div class="result">
+            <span class="tt">${esc(c.title || "")}</span><span class="yr">${f.y}</span>
+            ${won ? `<span class="gain">+${c.points} ${c.points === 1 ? "Punkt" : "Punkte"}${c.bonus ? " (inkl. 🔥 Bonus)" : ""}</span>`
+                  : `<span class="miss">${run.lives ? "Ein Herz weniger 💔" : "Das war dein letztes Herz 💔"}</span>`}
+          </div>
+          <button class="btn" id="nextBtn">${run.lives ? "Nächster Film →" : "Zum Abspann 🎬"}</button>`;
+        $("nextBtn").onclick = () => run.lives ? next() : end();
+        $("nextBtn").focus();
+      }
+    }
+
+    async function guess(text) {
+      if (!text || busy) return;
+      busy = true;
+      try {
+        const c = run.cur, r = await api("pruefen", { id: c.id, guess: text });
+        if (r.ok) {
+          c.title = r.title;
+          c.state = "won";
+          run.streak += 1;
+          c.bonus = run.streak >= 3 ? 1 : 0;
+          c.points = Math.max(1, BASE - c.hints.length) + c.bonus;
+          run.score += c.points;
+          run.done.push({ id: c.id, ok: true });
+          stats.solved += 1;
+          stats.bestStreak = Math.max(stats.bestStreak, run.streak);
+          save("filmoji-stats", stats);
+          persist(); render(false);
+          $("score").classList.remove("pop"); void $("score").offsetWidth; $("score").classList.add("pop");
+          if (run.streak % 5 === 0 || !c.hints.length) Shell.confetti();
+        } else {
+          c.tries += 1;
+          c.wrong.push(text);
+          if (c.tries >= TRIES) { await reveal(); return; }
+          persist(); render(false);
+          Shell.toast(`„${text}“ ist es nicht – noch ${TRIES - c.tries} ${TRIES - c.tries === 1 ? "Versuch" : "Versuche"}`);
+          $("guess").classList.add("shake");
+        }
+      } catch {
+        Shell.toast("Keine Verbindung – bitte nochmal versuchen");
+      } finally {
+        busy = false;
+      }
+    }
+
+    async function reveal() {
+      const c = run.cur;
+      try { c.title = (await api("loesung", { id: c.id })).title; } catch { c.title = "?"; }
+      c.state = "lost";
+      run.streak = 0;
+      run.lives -= 1;
+      run.done.push({ id: c.id, ok: false });
+      persist(); render(false); hud(run.lives);
+    }
+
+    function end() {
+      stats.games += 1;
+      const record = run.score > stats.best;
+      stats.best = Math.max(stats.best, run.score);
+      save("filmoji-stats", stats);
+      const solved = run.done.filter(d => d.ok);
+      $("endIcon").textContent = record && run.score ? "🏆" : "🎬";
+      $("endTitle").textContent = record && run.score ? "Neuer Rekord!" : "Abspann!";
+      $("endStats").innerHTML = `<div><b>${run.score}</b><span>Punkte</span></div><div><b>${solved.length}</b><span>Filme erraten</span></div><div><b>${stats.best}</b><span>Rekord</span></div>`;
+      $("endSolved").innerHTML = solved.map(d => `<span title="">${(films.find(f => f.id === d.id) || {}).e || ""}</span>`).join("");
+      $("endBox").classList.remove("hidden");
+      if (record && run.score) Shell.confetti();
+      run = null;
+      store.set("filmoji-run", "");
+    }
+
+    $("againBtn").onclick = () => { $("endBox").classList.add("hidden"); newRun(); };
+    $("helpBtn").onclick = () => $("helpBox").classList.remove("hidden");
+    $("closeHelp").onclick = () => { $("helpBox").classList.add("hidden"); store.set("filmoji-help", "1"); };
+    $("statsBtn").onclick = () => {
+      $("allStats").innerHTML = `<div><b>${stats.games}</b><span>Spiele</span></div><div><b>${stats.best}</b><span>Rekord</span></div>
+        <div><b>${stats.solved}</b><span>Filme erraten</span></div><div><b>${stats.bestStreak}</b><span>Längste Serie</span></div>
+        <div><b>${films.length}</b><span>Filme insgesamt</span></div>`;
+      $("statsBox").classList.remove("hidden");
+    };
+    $("closeStats").onclick = () => $("statsBox").classList.add("hidden");
+
+    api("filme.json").then(list => {
+      films = list;
+      const saved = load("filmoji-run", null);
+      if (saved && saved.cur && films.some(f => f.id === saved.cur.id)) { run = saved; render(true); }   // carry on after a reload
+      else newRun();
+      if (!store.get("filmoji-help")) $("helpBox").classList.remove("hidden");
+    }).catch(() => { $("card").innerHTML = "<p>Die Filme konnten nicht geladen werden. Bitte Seite neu laden.</p>"; });
+  </script>
+</body>
+</html>

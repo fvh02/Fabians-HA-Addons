@@ -1,0 +1,34 @@
+name: Fabians-HA-Gedächtnis
+version: "0.1.0"
+slug: gedaechtnis
+description: Langzeitgedächtnis für den Assistenten und deine Add-ons – ein Obsidian-Vault, den Claude pflegt
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-gedaechtnis
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+map:
+  - share:rw
+ingress: true
+ingress_port: 8101
+panel_icon: mdi:brain
+panel_title: Gedächtnis
+options:
+  vault_dir: /share/brain-vault
+  claude_model: ""
+  batch_seconds: 20
+  batch_size: 10
+  consolidate_hour: 3
+  max_facts: 30
+  events_compress_days: 60
+schema:
+  vault_dir: str
+  claude_model: str?
+  batch_seconds: int(0,600)
+  batch_size: int(1,30)
+  consolidate_hour: int(0,23)
+  max_facts: int(10,200)
+  events_compress_days: int(14,3650)

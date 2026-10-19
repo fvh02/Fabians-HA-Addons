@@ -1,0 +1,23 @@
+name: Fabians-HA-Spieleabend
+version: "3.6.0"
+slug: spieleabend
+description: 27 Spiele für den Spieleabend im Browser – Karten-, Zeichen-, Wort-, Quiz-, Party- und Trinkspiele, viele mit Fernseher-Modus
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-spieleabend
+arch:
+  - aarch64
+  - amd64
+  - armv7
+init: false
+ingress: true
+ingress_port: 8098
+panel_icon: mdi:cards-playing
+panel_title: Spieleabend
+ports:
+  8098/tcp: 8098
+ports_description:
+  8098/tcp: Spiele für Mitspieler ohne Home-Assistant-Zugang (Heimnetz oder Tunnel)
+options:
+  theme: dark
+schema:
+  theme: list(dark|light)

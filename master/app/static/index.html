@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fabians-HA-Master</title>
+<style>
+:root{--bg:#0f1218;--card:#181c25;--line:#2a3040;--text:#e8ebf2;--muted:#9aa3b5;--accent:#5b8cff;--ok:#3fbf7f;--warn:#e0a83a;--bad:#e05d5d;--input:#11151d}
+@media (prefers-color-scheme: light){:root{--bg:#f3f5f9;--card:#fff;--line:#dde2ec;--text:#1a1f2b;--muted:#5d6678;--accent:#2f62e0;--input:#f7f8fb}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 110px}
+h1{font-size:24px;margin:4px 0 2px}
+h2{font-size:16px;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.tool{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:10px}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
+.dot.started{background:var(--ok)}.dot.stopped,.dot.error{background:var(--warn)}.dot.none{background:transparent;border:2px solid var(--line)}
+.tool b{display:block;font-size:14px}.tool small{color:var(--muted);display:block}
+.tool .miss{color:var(--warn)}
+.field{display:grid;grid-template-columns:200px 1fr;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.field:first-of-type{border-top:0}
+.field label{font-weight:600;padding-top:8px}
+.field .help{grid-column:2;color:var(--muted);font-size:13px}
+.field .uses{grid-column:2;font-size:12px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center}
+input{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--input);color:var(--text);font:inherit}
+input:focus{outline:2px solid var(--accent);border-color:transparent}
+button{font:inherit;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.link{border:0;background:none;color:var(--muted);padding:4px;font-size:13px;text-decoration:underline}
+button:disabled{opacity:.5;cursor:default}
+.badge{font-size:12px;color:var(--ok);white-space:nowrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px}
+.bar div{max-width:860px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between}
+#msg{color:var(--muted);font-size:14px}
+#msg.ok{color:var(--ok)}#msg.bad{color:var(--bad)}
+@media (max-width:620px){.field{grid-template-columns:1fr}.field .help,.field .uses{grid-column:1}.field label{padding-top:0}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Fabians-HA-Master</h1>
+  <p class="sub">Alle Schlüssel an einem Ort. Die anderen Add-ons holen sich hier, was sie brauchen – dort musst du nichts mehr eintragen.</p>
+
+  <section class="card">
+    <h2>Add-ons</h2>
+    <div class="tools" id="tools"></div>
+  </section>
+
+  <section class="card">
+    <h2>Schnellstart</h2>
+    <p class="sub" style="margin-bottom:12px">Hast du noch die alten Add-ons installiert? Dann übernimm ihre Schlüssel mit einem Klick (nur leere Felder werden gefüllt).</p>
+    <div class="actions">
+      <button id="import">Schlüssel aus den alten Add-ons übernehmen</button>
+      <button id="testMsg">Test-iMessage senden</button>
+      <button id="testClaude">Claude testen</button>
+    </div>
+  </section>
+
+  <form id="form"></form>
+</main>
+<div class="bar"><div><span id="msg">Gespeicherte Schlüssel werden nie wieder angezeigt.</span><button class="primary" id="save" disabled>Speichern</button></div></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const form = $("#form"), msg = $("#msg"), save = $("#save");
+let cleared = new Set();
+
+function say(text, kind = "") { msg.textContent = text; msg.className = kind; }
+
+async function api(path, body) {
+  const res = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Fehler " + res.status);
+  return data;
+}
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === "text" ? e.textContent = v : e.setAttribute(k, v);
+  e.append(...kids);
+  return e;
+}
+
+function render(state) {
+  const tools = $("#tools"); tools.replaceChildren();
+  for (const t of state.tools) {
+    const status = !t.installed ? "nicht installiert" : t.state === "started" ? "läuft" : "gestoppt";
+    const info = el("div", {}, el("b", {text: t.title}), el("small", {text: status + (t.version ? " · " + t.version : "")}));
+    if (t.installed && t.missing.length) info.append(el("small", {class: "miss", text: "Fehlt: " + t.missing.join(", ")}));
+    tools.append(el("div", {class: "tool"}, el("span", {class: "dot " + (t.installed ? t.state : "none")}), info));
+  }
+  form.replaceChildren(); cleared = new Set();
+  for (const g of state.groups) {
+    const card = el("section", {class: "card"}, el("h2", {text: g.title}));
+    for (const f of g.fields) {
+      const input = el("input", {name: f.key, autocomplete: "off", spellcheck: "false",
+        type: f.secret ? "password" : "text", placeholder: f.secret ? (f.masked || "nicht gesetzt") : "nicht gesetzt"});
+      if (!f.secret) input.value = f.value;
+      input.dataset.orig = f.secret ? "" : f.value;
+      const row = el("div", {class: "row"}, input);
+      if (f.set) {
+        row.append(el("span", {class: "badge", text: "✓ gesetzt"}));
+        const del = el("button", {type: "button", class: "link", text: "löschen"});
+        del.onclick = () => { cleared.add(f.key); input.value = ""; input.placeholder = "wird gelöscht"; dirty(); };
+        row.append(del);
+      }
+      input.oninput = dirty;
+      card.append(el("div", {class: "field"}, el("label", {for: f.key, text: f.label}), row,
+        ...(f.help ? [el("div", {class: "help", text: f.help})] : []),
+        el("div", {class: "uses", text: "Für: " + f.tools.join(", ")})));
+      input.id = f.key;
+    }
+    form.append(card);
+  }
+  save.disabled = true;
+}
+
+function changes() {
+  const out = {};
+  for (const input of form.querySelectorAll("input")) {
+    if (cleared.has(input.name)) out[input.name] = "";
+    else if (input.type === "password" ? input.value.trim() : input.value.trim() !== input.dataset.orig) out[input.name] = input.value.trim();
+  }
+  return out;
+}
+function dirty() { save.disabled = !Object.keys(changes()).length; }
+
+function after(data, prefix) {
+  render(data);
+  const parts = [prefix];
+  if (data.restarted && data.restarted.length) parts.push("Neu gestartet: " + data.restarted.join(", ") + ".");
+  say(parts.join(" "), "ok");
+}
+
+save.onclick = async () => {
+  save.disabled = true;
+  try { const data = await api("ui/keys", changes()); after(data, data.changed ? "Gespeichert." : "Nichts geändert."); }
+  catch (e) { say(e.message, "bad"); dirty(); }
+};
+form.onsubmit = e => { e.preventDefault(); if (!save.disabled) save.click(); };
+
+$("#import").onclick = async () => {
+  say("Suche alte Add-ons …");
+  try {
+    const data = await api("ui/import", {});
+    if (!data.sources.length) { render(data); say("Keine alten Add-ons gefunden."); return; }
+    after(data, data.imported.length ? "Übernommen: " + data.imported.join(", ") + " (aus " + data.sources.join(", ") + ")."
+                                     : "Nichts Neues in " + data.sources.join(", ") + " – alles schon eingetragen.");
+  } catch (e) { say(e.message, "bad"); }
+};
+for (const [id, what] of [["#testMsg", "imessage"], ["#testClaude", "claude"]]) {
+  $(id).onclick = async () => {
+    say(what === "claude" ? "Frage Claude …" : "Sende …");
+    try { const r = await api("ui/test", {what}); say(r.message, r.ok ? "ok" : "bad"); } catch (e) { say(e.message, "bad"); }
+  };
+}
+
+api("ui/state").then(render).catch(e => say(e.message, "bad"));
+</script>
+</body>
+</html>

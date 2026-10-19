@@ -1,0 +1,22 @@
+name: Fabians-HA-Urlaub
+version: "1.0.0"
+slug: urlaub
+description: Urlaub gemeinsam planen – Unterkünfte vergleichen, Geheimtipps in der Nähe finden und Kassenzettel automatisch aufteilen
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-urlaub
+arch:
+  - aarch64
+  - amd64
+init: false
+ingress: true
+ingress_port: 8100
+panel_icon: mdi:island
+panel_title: Urlaub
+ports:
+  8100/tcp: 8100
+ports_description:
+  8100/tcp: Urlaubsplaner für Mitreisende ohne Home-Assistant-Zugang (Heimnetz oder Tunnel)
+options:
+  model: claude-opus-5-5
+schema:
+  model: str

@@ -1,0 +1,43 @@
+"""Locations for Spion: (name, emoji, roles). Every non-spy gets the location and one fitting role."""
+
+LOCATIONS = [
+    ("Krankenhaus", "🏥", ["Ärztin", "Patient", "Krankenpfleger", "Chirurgin", "Besucher", "Hausmeister", "Sanitäterin"]),
+    ("Schule", "🏫", ["Lehrerin", "Schüler", "Hausmeister", "Direktorin", "Sekretär", "Referendarin", "Elternsprecher"]),
+    ("Flugzeug", "✈️", ["Pilotin", "Copilot", "Flugbegleiter", "Passagierin", "Mechaniker", "Urlauberin", "Geschäftsmann"]),
+    ("Bäckerei", "🥐", ["Bäckerin", "Verkäufer", "Kundin", "Lehrling", "Lieferfahrer", "Konditorin"]),
+    ("Zoo", "🦁", ["Tierpflegerin", "Tierarzt", "Besucherin", "Schulkind", "Fotograf", "Kassiererin", "Zoodirektor"]),
+    ("Kino", "🎬", ["Filmvorführer", "Kassiererin", "Zuschauer", "Popcornverkäuferin", "Platzanweiser", "Filmkritikerin"]),
+    ("Strand", "🏖️", ["Rettungsschwimmerin", "Eisverkäufer", "Surferin", "Tourist", "Kind mit Sandeimer", "Strandkorbvermieter"]),
+    ("Supermarkt", "🛒", ["Kassierer", "Filialleiterin", "Kunde", "Regalauffüllerin", "Metzger an der Theke", "Ladendetektivin"]),
+    ("Bahnhof", "🚉", ["Lokführer", "Zugbegleiterin", "Reisender", "Kioskverkäuferin", "Bahnhofsvorsteher", "Pendlerin"]),
+    ("Polizeiwache", "🚓", ["Kommissarin", "Polizist", "Anwältin", "Zeuge", "Journalistin", "Verdächtiger"]),
+    ("Restaurant", "🍝", ["Koch", "Kellnerin", "Gast", "Sommelière", "Tellerwäscher", "Restaurantkritikerin"]),
+    ("Zirkus", "🎪", ["Clown", "Akrobatin", "Zauberer", "Dompteurin", "Zuschauer", "Jongleurin", "Zirkusdirektor"]),
+    ("Piratenschiff", "🏴‍☠️", ["Kapitän", "Steuerfrau", "Schiffskoch", "Matrose", "Gefangene", "Kanonier", "Ausguck im Mastkorb"]),
+    ("Raumstation", "🚀", ["Kommandantin", "Astronaut", "Ingenieurin", "Wissenschaftler", "Weltraumtouristin", "Bordärztin"]),
+    ("Freizeitpark", "🎢", ["Besucherin", "Achterbahn-Mitarbeiter", "Maskottchen im Kostüm", "Zuckerwatteverkäuferin", "Techniker", "Kind"]),
+    ("Bibliothek", "📚", ["Bibliothekarin", "Student", "Autorin", "Leser", "Schülerin", "Archivar"]),
+    ("Fußballstadion", "⚽", ["Schiedsrichterin", "Stürmer", "Torwart", "Trainerin", "Fan", "Stadionsprecher", "Ordnerin"]),
+    ("Bauernhof", "🚜", ["Bäuerin", "Landwirt", "Tierärztin", "Erntehelfer", "Hofladen-Verkäuferin", "Ferienkind"]),
+    ("Hotel", "🏨", ["Rezeptionistin", "Page", "Zimmerservice", "Gast", "Hoteldirektorin", "Concierge", "Koch"]),
+    ("Feuerwache", "🚒", ["Feuerwehrfrau", "Feuerwehrmann", "Einsatzleiter", "Maschinistin", "Besucher beim Tag der offenen Tür", "Feuerwehrhund"]),
+    ("Museum", "🏛️", ["Museumsführerin", "Wachmann", "Restauratorin", "Besucher", "Kunsthistorikerin", "Lehrer mit Schulklasse"]),
+    ("Friseursalon", "💇", ["Friseurin", "Kunde", "Auszubildende", "Salonchef", "Kundin mit Lockenwicklern", "Visagist"]),
+    ("Schwimmbad", "🏊", ["Bademeister", "Schwimmerin", "Kind mit Schwimmflügeln", "Kioskverkäufer", "Turmspringerin", "Schwimmlehrer"]),
+    ("Bank", "🏦", ["Bankberaterin", "Kassierer", "Filialleiterin", "Kunde", "Sicherheitsmann", "Auszubildende"]),
+    ("Kreuzfahrtschiff", "🛳️", ["Kapitänin", "Kellner", "Passagierin", "Entertainer", "Bordarzt", "Rentnerin auf Weltreise"]),
+    ("Campingplatz", "⛺", ["Platzwart", "Camperin", "Pfadfinder", "Wohnmobilfahrerin", "Grillmeister", "Kind"]),
+    ("Hochzeit", "💒", ["Braut", "Bräutigam", "Trauzeugin", "Standesbeamter", "Fotografin", "Gast", "Hochzeitsplanerin"]),
+    ("Weihnachtsmarkt", "🎄", ["Maronenverkäuferin", "Besucher", "Weihnachtsmann", "Karussellbetreiber", "Kunsthandwerkerin", "Kind"]),
+    ("Tankstelle", "⛽", ["Kassiererin", "Lkw-Fahrer", "Autofahrerin", "Motorradfahrer", "Mitarbeiterin der Waschanlage", "Pächter"]),
+    ("Theater", "🎭", ["Schauspielerin", "Regisseur", "Souffleuse", "Zuschauer", "Bühnenbildnerin", "Beleuchter"]),
+    ("U-Boot", "🌊", ["Kapitän", "Sonartechnikerin", "Smutje", "Matrose", "Funkerin", "Ingenieur"]),
+    ("Ritterburg", "🏰", ["König", "Königin", "Ritter", "Hofnarr", "Burgköchin", "Wache am Tor"]),
+    ("Forschungsstation in der Antarktis", "🐧", ["Forscherin", "Koch", "Pilot", "Ärztin", "Meteorologe", "Tierfotografin"]),
+    ("Baustelle", "🏗️", ["Polier", "Kranführerin", "Maurer", "Architektin", "Elektriker", "Bauherrin"]),
+    ("Zahnarztpraxis", "🦷", ["Zahnärztin", "Patient", "Zahnmedizinischer Fachangestellter", "Kind mit Wackelzahn", "Kieferorthopädin", "Empfangskraft"]),
+    ("Geburtstagsparty", "🎂", ["Geburtstagskind", "Gast", "Zauberkünstler", "Oma", "Nachbarin", "Tortenbäcker"]),
+]
+
+NAMES = [name for name, _, _ in LOCATIONS]
+BY_NAME = {name: (emoji, roles) for name, emoji, roles in LOCATIONS}

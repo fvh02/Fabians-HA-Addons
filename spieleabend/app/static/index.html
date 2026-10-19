@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Spieleabend</title>
+  <link rel="stylesheet" href="static/common.css">
+  <script src="static/art.js"></script>
+  <style>
+    .hub { max-width: 1140px; margin: 0 auto; padding: 48px 16px 56px; animation: rise .5s ease both; }
+    .hub header { text-align: center; margin-bottom: 36px; }
+    .hub h1 {
+      margin: 0; font-size: clamp(2.4rem, 7vw, 3.4rem); font-weight: 850; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hub header p { color: var(--muted); margin: 8px 0 0; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .tile {
+      display: flex; flex-direction: column; gap: 14px; padding: 26px 22px 22px; border-radius: 28px;
+      color: var(--text); text-decoration: none; position: relative; overflow: hidden;
+      transition: transform .25s cubic-bezier(.3,.9,.3,1.3), box-shadow .25s;
+    }
+    .tile:hover { transform: translateY(-6px); box-shadow: 0 18px 50px color-mix(in srgb, var(--accent) 30%, transparent); }
+    .tile .fan { height: 110px; justify-content: center; --cw: 58px; }
+    .tile:hover .fan .card:nth-child(1) { transform: rotate(-26deg) translateX(-8px); }
+    .tile:hover .fan .card:nth-child(4) { transform: rotate(26deg) translateX(8px); }
+    .tile .fan .card { transition: transform .35s cubic-bezier(.3,.9,.3,1.3); }
+    .tile h2 { margin: 0; font-size: 1.6rem; letter-spacing: -.02em; }
+    .tile p { margin: 0; color: var(--muted); line-height: 1.45; }
+    .tile .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tile .play { margin-top: auto; align-self: flex-start; }
+    .tile .live { font-size: .8rem; font-weight: 700; color: var(--ok); }
+    /* card faces used in the illustrations */
+    .card.b { --c1: #60a5fa; --c2: #4338ca; } .card.gr { --c1: #34d399; --c2: #047857; } .card.rd { --c1: #fb7185; --c2: #be123c; }
+    .card.am { --c1: #fcd34d; --c2: #b45309; } .card.vi { --c1: #a78bfa; --c2: #4c1d95; } .card.cy { --c1: #67e8f9; --c2: #0e7490; }
+    .card.jk .front { background: linear-gradient(145deg, #fb923c 0%, #ec4899 55%, #8b5cf6 100%); }
+    .card.jk .v { background: none; color: #fff; font-size: calc(var(--w) * .22); text-align: center; line-height: 1.05; }
+    .card.jk .v b { display: block; font-size: 1.5em; }
+    .card .v.neg { font-size: calc(var(--w) * .44); }
+    .card.k1 { --c1: #f472b6; --c2: #9d174d; } .card.k2 { --c1: #60a5fa; --c2: #1e40af; }
+    .card.k3 { --c1: #34d399; --c2: #065f46; } .card.k4 { --c1: #fbbf24; --c2: #92400e; }
+    .install { margin: -14px 0 22px; padding: 14px 44px 14px 18px; border-radius: 18px; position: relative; color: var(--muted); line-height: 1.45; }
+    .install b { color: var(--text); }
+    .install .x { position: absolute; top: 8px; right: 8px; }
+    .card.fr .front { background: linear-gradient(150deg, var(--c1), var(--c2)); border-color: rgba(255,255,255,.55); }
+    .card.fr .front::after { inset: 13% 9%; border-radius: 50%; transform: rotate(-28deg); background: rgba(255,255,255,.94); }
+    .card.fr .v { font-size: calc(var(--w) * .42); filter: none; }
+    .card.fr .v.sym { font-size: calc(var(--w) * .46); } .card.fr .v.small { font-size: calc(var(--w) * .34); letter-spacing: -.06em; }
+    .card.fr .tl, .card.fr .br { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35); font-size: calc(var(--w) * .17); }
+    .card.cr { --c1: #fb7185; --c2: #be123c; } .card.cy { --c1: #fcd34d; --c2: #d97706; } .card.cg { --c1: #4ade80; --c2: #15803d; }
+    .card.cw .front { background: linear-gradient(150deg, #312e81, #0f0a1e); }
+    .card.cw .front::after { background: conic-gradient(from 0deg, #f43f5e 0 25%, #facc15 0 50%, #22c55e 0 75%, #3b82f6 0); }
+    .card.cw .v { background: none; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.55); }
+    .card.s1 { --c1: #f472b6; --c2: #9d174d; } .card.s2 { --c1: #60a5fa; --c2: #1e40af; }
+    .card.s3 { --c1: #34d399; --c2: #065f46; } .card.s4 { --c1: #fbbf24; --c2: #92400e; }
+    .card.wg { --c1: #34d399; --c2: #047857; } .card.wy { --c1: #fbbf24; --c2: #b45309; } .card.wx { --c1: #9ca3af; --c2: #374151; }
+    .card.wg .front, .card.wy .front, .card.wx .front { background: linear-gradient(150deg, var(--c1), var(--c2)); }
+    .card.wg .v, .card.wy .v, .card.wx .v { background: none; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.25); }
+    .card.ga { --c1: #a78bfa; --c2: #5b21b6; } .card.gb { --c1: #f472b6; --c2: #9d174d; } .card.gc { --c1: #60a5fa; --c2: #1e40af; } .card.gd { --c1: #34d399; --c2: #065f46; }
+    .card.crd .front { place-content: center; } .card.red { --c1: #f43f5e; --c2: #9f1239; } .card.black { --c1: #475569; --c2: #0f172a; }
+    .card.ia { --c1: #f87171; --c2: #991b1b; } .card.ib { --c1: #60a5fa; --c2: #1e40af; } .card.ic { --c1: #a78bfa; --c2: #5b21b6; } .card.id { --c1: #34d399; --c2: #065f46; }
+    .tile .fan.artwrap { height: 120px; display: block; width: 100%; max-width: 250px; margin: 0 auto; }
+    .tile:hover .art { transform: scale(1.04) rotate(-1deg); }
+    .tile .art { transition: transform .35s cubic-bezier(.3,.9,.3,1.3); }
+    .tag.tv { background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; border: 0; }
+    .joinbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: 560px; margin: -10px auto 14px; padding: 10px 10px 10px 18px; border-radius: 20px; }
+    .joinbar .jl { font-weight: 750; white-space: nowrap; }
+    .joinbar input { flex: 1; min-width: 120px; text-transform: uppercase; letter-spacing: .12em; font-weight: 750; padding: 11px 14px; }
+    .joinbar input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .joinbar .btn { padding: 11px 18px; }
+    .jerr { flex-basis: 100%; margin: 0; color: var(--danger); font-weight: 650; font-size: .9rem; }
+    @media (max-width: 420px) { .joinbar .jl { flex-basis: 100%; } }
+    .finder { border-radius: 24px; padding: 16px; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; }
+    .search { display: flex; align-items: center; gap: 10px; padding: 0 6px 0 14px; border-radius: 16px; background: var(--input); border: 1px solid var(--glass-border); }
+    .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .search input { flex: 1; min-width: 0; border: 0; background: none; box-shadow: none !important; padding: 13px 0; font-size: 1rem; }
+    .search input::-webkit-search-cancel-button { display: none; }
+    .selects { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .sel { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .sel span { font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-left: 4px; }
+    .sel select { width: 100%; padding: 10px 34px 10px 12px; border-radius: 14px; appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size: 6px 6px; background-repeat: no-repeat; font-weight: 650; font-size: .9rem; }
+    .sel select.on { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 16%, var(--input)); }
+    .fstate { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: var(--muted); min-height: 22px; }
+    .linkbtn { border: 0; background: none; color: var(--accent); font-weight: 700; padding: 0; }
+    .tile.out { display: none; }
+    .noresult { border-radius: 24px; padding: 30px; text-align: center; color: var(--muted); }
+    .noresult p { margin: 8px 0 14px; }
+    @media (max-width: 760px) { .selects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+  <style>
+    .hub header { position: relative; }
+    .toplink { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 16px; border-radius: 999px;
+               color: var(--text); text-decoration: none; font-weight: 700; font-size: .92rem; }
+    .toplink:hover { background: var(--glass-strong); }
+    .toplinks { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="backdrop"><i></i><i></i><i></i><i></i></div>
+  <main class="hub">
+    <header>
+      <h1>Spieleabend</h1>
+      <p>Wähle ein Spiel und lade deine Freunde ein.</p>
+      <div class="toplinks"><a class="toplink glass" href="bestenliste/">🏆 Bestenliste</a>
+        <a class="toplink glass" href="konto/" id="acctLink">🔑 Anmelden</a></div>
+    </header>
+    <div class="install glass hidden" id="install">
+      <b>Als App installieren:</b> <span id="installHow"></span>
+      <button class="x" id="installClose" aria-label="Schließen">×</button>
+    </div>
+    <form class="joinbar glass" id="joinbar" autocomplete="off">
+      <span class="jl">🎟️ Spiel beitreten</span>
+      <input id="joinCode" maxlength="4" placeholder="Code, z. B. KXAB" aria-label="Spielcode" autocapitalize="characters" enterkeyhint="go">
+      <button class="btn" id="joinBtn">Beitreten</button>
+      <p class="jerr" id="joinErr" hidden></p>
+    </form>
+    <div class="finder glass" id="finder">
+      <label class="search"><span aria-hidden="true">🔍</span><input id="q" type="search" placeholder="Spiel suchen, z. B. „Stapeljagd“" autocomplete="off"><button class="x" id="qClear" aria-label="Suche löschen" hidden>×</button></label>
+      <div class="selects">
+        <label class="sel"><span>Spieler</span><select data-filter="players">
+          <option value="">Alle</option><option value="1">Allein</option><option value="2">Zu zweit</option><option value="3-5">3–5 Spieler</option><option value="6-99">6 und mehr</option></select></label>
+        <label class="sel"><span>Art</span><select data-filter="type">
+          <option value="">Alle Arten</option><option value="karten">🃏 Kartenspiele</option><option value="zeichnen">✏️ Zeichnen</option><option value="woerter">🔤 Wörter</option>
+          <option value="quiz">🧠 Quiz</option><option value="party">🎉 Party</option><option value="trinken">🍻 Trinkspiele</option></select></label>
+        <label class="sel"><span>Dauer</span><select data-filter="dur">
+          <option value="">Egal</option><option value="0-10">Kurz · bis 10 Min.</option><option value="11-20">Mittel · 10–20 Min.</option><option value="21-999">Lang · über 20 Min.</option></select></label>
+        <label class="sel"><span>Extras</span><select data-filter="extra">
+          <option value="">Keine</option><option value="tv">📺 Mit Fernseher-Modus</option><option value="open">● Gerade offene Runden</option></select></label>
+      </div>
+      <div class="fstate"><span id="count"></span><button class="linkbtn" id="reset" hidden>Filter zurücksetzen</button></div>
+    </div>
+    <div class="tiles" id="tiles">
+      <a class="tile glass" href="stapeljagd/" data-min="2" data-max="6" data-dur="30" data-type="karten" data-tv="0" data-kind="stapeljagd" data-words="stapeljagd baut gemeinsam stapel von 1 bis 12 – wer seinen eigenen stapel zuerst los ist, gewinnt. karten stapel joker">
+        <div class="fan">
+          <div class="card b"><div class="inner"><div class="face front"><span class="tl">1</span><span class="v">1</span><span class="br">1</span></div><div class="face back"></div></div></div>
+          <div class="card gr"><div class="inner"><div class="face front"><span class="tl">5</span><span class="v">5</span><span class="br">5</span></div><div class="face back"></div></div></div>
+          <div class="card rd"><div class="inner"><div class="face front"><span class="tl">9</span><span class="v">9</span><span class="br">9</span></div><div class="face back"></div></div></div>
+          <div class="card jk"><div class="inner"><div class="face front"><span class="v"><b>★</b>JOKER</span></div><div class="face back"></div></div></div>
+        </div>
+        <h2>Stapeljagd</h2>
+        <p>Baut gemeinsam Stapel von 1 bis 12 – wer seinen eigenen Stapel zuerst los ist, gewinnt.</p>
+        <div class="meta"><span class="tag">2–6 Spieler</span><span class="tag">ca. 20–40 Min.</span><span class="tag">🃏 Kartenspiel</span><span class="live" id="live-stapeljagd"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="tiefpunkt/" data-min="2" data-max="8" data-dur="30" data-type="karten" data-tv="0" data-kind="tiefpunkt" data-words="tiefpunkt tausche und decke karten in deinem raster auf – am ende gewinnt, wer die wenigsten punkte hat. karten raster punkte">
+        <div class="fan">
+          <div class="card vi"><div class="inner"><div class="face front"><span class="tl">−2</span><span class="v neg">−2</span><span class="br">−2</span></div><div class="face back"></div></div></div>
+          <div class="card cy"><div class="inner"><div class="face front"><span class="tl">0</span><span class="v">0</span><span class="br">0</span></div><div class="face back"></div></div></div>
+          <div class="card am"><div class="inner"><div class="face front"><span class="tl">7</span><span class="v">7</span><span class="br">7</span></div><div class="face back"></div></div></div>
+          <div class="card rd"><div class="inner"><div class="face front"><span class="tl">12</span><span class="v">12</span><span class="br">12</span></div><div class="face back"></div></div></div>
+        </div>
+        <h2>Tiefpunkt</h2>
+        <p>Tausche und decke Karten in deinem Raster auf – am Ende gewinnt, wer die wenigsten Punkte hat.</p>
+        <div class="meta"><span class="tag">2–8 Spieler</span><span class="tag">ca. 30 Min.</span><span class="tag">🃏 Kartenspiel</span><span class="live" id="live-tiefpunkt"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="farbrausch/" data-min="2" data-max="10" data-dur="20" data-type="karten" data-tv="0" data-kind="farbrausch" data-words="farbrausch lege passende farben und zahlen, ärgere die anderen mit +2 und +4 – und vergiss nicht „letzte karte!“ zu rufen. karten farben">
+        <div class="fan">
+          <div class="card fr cr"><div class="inner"><div class="face front"><span class="tl">7</span><span class="v">7</span><span class="br">7</span></div><div class="face back"></div></div></div>
+          <div class="card fr cy"><div class="inner"><div class="face front"><span class="tl">+2</span><span class="v small">+2</span><span class="br">+2</span></div><div class="face back"></div></div></div>
+          <div class="card fr cg"><div class="inner"><div class="face front"><span class="tl">5</span><span class="v">5</span><span class="br">5</span></div><div class="face back"></div></div></div>
+          <div class="card fr cw"><div class="inner"><div class="face front"><span class="tl">+4</span><span class="v small">+4</span><span class="br">+4</span></div><div class="face back"></div></div></div>
+        </div>
+        <h2>Farbrausch</h2>
+        <p>Lege passende Farben und Zahlen, ärgere die anderen mit +2 und +4 – und vergiss nicht „Letzte Karte!“ zu rufen.</p>
+        <div class="meta"><span class="tag">2–10 Spieler</span><span class="tag">ca. 15–30 Min.</span><span class="tag">🃏 Kartenspiel</span><span class="live" id="live-farbrausch"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="schwimmen/" data-min="2" data-max="8" data-dur="22" data-type="karten" data-tv="1" data-kind="schwimmen" data-words="schwimmen (31) tausche mit der mitte, sammle 31 in einer farbe und klopf rechtzeitig – wer zuletzt noch schwimmt, gewinnt. schwimmen 31 einunddreißig schnauz feuer klopfen karten skatblatt leben fernseher computer fernseher">
+        <div class="fan artwrap" data-art="schwimmen"></div>
+        <h2>Schwimmen (31)</h2>
+        <p>Tausche mit der Mitte, sammle 31 in einer Farbe und klopf rechtzeitig – wer zuletzt noch schwimmt, gewinnt.</p>
+        <div class="meta"><span class="tag">2–8 Spieler</span><span class="tag">ca. 15–30 Min.</span><span class="tag">🃏 Kartenspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-schwimmen"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="imposter/" data-min="3" data-max="16" data-dur="10" data-type="party" data-tv="0" data-kind="imposter" data-words="imposter alle kennen das geheime wort – nur einer nicht. reihum ein hinweiswort, dann abstimmen: wer ist der imposter? bluff rollen geheim wort">
+        <div class="fan">
+          <div class="card ia"><div class="inner"><div class="face front"><span class="emo">🕵️</span></div><div class="face back"></div></div></div>
+          <div class="card ib"><div class="inner"><div class="face front"><span class="emo">🤫</span></div><div class="face back"></div></div></div>
+          <div class="card ic"><div class="inner"><div class="face front"><span class="emo">❓</span></div><div class="face back"></div></div></div>
+          <div class="card id"><div class="inner"><div class="face front"><span class="emo">🗳️</span></div><div class="face back"></div></div></div>
+        </div>
+        <h2>Imposter</h2>
+        <p>Alle kennen das geheime Wort – nur einer nicht. Reihum ein Hinweiswort, dann abstimmen: Wer ist der Imposter?</p>
+        <div class="meta"><span class="tag">3–16 Spieler</span><span class="tag">ca. 5 Min. pro Runde</span><span class="tag">🎉 Party</span><span class="live" id="live-imposter"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="kritzelpost/" data-min="3" data-max="10" data-dur="15" data-type="zeichnen" data-tv="0" data-kind="kritzelpost" data-words="kritzelpost stille post mit stift: schreiben, zeichnen, erraten – und am ende lachen, was aus jedem satz geworden ist. zeichnen malen stille post">
+        <div class="fan artwrap" data-art="kritzelpost"></div>
+        <h2>Kritzelpost</h2>
+        <p>Stille Post mit Stift: Schreiben, zeichnen, erraten – und am Ende lachen, was aus jedem Satz geworden ist.</p>
+        <div class="meta"><span class="tag">3–10 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">✏️ Zeichnen</span><span class="live" id="live-kritzelpost"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="schnellmaler/" data-min="2" data-max="12" data-dur="20" data-type="zeichnen" data-tv="1" data-kind="schnellmaler" data-words="schnellmaler einer zeichnet am handy, alle raten – ideal mit dem fernseher als großem bildschirm. zeichnen malen raten fernseher">
+        <div class="fan artwrap" data-art="schnellmaler"></div>
+        <h2>Schnellmaler</h2>
+        <p>Einer zeichnet am Handy, alle raten – ideal mit dem Fernseher als großem Bildschirm.</p>
+        <div class="meta"><span class="tag">2–12 Spieler</span><span class="tag">ca. 15–25 Min.</span><span class="tag">✏️ Zeichnen</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-schnellmaler"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="blindmaler/" data-min="3" data-max="12" data-dur="15" data-type="zeichnen" data-tv="1" data-kind="blindmaler" data-words="blind gezeichnet zeichne deinen begriff, ohne die striche zu sehen – und die anderen raten, was das sein soll. blind zeichnen malen raten kritzeln party begriffe galerie fernseher">
+        <div class="fan artwrap" data-art="blindmaler"></div>
+        <h2>Blind gezeichnet</h2>
+        <p>Zeichne deinen Begriff, ohne die Striche zu sehen – und die anderen raten, was das sein soll.</p>
+        <div class="meta"><span class="tag">3–12 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">✏️ Zeichnen</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-blindmaler"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="wortgitter/" data-min="1" data-max="1" data-dur="4" data-type="woerter" data-tv="0" data-kind="wortgitter" data-words="wortgitter errate das wort mit fünf buchstaben in sechs versuchen – jeden tag ein neues, oder endlos weiter. wort buchstaben allein rätsel">
+        <div class="fan artwrap" data-art="wortgitter"></div>
+        <h2>Wortgitter</h2>
+        <p>Errate das Wort mit fünf Buchstaben in sechs Versuchen – jeden Tag ein neues, oder endlos weiter.</p>
+        <div class="meta"><span class="tag">1 Spieler</span><span class="tag">ca. 3–5 Min.</span><span class="tag">🔤 Wörter</span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="galgenraten/" data-min="1" data-max="8" data-dur="15" data-type="woerter" data-tv="0" data-kind="galgenraten" data-words="galgenraten einer denkt sich ein wort aus, alle anderen raten buchstabe für buchstabe – bevor der galgen fertig ist. wort buchstaben raten">
+        <div class="fan artwrap" data-art="galgenraten"></div>
+        <h2>Galgenraten</h2>
+        <p>Einer denkt sich ein Wort aus, alle anderen raten Buchstabe für Buchstabe – bevor der Galgen fertig ist.</p>
+        <div class="meta"><span class="tag">1–8 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🔤 Wörter</span><span class="live" id="live-galgenraten"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="codewoerter/" data-min="4" data-max="16" data-dur="22" data-type="woerter" data-tv="1" data-kind="codewoerter" data-words="codewörter zwei teams, ein geheimer schlüssel: findet mit einem wort als hinweis eure begriffe – aber bloß nicht den attentäter! codewörter codewoerter codenames teams hinweis agenten spion wörter begriffe assoziation rot blau attentäter fernseher">
+        <div class="fan artwrap" data-art="codewoerter"></div>
+        <h2>Codewörter</h2>
+        <p>Zwei Teams, ein geheimer Schlüssel: Findet mit einem Wort als Hinweis eure Begriffe – aber bloß nicht den Attentäter!</p>
+        <div class="meta"><span class="tag">4–16 Spieler</span><span class="tag">ca. 15–30 Min.</span><span class="tag">🔤 Wörter</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-codewoerter"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="stadtlandfluss/" data-min="2" data-max="16" data-dur="17" data-type="woerter" data-tv="1" data-kind="stadtlandfluss" data-words="stadt-land-fluss ein buchstabe, viele kategorien – füllt alles aus und ruft als erste „stopp!“. stadt land fluss stadtlandfluss buchstabe kategorien stopp wörter woerter klassiker schreiben fernseher fernseher">
+        <div class="fan artwrap" data-art="stadtlandfluss"></div>
+        <h2>Stadt-Land-Fluss</h2>
+        <p>Ein Buchstabe, viele Kategorien – füllt alles aus und ruft als Erste „Stopp!“.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10–25 Min.</span><span class="tag">🔤 Wörter</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-stadtlandfluss"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="schaetzmeister/" data-min="2" data-max="16" data-dur="15" data-type="quiz" data-tv="1" data-kind="schaetzmeister" data-words="schätzmeister wie hoch ist der everest? alle tippen eine zahl – wer am nächsten dran ist, holt die punkte. quiz schätzen zahlen wissen kategorien metall metallbau ausbildung fernseher">
+        <div class="fan artwrap" data-art="schaetzmeister"></div>
+        <h2>Schätzmeister</h2>
+        <p>Wie hoch ist der Everest? Alle tippen eine Zahl – wer am nächsten dran ist, holt die Punkte.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🧠 Quiz</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-schaetzmeister"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="werwuerde/" data-min="3" data-max="16" data-dur="15" data-type="party" data-tv="1" data-kind="werwuerde" data-words="wer würde eher …? eine frage, alle stimmen geheim für jemanden aus der runde – dann die große auflösung. abstimmen lachen freunde fragen fernseher">
+        <div class="fan artwrap" data-art="werwuerde"></div>
+        <h2>Wer würde eher …?</h2>
+        <p>Eine Frage, alle stimmen geheim für jemanden aus der Runde – dann die große Auflösung.</p>
+        <div class="meta"><span class="tag">3–16 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🎉 Party</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-werwuerde"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="luegenbaron/" data-min="3" data-max="12" data-dur="20" data-type="quiz" data-tv="1" data-kind="luegenbaron" data-words="lügenbaron ein wahrer, verrückter fakt mit lücke: erfindet glaubwürdige lügen und findet die wahrheit. bluff fakten wahrheit lügen fernseher">
+        <div class="fan artwrap" data-art="luegenbaron"></div>
+        <h2>Lügenbaron</h2>
+        <p>Ein wahrer, verrückter Fakt mit Lücke: Erfindet glaubwürdige Lügen und findet die Wahrheit.</p>
+        <div class="meta"><span class="tag">3–12 Spieler</span><span class="tag">ca. 15–25 Min.</span><span class="tag">🧠 Quiz</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-luegenbaron"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="buzzer/" data-min="2" data-max="16" data-dur="15" data-type="quiz" data-tv="1" data-kind="buzzer" data-words="buzzer-quiz wer zuerst buzzert, darf antworten – aber vorsicht, falsche antworten kosten punkte! buzzer quiz wissen allgemeinwissen schnell reaktion multiple choice fragen metallbau show fernseher">
+        <div class="fan artwrap" data-art="buzzer"></div>
+        <h2>Buzzer-Quiz</h2>
+        <p>Wer zuerst buzzert, darf antworten – aber Vorsicht, falsche Antworten kosten Punkte!</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🧠 Quiz</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-buzzer"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="sortierfix/" data-min="2" data-max="16" data-dur="15" data-type="quiz" data-tv="1" data-kind="sortierfix" data-words="sortierfix fünf dinge, eine richtige reihenfolge – wer sortiert jahreszahlen, höhen und größen am besten? sortieren reihenfolge ordnen quiz jahreszahlen wissen schätzen ranking metallbau fernseher">
+        <div class="fan artwrap" data-art="sortierfix"></div>
+        <h2>Sortierfix</h2>
+        <p>Fünf Dinge, eine richtige Reihenfolge – wer sortiert Jahreszahlen, Höhen und Größen am besten?</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🧠 Quiz</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-sortierfix"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="filmoji/" data-min="1" data-max="1" data-dur="10" data-type="quiz" data-tv="0" data-kind="filmoji" data-words="filmoji welcher film steckt hinter den emojis? errate so viele filme wie möglich – mit drei herzen. emoji filme kino raten allein rätsel">
+        <div class="fan artwrap" data-art="filmoji"></div>
+        <h2>Filmoji</h2>
+        <p>Welcher Film steckt hinter den Emojis? Errate so viele wie möglich – du hast drei Herzen.</p>
+        <div class="meta"><span class="tag">1 Spieler</span><span class="tag">ca. 5–15 Min.</span><span class="tag">🧠 Quiz</span><span class="live" id="live-filmoji"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="punchline/" data-min="3" data-max="12" data-dur="20" data-type="party" data-tv="1" data-kind="punchline" data-words="punchline ergänzt den satz so lustig wie möglich – danach wählen alle die beste pointe. witze lustig sätze pointe fernseher">
+        <div class="fan artwrap" data-art="punchline"></div>
+        <h2>Punchline</h2>
+        <p>Ergänzt den Satz so lustig wie möglich – danach wählen alle die beste Pointe.</p>
+        <div class="meta"><span class="tag">3–12 Spieler</span><span class="tag">ca. 15–25 Min.</span><span class="tag">🎉 Party</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-punchline"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="spion/" data-min="3" data-max="16" data-dur="32" data-type="party" data-tv="1" data-kind="spion" data-words="spion alle kennen den geheimen ort – nur der spion nicht, also fragt euch gegenseitig aus und entlarvt ihn! spion spyfall agent ort orte rollen fragen bluffen geheim verdeckt deduktion abstimmung party fernseher">
+        <div class="fan artwrap" data-art="spion"></div>
+        <h2>Spion</h2>
+        <p>Alle kennen den geheimen Ort – nur der Spion nicht, also fragt euch gegenseitig aus und entlarvt ihn!</p>
+        <div class="meta"><span class="tag">3–16 Spieler</span><span class="tag">ca. 20–45 Min.</span><span class="tag">🎉 Party</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-spion"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="werwolf/" data-min="5" data-max="18" data-dur="30" data-type="party" data-tv="1" data-kind="werwolf" data-words="werwolf die handys sind der spielleiter: nachts jagen die werwölfe, tagsüber sucht das dorf die schuldigen. werwolf werwölfe werewolf mafia düsterwald dorf seherin hexe jäger amor rollen bluffen abstimmung party fernseher">
+        <div class="fan artwrap" data-art="werwolf"></div>
+        <h2>Werwolf</h2>
+        <p>Die Handys sind der Spielleiter: Nachts jagen die Werwölfe, tagsüber sucht das Dorf die Schuldigen.</p>
+        <div class="meta"><span class="tag">5–18 Spieler</span><span class="tag">ca. 20–40 Min.</span><span class="tag">🎉 Party</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-werwolf"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="nochnie/" data-min="2" data-max="16" data-dur="15" data-type="trinken" data-tv="1" data-kind="nochnie" data-words="ich hab noch nie … ein satz, alle antworten geheim auf dem handy – wer es schon gemacht hat, trinkt. never have i ever trinkspiel saufspiel party geheim fernseher">
+        <div class="fan artwrap" data-art="nochnie"></div>
+        <h2>Ich hab noch nie …</h2>
+        <p>Ein Satz, alle antworten geheim auf dem Handy – wer es schon gemacht hat, trinkt.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10–20 Min.</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-nochnie"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="wahrheit/" data-min="2" data-max="16" data-dur="20" data-type="trinken" data-tv="1" data-kind="wahrheit" data-words="wahrheit oder trinken reihum bekommt jemand eine frage: ehrlich antworten – oder trinken. wahrheit oder pflicht fragen trinkspiel saufspiel fernseher">
+        <div class="fan artwrap" data-art="wahrheit"></div>
+        <h2>Wahrheit oder Trinken</h2>
+        <p>Reihum bekommt jemand eine Frage: ehrlich antworten – oder trinken.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 15–30 Min.</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-wahrheit"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="trinklotto/" data-min="2" data-max="16" data-dur="10" data-type="trinken" data-tv="1" data-kind="trinklotto" data-words="trinklotto jeder hat geheim farbe, zahl und tier. „alle mit blau trinken!“ – das handy zeigt, wen es trifft. farben zahlen tiere ansagen trinkspiel saufspiel fernseher">
+        <div class="fan artwrap" data-art="trinklotto"></div>
+        <h2>Trinklotto</h2>
+        <p>Jeder hat geheim Farbe, Zahl und Tier. „Alle mit Blau trinken!“ – das Handy zeigt, wen es trifft.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 10 Min.</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-trinklotto"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="pyramide/" data-min="2" data-max="9" data-dur="15" data-type="trinken" data-tv="1" data-kind="pyramide" data-words="pyramide vier karten auf der hand, die pyramide wird aufgedeckt – wer die gleiche zahl hat, trinkt. karten pyramide trinkspiel saufspiel fernseher">
+        <div class="fan"><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">5</span><span class="v">5</span><span class="br">♥</span></div><div class="face back"></div></div></div><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">5</span><span class="v">5</span><span class="br">♠</span></div><div class="face back"></div></div></div><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">K</span><span class="v">K</span><span class="br">♦</span></div><div class="face back"></div></div></div><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♣</span></div><div class="face back"></div></div></div></div>
+        <h2>Pyramide</h2>
+        <p>Vier Karten auf der Hand, die Pyramide wird aufgedeckt – wer die gleiche Zahl hat, trinkt.</p>
+        <div class="meta"><span class="tag">2–9 Spieler</span><span class="tag">ca. 10–15 Min.</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-pyramide"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="pferderennen/" data-min="2" data-max="16" data-dur="10" data-type="trinken" data-tv="1" data-kind="pferderennen" data-words="pferderennen setzt schlucke auf ein ass – die karten entscheiden das rennen. verlierer trinken, sieger verteilen. karten wetten rennen ass trinkspiel saufspiel fernseher">
+        <div class="fan"><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♥</span></div><div class="face back"></div></div></div><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♦</span></div><div class="face back"></div></div></div><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♣</span></div><div class="face back"></div></div></div><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♠</span></div><div class="face back"></div></div></div></div>
+        <h2>Pferderennen</h2>
+        <p>Setzt Schlucke auf ein Ass – die Karten entscheiden das Rennen. Verlierer trinken, Sieger verteilen.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 5 Min. pro Rennen</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-pferderennen"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+      <a class="tile glass" href="ringoffire/" data-min="2" data-max="16" data-dur="25" data-type="trinken" data-tv="1" data-kind="ringoffire" data-words="ring of fire reihum eine karte ziehen – jede karte hat eine trinkregel. wer den vierten könig zieht, leert den becher. karten regeln trinkspiel saufspiel fernseher">
+        <div class="fan"><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">A</span><span class="v">A</span><span class="br">♠</span></div><div class="face back"></div></div></div><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">K</span><span class="v">K</span><span class="br">♥</span></div><div class="face back"></div></div></div><div class="card crd black"><div class="inner"><div class="face front"><span class="tl">7</span><span class="v">7</span><span class="br">♣</span></div><div class="face back"></div></div></div><div class="card crd red"><div class="inner"><div class="face front"><span class="tl">D</span><span class="v">D</span><span class="br">♦</span></div><div class="face back"></div></div></div></div>
+        <h2>Ring of Fire</h2>
+        <p>Reihum eine Karte ziehen – jede Karte hat eine Trinkregel. Wer den vierten König zieht, leert den Becher.</p>
+        <div class="meta"><span class="tag">2–16 Spieler</span><span class="tag">ca. 20–30 Min.</span><span class="tag">🍻 Trinkspiel</span><span class="tag tv">📺 Fernseher</span><span class="live" id="live-ringoffire"></span></div>
+        <span class="btn play">Spielen</span>
+      </a>
+    </div>
+    <div class="noresult glass hidden" id="noresult"><div style="font-size:2.4rem">🔍</div><p>Kein Spiel passt zu deiner Suche.</p><button class="btn ghost" id="reset2">Filter zurücksetzen</button></div>
+  </main>
+  <script>
+    // Tip to add the page to the home screen (only in a browser tab, not inside Home Assistant).
+    (() => {
+      const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+      let dismissed = false; try { dismissed = localStorage.getItem("install-tip") === "no"; } catch {}
+      if (standalone || dismissed || window.top !== window || !/iPhone|iPad|Android/i.test(navigator.userAgent)) return;
+      const ios = /iPhone|iPad/i.test(navigator.userAgent);
+      document.getElementById("installHow").textContent = ios
+        ? "In Safari unten auf Teilen ⎋ tippen, dann „Zum Home-Bildschirm“."
+        : "Im Browsermenü ⋮ auf „App installieren“ oder „Zum Startbildschirm hinzufügen“ tippen.";
+      document.getElementById("install").classList.remove("hidden");
+      document.getElementById("installClose").onclick = () => {
+        document.getElementById("install").classList.add("hidden");
+        try { localStorage.setItem("install-tip", "no"); } catch {}
+      };
+    })();
+    // ---------- search & filters (remembered in this browser) ----------
+    const openNow = {};
+    const filter = (() => {
+      let state = { players: "", type: "", dur: "", extra: "" };
+      try { state = { ...state, ...JSON.parse(localStorage.getItem("spiele-filter2") || "{}") }; } catch {}
+      const q = document.getElementById("q"), tiles = [...document.querySelectorAll(".tile")];
+      const selects = [...document.querySelectorAll("[data-filter]")];
+      const norm = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "ss");
+      const range = v => v ? (v.includes("-") ? v.split("-").map(Number) : [Number(v), Number(v)]) : null;
+      for (const s of selects) { s.value = state[s.dataset.filter] || ""; if (s.selectedIndex < 0) s.value = ""; }
+
+      function apply() {
+        for (const s of selects) { state[s.dataset.filter] = s.value; s.classList.toggle("on", !!s.value); }
+        const words = norm(q.value).split(/\s+/).filter(Boolean);
+        const pr = range(state.players), dr = range(state.dur);
+        let shown = 0;
+        for (const t of tiles) {
+          const d = t.dataset, min = +d.min, max = +d.max, dur = +d.dur;
+          const ok = words.every(w => norm(d.words).includes(w))
+            && (!pr || (min <= pr[1] && max >= pr[0]))
+            && (!state.type || state.type === d.type)
+            && (!dr || (dur >= dr[0] && dur <= dr[1]))
+            && (state.extra !== "tv" || d.tv === "1")
+            && (state.extra !== "open" || openNow[d.kind] > 0);
+          t.classList.toggle("out", !ok);
+          if (ok) shown++;
+        }
+        const active = q.value || state.players || state.type || state.dur || state.extra;
+        document.getElementById("count").textContent = active ? `${shown} von ${tiles.length} Spielen` : `${tiles.length} Spiele`;
+        document.getElementById("reset").hidden = !active;
+        document.getElementById("qClear").hidden = !q.value;
+        document.getElementById("noresult").classList.toggle("hidden", shown > 0);
+        try { localStorage.setItem("spiele-filter2", JSON.stringify(state)); } catch {}
+      }
+      selects.forEach(s => s.onchange = apply);
+      q.oninput = apply;
+      document.getElementById("qClear").onclick = () => { q.value = ""; apply(); q.focus(); };
+      const reset = () => { q.value = ""; selects.forEach(s => s.value = ""); apply(); };
+      document.getElementById("reset").onclick = reset;
+      document.getElementById("reset2").onclick = reset;
+      apply();
+      return apply;
+    })();
+
+    async function refresh() {
+      try {
+        const data = await (await fetch("api/summary")).json();
+        for (const [kind, s] of Object.entries(data)) {
+          const el = document.getElementById("live-" + kind);
+          openNow[kind] = s.open || 0;
+          if (!el) continue;
+          const parts = [];
+          if (s.open) parts.push(`${s.open} offen`);
+          if (s.playing) parts.push(`${s.playing} läuft`);
+          el.textContent = parts.length ? "● " + parts.join(" · ") : "";
+        }
+        filter();
+      } catch {}
+    }
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+  <script>
+    fetch("api/konto", { cache: "no-store" }).then(r => r.json()).then(r => {
+      if (r.user) document.getElementById("acctLink").textContent = "👤 " + r.user.name;
+    }).catch(() => {});
+  
+    // Join with a code: the server tells which game it belongs to, the game page then joins right away.
+    (() => {
+      const form = document.getElementById("joinbar"), input = document.getElementById("joinCode"), err = document.getElementById("joinErr");
+      input.addEventListener("input", () => { input.value = input.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4); err.hidden = true; });
+      form.addEventListener("submit", async e => {
+        e.preventDefault();
+        const code = input.value;
+        if (code.length !== 4) { err.textContent = "Der Code hat 4 Buchstaben"; err.hidden = false; input.focus(); return; }
+        try {
+          const res = await fetch("api/code/" + code, { cache: "no-store" }), data = await res.json();
+          if (!res.ok) { err.textContent = data.error || "Zu diesem Code gibt es kein Spiel"; err.hidden = false; return; }
+          location.href = `${data.kind}/?code=${data.code}`;
+        } catch { err.textContent = "Keine Verbindung – bitte nochmal versuchen"; err.hidden = false; }
+      });
+    })();
+  </script>
+</body>
+</html>

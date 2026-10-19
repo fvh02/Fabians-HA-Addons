@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Sortierfix</title>
+  <link rel="stylesheet" href="../static/common.css">
+  <link rel="stylesheet" href="../static/party.css">
+  <script src="../static/common.js"></script>
+  <script src="../static/art.js"></script>
+  <script src="../static/party.js"></script>
+  <style>
+    .cat { font-size: .78rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .end { display: flex; align-items: center; gap: 8px; align-self: stretch; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .end::before, .end::after { content: ""; flex: 1; height: 2px; border-radius: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .5; }
+    .slist { position: relative; width: 100%; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .sitem { position: relative; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px 8px 8px 10px; border-radius: 18px;
+      background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: 0 4px 14px rgba(60, 50, 120, .08);
+      text-align: left; font-weight: 700; font-size: 1.02rem; line-height: 1.25; touch-action: none; user-select: none; -webkit-user-select: none;
+      cursor: grab; transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .2s; animation: rise .35s ease both; }
+    .sitem.drag { transition: none; z-index: 5; cursor: grabbing; box-shadow: 0 16px 34px rgba(60, 50, 120, .3), 0 0 0 2px var(--accent); scale: 1.03; }
+    .sitem .no { flex: none; width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .sitem .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .sitem .grip { flex: none; color: var(--muted); font-size: 1.1rem; letter-spacing: -2px; opacity: .6; }
+    .sitem .mv { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text);
+      font-size: 1rem; font-weight: 900; display: grid; place-items: center; padding: 0; }
+    .sitem .mv:disabled { opacity: .25; }
+    .slist.locked .sitem { cursor: default; opacity: .85; }
+    .slist.locked .mv, .slist.locked .grip { display: none; }
+    .sitem .val { flex: none; font-weight: 850; font-variant-numeric: tabular-nums; color: var(--accent); text-align: right; max-width: 45%; }
+    .sitem.ok { box-shadow: 0 0 0 2px var(--ok); } .sitem.bad { box-shadow: 0 0 0 2px var(--danger); }
+    .sitem .mine { display: block; font-size: .75rem; font-weight: 650; color: var(--muted); margin-top: 2px; }
+    .reveal .sitem { cursor: default; touch-action: auto; animation: flipin .5s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes flipin { from { transform: rotateX(80deg) translateY(-10px); opacity: 0; } }
+    .res { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+    .res .r { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); animation: rise .4s ease both; text-align: left; }
+    .res .r.top { box-shadow: 0 0 0 2px var(--ok); }
+    .res .n { flex: 1; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .res .dots { display: flex; gap: 4px; }
+    .res .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--danger); opacity: .8; }
+    .res .dots i.y { background: var(--ok); opacity: 1; }
+    .res .pts { font-weight: 850; color: var(--ok); min-width: 34px; text-align: right; }
+    /* TV: everything has to fit on one 16:9 screen */
+    .tvmain { gap: 1.1vw; }
+    .tvmain h2 { font-size: clamp(1.5rem, 2.9vw, 3.4rem); }
+    .tvmain .sitem { font-size: clamp(1rem, 1.7vw, 2rem); min-height: 0; padding: .55vw 1.1vw; }
+    .tvmain .sitem .no { width: 2.6vw; height: 2.6vw; font-size: 1.3vw; border-radius: .8vw; }
+    .tvmain .slist { max-width: 64vw; gap: .6vw; }
+    .tvmain .end { font-size: clamp(.8rem, 1.1vw, 1.3rem); max-width: 64vw; width: 100%; align-self: center; }
+    .tvmain .res { max-width: 64vw; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .tvmain .res .r { font-size: clamp(.9rem, 1.3vw, 1.5rem); padding: .4vw .9vw; }
+    .tvmain .res .n { max-width: 14vw; }
+    .tvmain .res .dots i { width: .9vw; height: .9vw; }
+    .tvmain .pmuted { font-size: clamp(.8rem, 1.1vw, 1.3rem); }
+    /* one phone screen */
+    .pstage h2 { font-size: clamp(1.08rem, min(4.6vw, 3.2vh), 1.75rem); }
+    .pstage .end { font-size: .7rem; }
+    .pstage .slist { gap: clamp(4px, .8vh, 8px); }
+    .pstage .sitem { min-height: 46px; padding: 3px 4px 3px 8px; gap: 8px; border-radius: 14px; font-size: .98rem; }
+    .pstage .sitem .no { width: 28px; height: 28px; border-radius: 9px; }
+    .pstage .sitem .mv { width: 40px; height: 40px; }
+    .pstage .hint { font-size: .74rem; }
+    .pstage .reveal .sitem { min-height: 34px; padding: 3px 10px 3px 6px; font-size: .9rem; }
+    .pstage .reveal .sitem .no { width: 24px; height: 24px; border-radius: 8px; font-size: .8rem; }
+    .pstage .reveal .sitem .mine { display: inline; margin: 0 0 0 4px; font-size: .7rem; white-space: nowrap; }
+    .pstage .perfect { font-size: clamp(1.1rem, min(5vw, 3.4vh), 2rem); }
+    .pstage .rule { font-size: .72rem; }
+    /* phones: one list with the round result and the total, sorted by total */
+    .pstage .res { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 4px 6px; }
+    .pstage .res .r { padding: 3px 9px 3px 4px; gap: 6px; border-radius: 14px; }
+    .pstage .res .r.me { box-shadow: 0 0 0 2px var(--accent); }
+    .pstage .res .r.top.me { box-shadow: 0 0 0 2px var(--ok), 0 0 0 4px var(--accent); }
+    .pstage .res .avatar { width: 24px; height: 24px; font-size: .65rem; }
+    .pstage .res .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; line-height: 1.15; }
+    .pstage .res .n { font-size: .84rem; }
+    .pstage .res .dots { gap: 3px; }
+    .pstage .res .dots i { width: 8px; height: 8px; }
+    .pstage .res .sum { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+    .pstage .res .sum .pts { min-width: 0; font-size: .74rem; }
+    .pstage .res .sum b { font-weight: 850; font-variant-numeric: tabular-nums; }
+    .pstage .res .r { padding-top: 2px; padding-bottom: 2px; }
+    .pstage .res .who { gap: 1px; }
+    .pstage .res .n { font-size: .8rem; }
+    .pstage .res .dots i { width: 7px; height: 7px; }
+    .pstage .res .sum { line-height: 1.05; }
+    @media (max-height: 700px) { .pstage:has(.slist.reveal) > .cat { display: none; } }
+    @media (max-height: 700px) { .pstage:has(.res > :nth-child(7)) > .rule { display: none; } }
+    .perfect { font-size: clamp(1.3rem, 5vw, 2rem); font-weight: 900; color: var(--ok); animation: popin .6s cubic-bezier(.2,.9,.3,1.3) both; }
+  </style>
+</head>
+<body>
+  <section id="table" class="hidden pfit">
+    <div class="topbar glass">
+      <span class="title">Sortierfix</span>
+      <span class="code" id="tableCode"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="leaveGame" style="padding:7px 14px">Verlassen</button>
+    </div>
+    <div id="stage"></div>
+  </section>
+  <script>
+    // Lobby illustration (until art.js has its own entry)
+    window.ART = window.ART || {};
+    ART.sortierfix = ART.sortierfix || `<svg class="art" viewBox="0 0 220 120" role="img" aria-hidden="true"><defs><linearGradient id="sfa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#5b21b6"/></linearGradient><linearGradient id="sfb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#9d174d"/></linearGradient><linearGradient id="sfc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#047857"/></linearGradient><filter id="sh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#140a3c" flood-opacity=".28"/></filter></defs><g filter="url(#sh)"><rect x="44" y="10" width="122" height="26" rx="9" fill="#fff"/><rect x="62" y="44" width="122" height="26" rx="9" fill="#fff" transform="rotate(-4 123 57)"/><rect x="44" y="80" width="122" height="26" rx="9" fill="#fff"/></g><g font-family="Inter,system-ui,sans-serif" font-weight="850"><rect x="50" y="15" width="16" height="16" rx="5" fill="url(#sfa)"/><text x="58" y="27" text-anchor="middle" font-size="11" fill="#fff">1</text><rect x="68" y="49" width="16" height="16" rx="5" fill="url(#sfb)" transform="rotate(-4 123 57)"/><text x="76" y="61" text-anchor="middle" font-size="11" fill="#fff" transform="rotate(-4 123 57)">2</text><rect x="50" y="85" width="16" height="16" rx="5" fill="url(#sfa)"/><text x="58" y="97" text-anchor="middle" font-size="11" fill="#fff">3</text></g><g fill="#1e1b3a" opacity=".22"><rect x="74" y="20" width="56" height="6" rx="3"/><rect x="92" y="54" width="44" height="6" rx="3" transform="rotate(-4 123 57)"/><rect x="74" y="90" width="64" height="6" rx="3"/></g><path d="M190 22 V96" stroke="url(#sfc)" stroke-width="6" stroke-linecap="round"/><path d="M180 84 L190 98 L200 84" fill="none" stroke="#047857" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 66 C10 60 10 40 30 36" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 5"/><path d="M24 30 L32 36 L24 42" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+    const esc = s => Shell.esc(s);
+    let order = [], roundKey = null, dragging = false, listKey = null;
+
+    function sendDraft() { Shell.send({ t: "draft", order }); }
+
+    function itemsHtml(g, locked) {
+      return order.map((idx, pos) => `<li class="sitem" data-pos="${pos}" style="animation-delay:${pos * 50}ms">
+        <span class="no">${pos + 1}</span><span class="nm">${esc(g.items[idx].name)}</span>
+        <button class="mv" data-mv="-1" aria-label="nach oben" ${pos === 0 ? "disabled" : ""}>▲</button>
+        <button class="mv" data-mv="1" aria-label="nach unten" ${pos === order.length - 1 ? "disabled" : ""}>▼</button>
+        <span class="grip" aria-hidden="true">⋮⋮</span></li>`).join("");
+    }
+
+    function renderList(g, ctx, force) {
+      const box = document.getElementById("slist");
+      if (!box || dragging) return;
+      const locked = g.my_order != null;
+      const k = JSON.stringify(order) + locked;
+      if (!force && k === listKey) return;
+      listKey = k;
+      box.classList.toggle("locked", locked);
+      box.innerHTML = itemsHtml(g, locked);
+      if (!force) box.querySelectorAll(".sitem").forEach(li => li.style.animation = "none");
+      if (!locked) bindList(g, box);
+      const act = document.getElementById("sact");
+      if (act && act._locked !== locked) {
+        act._locked = locked;
+        act.innerHTML = locked
+          ? `<p class="pdone">✓ Abgegeben – warte auf die anderen</p><button class="btn ghost small" id="edit">Ändern</button>`
+          : `<button class="btn" id="submit">Fertig ✓</button>`;
+        const s = document.getElementById("submit"), e = document.getElementById("edit");
+        if (s) s.onclick = () => Shell.send({ t: "order", order });
+        if (e) e.onclick = () => Shell.send({ t: "edit" });
+      }
+    }
+
+    function move(g, from, to) {
+      if (to < 0 || to >= order.length || from === to) return;
+      // FLIP: remember positions, reorder, animate from old to new
+      const box = document.getElementById("slist");
+      const before = [...box.children].map(li => li.getBoundingClientRect().top);
+      const [x] = order.splice(from, 1); order.splice(to, 0, x);
+      listKey = null; renderList(g, null, false);
+      const after = [...box.children];
+      after.forEach((li, pos) => {
+        const old = pos === to ? from : (from < to ? (pos >= from && pos < to ? pos + 1 : pos) : (pos > to && pos <= from ? pos - 1 : pos));
+        const dy = before[old] - li.getBoundingClientRect().top;
+        if (dy) li.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
+      });
+      sendDraft();
+    }
+
+    function bindList(g, box) {
+      box.querySelectorAll("[data-mv]").forEach(b => b.onclick = e => {
+        e.stopPropagation();
+        const pos = +b.closest(".sitem").dataset.pos;
+        move(g, pos, pos + +b.dataset.mv);
+      });
+      box.querySelectorAll(".sitem").forEach(li => li.addEventListener("pointerdown", e => {
+        if (e.target.closest("[data-mv]") || e.button > 0) return;
+        const items = [...box.children], from = +li.dataset.pos;
+        const tops = items.map(x => x.offsetTop), pitch = items.length > 1 ? tops[1] - tops[0] : 60;
+        const y0 = e.clientY;
+        let to = from, moved = false;
+        li.setPointerCapture(e.pointerId);
+        const onMove = ev => {
+          const dy = ev.clientY - y0;
+          if (!moved && Math.abs(dy) < 6) return;
+          if (!moved) { moved = true; dragging = true; li.classList.add("drag"); if (navigator.vibrate) navigator.vibrate(15); }
+          const minDy = (0 - from) * pitch - 10, maxDy = (items.length - 1 - from) * pitch + 10;
+          li.style.transform = `translateY(${Math.max(minDy, Math.min(maxDy, dy))}px)`;
+          to = Math.max(0, Math.min(items.length - 1, from + Math.round(dy / pitch)));
+          items.forEach((x, pos) => {
+            if (x === li) return;
+            const shift = from < to && pos > from && pos <= to ? -pitch : to < from && pos >= to && pos < from ? pitch : 0;
+            x.style.transform = shift ? `translateY(${shift}px)` : "";
+          });
+        };
+        const onUp = () => {
+          li.removeEventListener("pointermove", onMove);
+          li.removeEventListener("pointerup", onUp);
+          li.removeEventListener("pointercancel", onUp);
+          if (!moved) return;
+          dragging = false;
+          if (to !== from) { const [x] = order.splice(from, 1); order.splice(to, 0, x); sendDraft(); }
+          listKey = null; renderList(g, null, false);
+        };
+        li.addEventListener("pointermove", onMove);
+        li.addEventListener("pointerup", onUp);
+        li.addEventListener("pointercancel", onUp);
+      }));
+    }
+
+    function tvItems(g) {
+      return `<ul class="slist">${g.items.map((it, i) => `<li class="sitem" style="animation-delay:${i * 80}ms"><span class="no">?</span><span class="nm">${esc(it.name)}</span></li>`).join("")}</ul>`;
+    }
+
+    function reveal(g, ctx) {
+      const mine = g.results.find(r => r.id === Shell.me);
+      const list = g.solution.map((idx, pos) => {
+        let cls = "", note = "";
+        if (mine && mine.order) {
+          const at = mine.order.indexOf(idx);
+          cls = at === pos ? "ok" : "bad";
+          if (at !== pos) note = `<span class="mine">${ctx.tv ? "bei dir auf Platz " : "du: Platz "}${at + 1}</span>`;
+        }
+        return `<li class="sitem ${cls}" style="animation-delay:${pos * 140}ms"><span class="no">${pos + 1}</span>
+          <span class="nm">${esc(g.items[idx].name)}${note}</span><span class="val">${esc(g.items[idx].value)}</span></li>`;
+      }).join("");
+      const perfect = g.results.filter(r => r.hits.length && r.hits.every(Boolean));
+      if (!ctx.tv) {
+        // phones: one list (sorted by total) – dots and points of this round plus the total
+        const byId = Object.fromEntries(g.results.map(r => [r.id, r]));
+        const rows = g.players.filter(p => !p.screen).sort((a, b) => b.score - a.score).map((p, i) => {
+          const r = byId[p.id] || { hits: [], points: 0 };
+          return `<div class="r ${r.hits.length && r.hits.every(Boolean) ? "top" : ""} ${p.id === Shell.me ? "me" : ""}" style="animation-delay:${700 + i * 50}ms">${Shell.avatar(p)}
+            <span class="who"><span class="n">${esc(p.name)}${r.late ? " ⏱" : ""}</span><span class="dots">${r.order ? r.hits.map(h => `<i class="${h ? "y" : ""}"></i>`).join("") : "–"}</span></span>
+            <span class="sum"><span class="pts">${r.points ? "+" + r.points : ""}</span><b>${p.score}</b></span></div>`;
+        }).join("");
+        return `<span class="cat">${esc(g.category)}</span><h2>${esc(g.question)}</h2>
+          ${perfect.length ? `<div class="perfect">${perfect.some(r => r.id === Shell.me) ? "Alles richtig! 🎉" : "Alles richtig: " + perfect.map(r => esc(Party.nameOf(g, r.id))).join(", ")}</div>` : ""}
+          <div class="end">▲ ${esc(g.top)}</div><ul class="slist reveal">${list}</ul><div class="end">▼ ${esc(g.bottom)}</div>
+          <div class="res pfill">${rows}</div>
+          <p class="pmuted rule">${g.points.item} Punkt pro richtigem Platz · +${g.points.bonus} wenn alles stimmt${g.results.some(r => r.late) ? " · ⏱ letzter Stand zählt" : ""}</p>`;
+      }
+      const res = g.results.map((r, i) => {
+        const p = g.players.find(q => q.id === r.id) || { name: "?" };
+        return `<div class="r ${r.hits.length && r.hits.every(Boolean) ? "top" : ""}" style="animation-delay:${700 + i * 60}ms">${Shell.avatar(p)}
+          <span class="n">${esc(p.name)}${r.late ? " ⏱" : ""}</span>
+          <span class="dots">${r.order ? r.hits.map(h => `<i class="${h ? "y" : ""}"></i>`).join("") : "–"}</span>
+          <span class="pts">${r.points ? "+" + r.points : ""}</span></div>`;
+      }).join("");
+      return `<span class="cat">${esc(g.category)}</span><h2>${esc(g.question)}</h2>
+        ${perfect.length ? `<div class="perfect">${perfect.some(r => r.id === Shell.me) ? "Alles richtig! 🎉" : "Alles richtig: " + perfect.map(r => esc(Party.nameOf(g, r.id))).join(", ")}</div>` : ""}
+        <div class="end">▲ ${esc(g.top)}</div><ul class="slist reveal">${list}</ul><div class="end">▼ ${esc(g.bottom)}</div>
+        <div class="res">${res}</div>
+        <p class="pmuted">${g.points.item} Punkt pro richtigem Platz · +${g.points.bonus} Bonus, wenn alles stimmt${g.results.some(r => r.late) ? " · ⏱ nicht abgegeben, letzter Stand zählt" : ""}</p>
+        ${ctx.tv ? "" : `<h3 class="plabel" style="align-self:flex-start">Punktestand</h3>${Party.ranking(g, { gained: true })}`}`;
+    }
+
+    Party.start({
+      kind: "sortierfix", title: "Sortierfix", art: "sortierfix", minPlayers: 2, icon: "🔢",
+      inputPhases: ["sort"],
+      settings: [
+        { key: "rounds", label: "Runden", options: [[8, "8 Runden"], [5, "5 Runden"], [10, "10 Runden"], [12, "12 Runden"]] },
+        { key: "seconds", label: "Zeit", options: [[60, "60 Sekunden"], [45, "45 Sekunden"], [90, "90 Sekunden"], [0, "Ohne Zeitlimit"]] },
+        { key: "category", label: "Kategorie", options: [[0, "Alles gemischt"], [1, "Geschichte & Jahreszahlen"], [2, "Erde & Länder"],
+          [3, "Natur & Technik"], [4, "Kultur, Sport & Alltag"], [5, "🔩 Metallbau (Ausbildung)"]] },
+      ],
+      build(g, ctx) {
+        if (g.phase === "reveal") return reveal(g, ctx);
+        const k = `${g.round}|${g.question}`;
+        if (k !== roundKey) { roundKey = k; order = (g.my_order || g.my_draft || g.items.map((_, i) => i)).slice(); }
+        listKey = null;
+        if (ctx.tv) return `<span class="cat">${esc(g.category)}</span><h2>${esc(g.question)}</h2>
+          <p>Bringt die fünf in die richtige Reihenfolge – oben: <b>${esc(g.top)}</b>, unten: <b>${esc(g.bottom)}</b>.</p>${tvItems(g)}<div data-status></div>`;
+        return `<span class="cat">${esc(g.category)}</span><h2>${esc(g.question)}</h2>
+          <div class="end">▲ ${esc(g.top)}</div><ul class="slist" id="slist"></ul><div class="end">▼ ${esc(g.bottom)}</div>
+          <p class="pmuted hint">Ziehen oder mit ▲ ▼ verschieben</p>
+          <div id="sact" style="display:flex;flex-direction:column;align-items:center;gap:8px"></div><div data-status></div>`;
+      },
+      bind(g, ctx) { if (g.phase === "sort" && !ctx.tv) renderList(g, ctx, true); },
+      update(g, ctx) {
+        if (g.phase !== "sort" || ctx.tv) return;
+        if (g.my_order && JSON.stringify(g.my_order) !== JSON.stringify(order) && !dragging) order = g.my_order.slice();
+        renderList(g, ctx, false);
+      },
+      celebrate: g => g.results.some(r => r.id === Shell.me && r.hits.length && r.hits.every(Boolean)),
+    });
+  </script>
+</body>
+</html>

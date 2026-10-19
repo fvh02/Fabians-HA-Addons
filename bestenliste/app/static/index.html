@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bestenliste</title>
+<style>
+:root{--bg-1:#eef2ff;--bg-2:#fdf2f8;--blob-1:#a5b4fc;--blob-2:#f9a8d4;--blob-3:#5eead4;--glass:rgba(255,255,255,.55);--glass-strong:rgba(255,255,255,.72);--glass-border:rgba(255,255,255,.75);--shadow:0 8px 32px rgba(60,50,120,.14);--text:#1e1b3a;--muted:#5f5c80;--accent:#7c3aed;--accent-2:#ec4899;--ok:#10b981;--gold:#d99a00;--silver:#8a94a6;--bronze:#b36b2e;--danger:#ef4444}
+:root[data-theme="dark"]{--bg-1:#0b0a1f;--bg-2:#120c24;--blob-1:#4f46e5;--blob-2:#be185d;--blob-3:#0d9488;--glass:rgba(255,255,255,.07);--glass-strong:rgba(255,255,255,.11);--glass-border:rgba(255,255,255,.16);--shadow:0 8px 32px rgba(0,0,0,.45);--text:#f1f0ff;--muted:#a7a3cf;--accent:#a78bfa;--accent-2:#f472b6;--ok:#34d399;--gold:#fbbf24;--silver:#cbd5e1;--bronze:#f59e0b;--danger:#fb7185}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(160deg,var(--bg-1),var(--bg-2));background-attachment:fixed}
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(90px);opacity:.55}
+body::before{width:60vmax;height:60vmax;left:-20vmax;top:-20vmax;background:var(--blob-1)}
+body::after{width:50vmax;height:50vmax;right:-18vmax;bottom:-18vmax;background:var(--blob-2)}
+main{max-width:920px;margin:0 auto;padding:18px 16px 60px}
+.glass{background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;margin-bottom:14px}
+header h1{margin:0;font-size:1.35rem;background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header .sub{color:var(--muted);font-size:.85rem}
+header .grow{flex:1}
+a.back{color:var(--muted);text-decoration:none;font-size:.9rem}
+select,button,input{font:inherit;color:var(--text)}
+select,input{background:var(--glass-strong);border:1px solid var(--glass-border);border-radius:12px;padding:8px 12px}
+select option{color:#111}
+button{cursor:pointer;background:var(--glass-strong);border:1px solid var(--glass-border);border-radius:12px;padding:8px 14px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:6px;margin-bottom:14px;scrollbar-width:none}
+.tabs button{border:0;background:none;white-space:nowrap;font-weight:650;color:var(--muted);border-radius:12px}
+.tabs button.on{background:var(--glass-strong);color:var(--text);box-shadow:0 0 0 1px var(--glass-border)}
+.card{padding:16px;margin-bottom:14px}
+h2{margin:0 0 10px;font-size:1.05rem}
+.muted{color:var(--muted)}
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:10px;margin:6px 0 16px}
+.podium .p{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer}
+.podium .bar{width:100%;border-radius:14px 14px 6px 6px;display:grid;place-items:center;font-size:1.6rem;font-weight:900;color:#fff}
+.podium .p1 .bar{height:110px;background:linear-gradient(180deg,var(--gold),#b7791f)}
+.podium .p2 .bar{height:80px;background:linear-gradient(180deg,var(--silver),#64748b)}
+.podium .p3 .bar{height:60px;background:linear-gradient(180deg,var(--bronze),#92400e)}
+.podium .name{font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium small{color:var(--muted)}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:850;color:#fff;flex:none}
+.podium .p1 .av{width:56px;height:56px;font-size:1.3rem;box-shadow:0 0 0 3px var(--gold)}
+table{width:100%;border-collapse:collapse}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:right;padding:6px 8px;font-weight:700}
+td{padding:9px 8px;text-align:right;border-top:1px solid var(--glass-border);font-variant-numeric:tabular-nums}
+th:nth-child(2),td:nth-child(2){text-align:left}
+th:first-child,td:first-child{text-align:center;width:42px}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--glass)}
+td .who{display:flex;align-items:center;gap:10px}
+td .who .av{width:30px;height:30px;font-size:.8rem}
+.medal{font-size:1.15rem}
+.hide-s{}
+@media(max-width:560px){.hide-s{display:none}}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.game{padding:12px 14px;border-radius:16px;background:var(--glass-strong);border:1px solid var(--glass-border)}
+.game b{display:block;margin-bottom:6px}
+.game ol{margin:0;padding-left:20px}
+.ach{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.badge{padding:10px;border-radius:14px;background:var(--glass-strong);border:1px solid var(--glass-border);text-align:center}
+.badge .i{font-size:1.8rem;display:block}
+.badge b{display:block;font-size:.88rem}
+.badge small{display:block;color:var(--muted);font-size:.74rem}
+.badge.off{opacity:.42;filter:grayscale(1)}
+.badge .bar{height:4px;border-radius:2px;background:var(--glass-border);margin-top:6px;overflow:hidden}
+.badge .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.person{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--glass-border);cursor:pointer}
+.person:first-of-type{border-top:0}
+.person .grow{flex:1}
+.chips{display:flex;gap:2px;flex-wrap:wrap;font-size:1.05rem}
+.match{padding:10px 0;border-top:1px solid var(--glass-border)}
+.match:first-of-type{border-top:0}
+.match .top{display:flex;justify-content:space-between;gap:8px}
+.match .pl{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pill{font-size:.8rem;padding:3px 9px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-border)}
+.pill.win{box-shadow:0 0 0 1.5px var(--gold)}
+.pill.bot{opacity:.6}
+.hall{display:grid;gap:10px}
+.empty{text-align:center;padding:30px 10px;color:var(--muted)}
+.reset{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;padding:5px 11px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-border)}
+dialog{border:0;padding:0;background:transparent;color:var(--text);max-width:min(560px,94vw);width:100%}
+dialog::backdrop{background:rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+dialog .glass{padding:18px;max-height:86vh;overflow:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.stats div{text-align:center;padding:8px;border-radius:12px;background:var(--glass-strong)}
+.stats b{display:block;font-size:1.2rem}
+.stats small{color:var(--muted);font-size:.72rem}
+.del{border:0;background:none;color:var(--danger);font-size:.8rem;padding:2px 6px}
+.admin{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+<main>
+  <header class="glass">
+    <div class="grow">
+      <h1>🏆 Bestenliste</h1>
+      <div class="sub" id="sub">Spieleabend</div>
+    </div>
+    <span class="reset" id="reset"></span>
+    <select id="month" aria-label="Monat"></select>
+    <a class="back hidden" id="back" href="../">← Spiele</a>
+  </header>
+  <nav class="tabs glass" id="tabs">
+    <button data-tab="monat" class="on">📊 Monat</button>
+    <button data-tab="spiele">🎮 Spiele</button>
+    <button data-tab="erfolge">🏅 Achievements</button>
+    <button data-tab="ruhm">🌟 Ruhmeshalle</button>
+    <button data-tab="partien">🕘 Partien</button>
+  </nav>
+  <div id="view"></div>
+</main>
+<dialog id="dlg"><div class="glass" id="dlgBody"></div></dialog>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const COLORS = ["#7c3aed","#ec4899","#0ea5e9","#10b981","#f59e0b","#ef4444","#6366f1","#14b8a6","#d946ef","#84cc16"];
+const color = n => COLORS[[...String(n).toLowerCase()].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
+const av = n => `<span class="av" style="background:${color(n)}">${esc(String(n).trim().charAt(0).toUpperCase() || "?")}</span>`;
+const medal = p => p === 1 ? "🥇" : p === 2 ? "🥈" : p === 3 ? "🥉" : p;
+const when = ts => new Date(ts * 1000).toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+let data = null, tab = "monat";
+try { tab = localStorage.getItem("bestenliste-tab") || "monat"; } catch (e) {}
+if (location.pathname.replace(/\/$/, "").endsWith("/bestenliste")) $("back").classList.remove("hidden"); else $("back").remove();
+
+async function load(month) {
+  const res = await fetch("api/overview" + (month ? "?month=" + encodeURIComponent(month) : ""), { cache: "no-store" });
+  data = await res.json();
+  document.documentElement.dataset.theme = data.theme === "light" ? "light" : "dark";
+  $("sub").textContent = data.label + (data.current ? "" : " (abgeschlossen)");
+  $("reset").textContent = data.current ? `🔄 Neustart in ${data.reset_days} ${data.reset_days === 1 ? "Tag" : "Tagen"}` : "📁 Archiv";
+  $("month").innerHTML = data.months.map(m => `<option value="${m.month}" ${m.month === data.month ? "selected" : ""}>${esc(m.label)}</option>`).join("");
+  render();
+}
+
+function person(name) { return data.players.find(p => p.name.toLowerCase() === String(name).toLowerCase()); }
+
+function monat() {
+  const r = data.ranking;
+  if (!r.length) return `<section class="card glass empty">Noch keine Partien ${data.current ? "in diesem Monat" : ""}.<br>Meldet euch im Spieleabend an und spielt eine Runde zu zweit oder mehr – dann geht's los!</section>`;
+  const pod = [r[1], r[0], r[2]].map((x, i) => x ? `<div class="p p${[2, 1, 3][i]}" data-name="${esc(x.name)}">${av(x.name)}<span class="name">${esc(x.name)}</span><small>${x.points} Punkte · ${x.wins} Siege</small><div class="bar">${[2, 1, 3][i]}</div></div>` : "<div></div>").join("");
+  return `<section class="card glass"><h2>${esc(data.label)}</h2><div class="podium">${pod}</div>
+    <table><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th class="hide-s">Partien</th><th class="hide-s">Quote</th><th class="hide-s">🍻</th></tr></thead><tbody>
+    ${r.map(x => `<tr class="row" data-name="${esc(x.name)}"><td class="medal">${medal(x.place)}</td><td><span class="who">${av(x.name)}<span>${esc(x.name)}${x.favorite ? `<br><small class="muted">♥ ${esc(x.favorite)}</small>` : ""}</span></span></td>
+      <td><b>${x.points}</b></td><td>${x.wins}</td><td class="hide-s">${x.games}</td><td class="hide-s">${x.winrate} %</td><td class="hide-s">${x.sips || ""}</td></tr>`).join("")}
+    </tbody></table>
+    <p class="muted" style="font-size:.8rem;margin:12px 0 0">Punkte: 1 fürs Mitspielen und 1 für jeden, der hinter dir landet. Punkte und Achievements sammelt, wer im Spieleabend angemeldet ist; es zählen Partien mit mindestens zwei Menschen. Am 1. jedes Monats geht es von vorn los – die Sieger kommen in die Ruhmeshalle.</p></section>`;
+}
+
+function spiele() {
+  if (!data.games.length) return `<section class="card glass empty">In diesem Monat wurde noch nichts gespielt.</section>`;
+  return `<section class="card glass"><h2>Beste pro Spiel · ${esc(data.label)}</h2><div class="games">${data.games.map(g => `<div class="game"><b>${esc(g.title)}</b>
+    <small class="muted">${g.played} ${g.played === 1 ? "Partie" : "Partien"}</small>
+    ${g.leaders.length ? `<ol>${g.leaders.map(l => `<li>${esc(l.name)} – ${l.wins} ${l.wins === 1 ? "Sieg" : "Siege"}</li>`).join("")}</ol>` : `<p class="muted" style="margin:6px 0 0">ohne Sieger (Party/Trinkspiel)</p>`}</div>`).join("")}</div></section>`;
+}
+
+function badges(list) {
+  return `<div class="ach">${list.map(a => `<div class="badge ${a.unlocked ? "" : "off"}" title="${esc(a.desc)}"><span class="i">${a.icon}</span><b>${esc(a.title)}</b><small>${esc(a.desc)}</small>
+    ${a.unlocked ? `<small>✓ ${new Date(a.unlocked * 1000).toLocaleDateString("de-DE")}</small>` : `<div class="bar"><i style="width:${Math.round(100 * a.progress / a.target)}%"></i></div><small>${a.progress} / ${a.target}</small>`}</div>`).join("")}</div>`;
+}
+
+function erfolge() {
+  if (!data.players.length) return `<section class="card glass empty">Noch niemand hat Achievements – spielt los!</section>`;
+  return `<section class="card glass"><h2>Achievements <small class="muted">(bleiben für immer)</small></h2>
+    ${data.players.map(p => { const got = p.achievements.filter(a => a.unlocked);
+      return `<div class="person" data-name="${esc(p.name)}">${av(p.name)}<div class="grow"><b>${esc(p.name)}</b><br><small class="muted">${got.length} von ${data.achievement_count} · ${p.games} Partien · ${p.wins} Siege</small></div>
+      <div class="chips">${got.slice(-8).map(a => `<span title="${esc(a.title)}">${a.icon}</span>`).join("")}</div></div>`; }).join("")}</section>`;
+}
+
+function ruhm() {
+  if (!data.hall.length) return `<section class="card glass empty">Die Ruhmeshalle füllt sich am Monatsende mit den Siegern.</section>`;
+  return `<section class="hall">${data.hall.map(h => `<div class="card glass"><h2>🌟 ${esc(h.label)}</h2>
+    ${h.top.map(t => `<div class="person" data-name="${esc(t.name)}"><span class="medal">${medal(t.place)}</span>${av(t.name)}<div class="grow"><b>${esc(t.name)}</b></div><small class="muted">${t.points} Punkte · ${t.wins} Siege</small></div>`).join("")}</div>`).join("")}</section>`;
+}
+
+function partien() {
+  if (!data.recent.length) return `<section class="card glass empty">Keine Partien in diesem Monat.</section>`;
+  return `<section class="card glass"><h2>Partien · ${esc(data.label)}</h2>${data.recent.map(m => `<div class="match"><div class="top"><b>${esc(m.title)}</b>
+    <span class="muted" style="font-size:.82rem">${when(m.ts)}${m.counts ? "" : " · zählt nicht"}${data.admin ? ` <button class="del" data-del="${m.id}">löschen</button>` : ""}</span></div>
+    <div class="pl">${m.players.map(p => `<span class="pill ${p.won ? "win" : ""} ${p.bot || p.guest ? "bot" : ""}">${p.won ? "🏆 " : p.place ? p.place + ". " : ""}${esc(p.name)}${p.bot ? " 🤖" : p.guest ? " · Gast" : ""}${p.sips ? ` · ${p.sips} 🍻` : ""}${p.points && m.counts ? ` · +${p.points}` : ""}</span>`).join("")}</div></div>`).join("")}
+    <p class="muted" style="font-size:.8rem;margin:12px 0 0">Gäste spielen mit, sammeln aber keine Punkte und Achievements – dafür im Spieleabend anmelden.</p></section>`;
+}
+
+function render() {
+  for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("on", b.dataset.tab === tab);
+  $("view").innerHTML = { monat, spiele, erfolge, ruhm, partien }[tab]();
+  for (const el of document.querySelectorAll("[data-name]")) el.onclick = () => showPerson(el.dataset.name);
+  for (const b of document.querySelectorAll("[data-del]")) b.onclick = async () => {
+    if (!confirm("Diese Partie aus der Bestenliste löschen?")) return;
+    await post("api/admin/delete", { id: b.dataset.del }); load(data.month);
+  };
+}
+
+async function post(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return res.json().catch(() => ({}));
+}
+
+function showPerson(name) {
+  const p = person(name);
+  const row = data.ranking.find(r => r.name.toLowerCase() === String(name).toLowerCase());
+  if (!p) return;
+  const got = p.achievements.filter(a => a.unlocked).length;
+  $("dlgBody").innerHTML = `<div style="display:flex;align-items:center;gap:12px">${av(p.name)}<div style="flex:1"><h2 style="margin:0">${esc(p.name)}</h2>
+    <small class="muted">${row ? `Platz ${row.place} im ${esc(data.label)} · ${row.points} Punkte` : "diesen Monat noch nicht dabei"}</small></div><button id="close">✕</button></div>
+    <div class="stats"><div><b>${p.games}</b><small>Partien</small></div><div><b>${p.wins}</b><small>Siege</small></div><div><b>${p.best_streak}</b><small>beste Serie</small></div><div><b>${got}/${data.achievement_count}</b><small>Achievements</small></div></div>
+    ${badges([...p.achievements].sort((a, b) => (b.unlocked ? 1 : 0) - (a.unlocked ? 1 : 0)))}`;
+  $("dlg").showModal();
+  $("close").onclick = () => $("dlg").close();
+}
+$("dlg").addEventListener("click", e => { if (e.target === $("dlg")) $("dlg").close(); });
+$("tabs").onclick = e => { const b = e.target.closest("button"); if (!b) return; tab = b.dataset.tab; try { localStorage.setItem("bestenliste-tab", tab); } catch (e) {} render(); };
+$("month").onchange = () => load($("month").value);
+load();
+setInterval(() => { if (data && data.current && !document.hidden && !$("dlg").open) load(data.month); }, 30000);
+</script>
+<style>.hidden{display:none}</style>
+</body>
+</html>

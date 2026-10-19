@@ -1,0 +1,64 @@
+configuration:
+  mode:
+    name: Mode
+    description: paper = paper trading with real prices and simulated money. live = real money (only with API key and confirmation below).
+  budget_eur:
+    name: Budget (EUR)
+    description: Claude trades with this much money – never more. Applies when a new account starts (also when switching paper → live).
+  coins:
+    name: Coins
+    description: auto = the most traded coins of the exchange (small ones too). Or a fixed comma list, e.g. BTC,ETH,SOL.
+  news_sources:
+    name: News sources
+    description: RSS feeds or web pages (with a feed) Claude bases its decisions on. Claude only reads these sources, no general web search. Empty list = Claude may search the web freely.
+  profit_step_pct:
+    name: Profit step (%)
+    description: When Claude sells with a profit, only whole steps stay in the trading money (+12 % → 10 % keep working). The rest is tagged in euros, never used again and counts as profit when you finally stop the trader. 0 = off.
+  auto_top:
+    name: Number of coins (auto)
+    description: With "auto", this many of the most traded coins are considered.
+  min_volume_eur:
+    name: Minimum volume (EUR/24 h)
+    description: With "auto", only coins with this much trading volume.
+  decision_every_hours:
+    name: Decide every … hours
+    description: How often Claude decides (each decision uses some Claude quota).
+  check_minutes:
+    name: Safety check every … minutes
+    description: How often stop-loss and the loss limit are checked (without Claude).
+  report_hour:
+    name: Daily report at
+    description: From this hour a daily report comes by iMessage. Trades are reported right away.
+  max_small_pct:
+    name: Max per small coin (%)
+    description: Small coins (everything except the big ones like BTC, ETH, SOL, XRP …) at most this share of the total value.
+  max_orders_day:
+    name: Max orders per day
+    description: Prevents trading back and forth (emergency sells don't count).
+  max_trade_pct:
+    name: Max per buy (%)
+    description: One buy at most this share of the total value.
+  max_position_pct:
+    name: Max per coin (%)
+    description: One coin at most this share of the total value.
+  min_cash_pct:
+    name: Cash reserve (%)
+    description: This share always stays in euros.
+  stop_loss_pct:
+    name: Stop-loss (%)
+    description: A coin is sold automatically when it is this far below its buy price (checked hourly).
+  max_drawdown_pct:
+    name: Total loss limit (%)
+    description: When the total value is this far below the start, everything is sold and trading stops.
+  fee_pct:
+    name: Paper trading fee (%)
+    description: Simulated fee per trade.
+  exchange:
+    name: Exchange
+    description: Prices come from this exchange; in live mode trades go there.
+  live_confirm:
+    name: Real money confirmation
+    description: For real trading enter exactly ICH TRAGE DAS RISIKO. Otherwise it stays paper trading.
+  claude_model:
+    name: Claude model
+    description: Optional, empty = default.

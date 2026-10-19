@@ -1,0 +1,6 @@
+configuration:
+  theme:
+    name: Farbschema
+    description: Dunkler (dark) oder heller (light) Modus.
+network:
+  8091/tcp: Bestenliste im Heimnetz (oder über einen Tunnel)

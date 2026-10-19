@@ -1,0 +1,16 @@
+configuration:
+  material:
+    name: Filament
+    description: What is usually loaded. The assistant can pick another one per print.
+  plate:
+    name: Build plate
+    description: Which plate is on the printer (the P1S ships with the Textured PEI Plate).
+  use_ams:
+    name: Use AMS
+    description: Print from the chosen AMS slot instead of the external spool.
+  ams_slot:
+    name: AMS slot
+    description: Which slot (1–4) to print from when the AMS is used.
+  camera_entity:
+    name: Camera entity
+    description: Optional. The printer camera from the Bambu Lab integration, e.g. camera.p1s_camera. Empty = find it automatically.
