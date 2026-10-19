@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0
+
+- **Restaurant-Karte:** Foto der Speisekarte, vom Essen oder vom Beleg schicken („Bin im …“,
+  „Hab die Pizza genommen“) – der Assistent liest Restaurant, Gerichte und Bestellung aus und trägt
+  den Besuch mit deinem Standort in **Fabians-HA-Karte** ein. Fragen wie „Was hatte ich beim
+  Italiener?“ beantwortet er aus der Karte. Neuer Befehl `karte`.
+
 ## 0.15.0
 
 - **Gedächtnis:** Mit Fabians-HA-Gedächtnis merkt sich der Assistent Wichtiges über Gespräche

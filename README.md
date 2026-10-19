@@ -11,7 +11,7 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | Add-on | Was es macht |
 |---|---|
 | [Fabians-HA-Master](master/DOCS.md) | Alle Schlüssel an einem Ort, Brücke für iMessage, Claude und den Assistenten. **Zuerst installieren.** |
-| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Gedächtnis, Kalender, Downloads, eBay, Pakete, Stundenplan, Erinnerungen, Übersetzer, 3D-Druck, Krypto, Add-ons |
+| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Gedächtnis, Restaurant-Karte, Kalender, Downloads, eBay, Pakete, Stundenplan, Erinnerungen, Übersetzer, 3D-Druck, Krypto, Add-ons |
 | [Fabians-HA-Krypto-Trader](krypto/DOCS.md) | Claude handelt Krypto mit festem Budget und Verlustgrenzen, zuerst auf Papier |
 | [Fabians-HA-3D-Druck](druck3d/DOCS.md) | Modelle auf Printables finden, slicen und auf dem Bambu Lab P1S drucken |
 | [Fabians-HA-Downloader](downloader/DOCS.md) | Warteschlange für Datei-Downloads |
@@ -20,6 +20,7 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | [Fabians-HA-Bestenliste](bestenliste/DOCS.md) | Monatsrangliste, Achievements und Ruhmeshalle für den Spieleabend |
 | [Fabians-HA-Urlaub](urlaub/DOCS.md) | Urlaub gemeinsam planen: Unterkünfte vergleichen, Geheimtipps, Kassenzettel aufteilen |
 | [Fabians-HA-Gedächtnis](gedaechtnis/DOCS.md) | Langzeitgedächtnis für den Assistenten – ein Obsidian-Vault, den Claude pflegt |
+| [Fabians-HA-Karte](karte/DOCS.md) | Deine Restaurant-Karte: der Assistent trägt Besuche mit Speisekarte, Bestellung und Fotos ein und gleicht sie online ab |
 | [Fabians-HA-Browser](browser/DOCS.md) | Google Chrome in Home Assistant, am PC und Handy bedienbar (nur amd64) |
 
 ## So geht's

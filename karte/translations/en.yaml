@@ -1,0 +1,4 @@
+configuration:
+  geraet:
+    name: Device for the location
+    description: "Empty = automatic: first an iPhone from Find My (Home Assistant's iCloud integration), otherwise the Home Assistant app. Or enter e.g. device_tracker.fabians_iphone."

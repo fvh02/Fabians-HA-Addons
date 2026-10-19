@@ -47,7 +47,8 @@ FIELDS = [
     ("Claude", "anthropic_api_key", "Anthropic-API-Key", True,
      "Für den Urlaubsplaner (Kassenzettel, Unterkünfte, Geheimtipps); beim Assistenten eine Alternative zum Token. Wird nach Verbrauch abgerechnet",
      ["assistent", "urlaub"]),
-    ("Apple-Kalender", "icloud_apple_id", "Apple-ID", False, "E-Mail-Adresse deiner Apple-ID", ["assistent"]),
+    ("Apple-Kalender", "icloud_apple_id", "Apple-ID", False,
+     "E-Mail-Adresse deiner Apple-ID (die Karte fragt damit „Wo ist?“ nach einem frischen Standort)", ["assistent", "karte"]),
     ("Apple-Kalender", "icloud_app_password", "App-Passwort", True, "account.apple.com → Anmeldung und Sicherheit → App-Passwörter", ["assistent"]),
     ("eBay", "ebay_client_id", "Client-ID (App-ID)", False, "developer.ebay.com → Application Keys (Production)", ["assistent"]),
     ("eBay", "ebay_client_secret", "Client-Secret (Cert-ID)", True, "", ["assistent"]),
@@ -106,6 +107,7 @@ TOOLS = {
     "browser": ("Fabians-HA-Browser", 8096),
     "urlaub": ("Fabians-HA-Urlaub", 8100),
     "gedaechtnis": ("Fabians-HA-Gedächtnis", 8101),
+    "karte": ("Fabians-HA-Karte", 8102),
 }
 # Without these an add-on cannot work at all (everything else is optional: Claude also works with an
 # imported claude.ai login, the exchange keys are only needed for real money).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Kennt das neue Add-on **Fabians-HA-Karte** (iMessages und Claude-Abgleich über den Master); die
+  Apple-ID geht auch an die Karte, damit sie bei „Wo ist?“ einen frischen Standort anfordern kann.
+
 ## 1.2.0
 
 - **Inkbox-Fehler verständlich:** Statt nur „Inkbox meldet Fehler 401“ steht jetzt da, was los ist

@@ -1,0 +1,4 @@
+configuration:
+  geraet:
+    name: Gerät für den Standort
+    description: "Leer = automatisch: zuerst ein iPhone aus „Wo ist?“ (iCloud-Integration von Home Assistant), sonst die Home-Assistant-App. Oder z. B. device_tracker.fabians_iphone eintragen."

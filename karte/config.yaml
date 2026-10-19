@@ -1,0 +1,20 @@
+name: Fabians-HA-Karte
+version: "1.0.0"
+slug: karte
+description: Deine Restaurant-Karte – der Assistent trägt Besuche mit Speisekarte, Bestellung und Fotos ein und gleicht sie online ab
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-karte
+arch:
+  - aarch64
+  - amd64
+  - armv7
+init: false
+homeassistant_api: true
+ingress: true
+ingress_port: 8102
+panel_icon: mdi:map-marker-star
+panel_title: Karte
+options:
+  geraet: ""
+schema:
+  geraet: str?
