@@ -2,6 +2,9 @@
 
 ## 0.15.0
 
+- **Gedächtnis:** Mit Fabians-HA-Gedächtnis merkt sich der Assistent Wichtiges über Gespräche
+  hinweg, liest zu Beginn dein Profil und schaut vor Antworten über Personen und Themen nach
+  (gefunden über den Master, nichts einzutragen).
 - **Erinnerungen mit Bedingung:** „Erinner mich, wenn das Paket da ist / es über 20 Grad wird /
   Max schreibt / die Waschmaschine fertig ist“ – einmal oder jedes Mal, geprüft jede Minute.
   Neuer Befehl `erinnern`; der Assistent darf dafür Zustände in Home Assistant lesen.

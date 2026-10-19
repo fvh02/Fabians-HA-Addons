@@ -3,7 +3,7 @@
 ## 1.1.0
 
 - Neue Add-ons im Repository: **Fabians-HA-Bestenliste**, **Fabians-HA-Browser** und
-  **Fabians-HA-Urlaub** – der Master kennt sie und gibt ihnen ihre Schlüssel.
+  **Fabians-HA-Urlaub** und **Fabians-HA-Gedächtnis** – der Master kennt sie und gibt ihnen ihre Schlüssel.
 - Neue Felder: **Paketverfolgung** (17TRACK, DHL) und **Stundenplan 1/2 (WebUntis)** für den
   Assistenten, **E-Mail (Spieleabend)** für die Bestätigungscodes der Spieleabend-Konten.
 - Der Anthropic-API-Key gilt auch für den Urlaubsplaner, der Spieleabend-Code auch für die

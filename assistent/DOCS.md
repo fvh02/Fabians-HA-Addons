@@ -201,6 +201,20 @@ Manche Schulen sperren den Zugriff für eigene Programme – dann steht das im P
 die Anmeldung dreimal hintereinander fehl, bekommst du einmal eine Nachricht. Der Assistent liest
 nur, er ändert nichts in WebUntis.
 
+## Gedächtnis
+
+Mit **Fabians-HA-Gedächtnis** merkt sich der Assistent Dinge über Gespräche hinweg – in einem
+Obsidian-Vault mit Notizen zu Personen, Orten, Projekten und mehr. Einfach installieren und starten,
+der Assistent findet es über den Master.
+
+- Er merkt sich von selbst, was später nützlich ist: Personen und Beziehungen, Geburtstage,
+  Adressen, Vorlieben, Pläne, Termine und was er für dich erledigt hat. Smalltalk nicht.
+- „Merk dir: …“ speichert immer und wird kurz bestätigt.
+- Vor Antworten über Personen oder Themen schaut er nach, und zu Beginn eines Gesprächs liest er
+  dein Profil.
+- Ändert sich etwas („Max wohnt jetzt in Bonn“), gilt der neuere Stand; der alte bleibt im Verlauf.
+- Aus E-Mails, Webseiten oder fremden Nachrichten merkt er sich nur etwas, wenn du es sagst.
+
 ## Erinnerungen mit Bedingung
 
 Statt „um 18 Uhr“ erinnert dich der Assistent, **sobald etwas eintritt** – per iMessage an deine
