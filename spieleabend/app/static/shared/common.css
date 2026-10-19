@@ -48,27 +48,23 @@
       min-height: 100vh;
       overflow-x: hidden;
     }
-    /* slowly drifting colour blobs behind the glass */
+    /* colour blobs behind the glass – still: a moving background makes every glass panel
+       recalculate its blur on every frame, which was far too slow on phones, tablets and TVs */
     .backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
     .backdrop i {
       position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%;
-      filter: blur(80px); opacity: .55; animation: drift 26s ease-in-out infinite alternate;
+      filter: blur(80px); opacity: .55;
     }
     .backdrop i:nth-child(1) { background: var(--blob-1); top: -20vmax; left: -15vmax; }
     .backdrop i:nth-child(2) { background: var(--blob-2); bottom: -25vmax; right: -15vmax; animation-delay: -8s; }
     .backdrop i:nth-child(3) { background: var(--blob-3); top: 30%; left: 40%; width: 35vmax; height: 35vmax; animation-delay: -15s; opacity: .35; }
     .backdrop i:nth-child(4) { background: var(--blob-4); bottom: 10%; left: -10vmax; width: 30vmax; height: 30vmax; animation-delay: -4s; opacity: .3; }
-    @keyframes drift {
-      0% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(8vmax, 6vmax) scale(1.12); }
-      100% { transform: translate(-6vmax, 10vmax) scale(.95); }
-    }
     .glass {
       background: var(--glass);
       border: 1px solid var(--glass-border);
       box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, .25);
-      backdrop-filter: blur(22px) saturate(160%);
-      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
     }
     button { font: inherit; cursor: pointer; color: inherit; }
     input, select {
@@ -409,3 +405,8 @@
     #lobby { position: relative; }
     #lobby > .home { position: absolute; top: 10px; left: 14px; z-index: 2; }
     #lobby .logo { padding-top: 6px; }
+
+    /* Fewer effects for anyone who asked their device to reduce motion. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }

@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.6.1
+
+- **Deutlich schneller mit vielen Spielern:** Jedes Handy bekommt seine Updates jetzt über eine
+  eigene Warteschlange. Vorher wartete der Spieleabend bei jeder Aktion nacheinander auf jedes
+  Handy – ein einziges Gerät mit schlechtem Empfang bremste alle (im Test: 20 Striche bei
+  Schnellmaler mit einem langsamen Handy 38 Sekunden statt sofort). Hängt ein Handy hinterher,
+  bekommt es direkt den neuesten Stand statt aller Zwischenschritte; unveränderte Ansichten werden
+  nicht doppelt geschickt.
+- Seiten werden nur noch einmal vorbereitet, Skripte und Styles bleiben bis zum nächsten Update im
+  Browser gespeichert (vorher bei jedem Seitenaufruf neu beim Server angefragt).
+- Anmelden und Registrieren halten die laufenden Spiele nicht mehr kurz an.
+- Leichteres Design: Der Hintergrund bewegt sich nicht mehr und die Glas-Unschärfe ist geringer –
+  das hat Handys, Tablets und Fernseher bei jedem Bild neu rechnen lassen. Bei „Bewegung
+  reduzieren“ in den Systemeinstellungen gibt es keine Animationen mehr.
+
 ## 3.6.0
 
 - Alle Neuerungen aus 3.2.0 bis 3.6.0 (unten): neun neue Spiele, Filmoji, Konten und Bestenliste,
