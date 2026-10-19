@@ -201,6 +201,37 @@ Manche Schulen sperren den Zugriff für eigene Programme – dann steht das im P
 die Anmeldung dreimal hintereinander fehl, bekommst du einmal eine Nachricht. Der Assistent liest
 nur, er ändert nichts in WebUntis.
 
+## Erinnerungen mit Bedingung
+
+Statt „um 18 Uhr“ erinnert dich der Assistent, **sobald etwas eintritt** – per iMessage an deine
+Handynummer aus dem Master. Einfach schreiben, z. B.:
+
+- „Erinner mich ans Abholen, wenn die AirPods da sind“ – Paket aus der Paketverfolgung
+  (zugestellt, in Zustellung, abholbereit oder Problem)
+- „Sag Bescheid, wenn es über 20 Grad wird“, „… wenn es in Köln regnet“, „… bei Frost“ –
+  Wetter von Open-Meteo, ohne Ort für dein Zuhause aus Home Assistant
+- „Erinner mich, Max zurückzurufen, wenn er mal schreibt“
+- „Sag mir, wenn die Waschmaschine fertig ist“ – jedes Gerät aus Home Assistant, z. B. Leistung
+  seit 3 Minuten unter 5 W, Fenster offen, Akku unter 20 %
+
+Mit „jedes Mal“ meldet er sich immer wieder, wenn die Bedingung erneut eintritt, sonst einmal.
+„Bis Freitag“ lässt eine Erinnerung danach verfallen. „Welche Erinnerungen habe ich?“ und
+„Lösch die Waschmaschinen-Erinnerung“ gehen auch. Geprüft wird jede Minute (das Wetter alle
+15 Minuten). Für Geräte braucht der Assistent Lesezugriff auf Home Assistant – den hat er ab 0.15.0
+von selbst.
+
+## Übersetzer
+
+Schick ein **Foto** von einer Speisekarte, einem Schild, Ticket, Beipackzettel oder Brief – oder
+einfach Text in einer anderen Sprache. Der Assistent übersetzt in deine Sprache:
+
+- **Speisekarten** bleiben eine Liste mit Preisen, zu jedem Gericht steht kurz, was es ist; Gerichte
+  mit Alkohol, Schwein oder häufigen Allergenen werden markiert, fremde Währungen ungefähr in Euro
+  umgerechnet.
+- **Schilder und Briefe:** erst die Bedeutung in einem Satz, dann die ganze Übersetzung.
+- „Wie sage ich … auf Spanisch?“ oder „Übersetz das für den Kellner“: der Satz zum Zeigen auf dem
+  Handy, mit Aussprache in deutscher Schreibweise.
+
 ## 3D-Druck
 
 Mit **Fabians-HA-3D-Druck** sucht Claude Modelle auf Printables, schickt dir Bilder, slict für

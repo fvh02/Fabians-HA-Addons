@@ -1,5 +1,5 @@
 name: Fabians-HA-Assistent
-version: "0.14.0"
+version: "0.15.0"
 slug: assistent
 description: Dein Assistent per iMessage und E-Mail (Claude über Inkbox) – Schlüssel kommen aus Fabians-HA-Master
 url: https://github.com/fvh02/Fabians-HA-Addons
@@ -11,6 +11,7 @@ startup: application
 boot: auto
 hassio_api: true
 hassio_role: manager
+homeassistant_api: true
 map:
   - share:rw
 backup_exclude:

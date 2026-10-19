@@ -11,7 +11,7 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | Add-on | Was es macht |
 |---|---|
 | [Fabians-HA-Master](master/DOCS.md) | Alle Schlüssel an einem Ort, Brücke für iMessage, Claude und den Assistenten. **Zuerst installieren.** |
-| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Kalender, Downloads, eBay, Pakete, Stundenplan, 3D-Druck, Krypto, Add-ons |
+| [Fabians-HA-Assistent](assistent/DOCS.md) | Claude per iMessage und E-Mail (Inkbox): Kalender, Downloads, eBay, Pakete, Stundenplan, Erinnerungen, Übersetzer, 3D-Druck, Krypto, Add-ons |
 | [Fabians-HA-Krypto-Trader](krypto/DOCS.md) | Claude handelt Krypto mit festem Budget und Verlustgrenzen, zuerst auf Papier |
 | [Fabians-HA-3D-Druck](druck3d/DOCS.md) | Modelle auf Printables finden, slicen und auf dem Bambu Lab P1S drucken |
 | [Fabians-HA-Downloader](downloader/DOCS.md) | Warteschlange für Datei-Downloads |
