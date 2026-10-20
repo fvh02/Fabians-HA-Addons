@@ -245,3 +245,27 @@ def best_match(candidates: list[dict], name: str) -> tuple[dict | None, str]:
     nearest = candidates[0]
     close = [c for c in candidates if c["distance_m"] <= nearest["distance_m"] + 25]
     return nearest, "sicher" if len(close) == 1 and nearest["distance_m"] <= 40 else "unsicher"
+
+
+async def find_named(session: aiohttp.ClientSession, query: str, lat: float, lon: float, radius: int = 5000) -> list[dict]:
+    """Shops, restaurants, offices … whose name contains the query, around a point, nearest first."""
+    words = [re.escape(w) for w in re.findall(r"[\wÄÖÜäöüß'&.-]+", query)][:6]
+    if not words:
+        return []
+    pattern = ".*".join(words).replace('"', "")
+    q = (f'[out:json][timeout:25];(nwr["name"~"{pattern}",i](around:{radius},{lat},{lon});'
+         f'nwr["brand"~"{pattern}",i](around:{radius},{lat},{lon}););out center tags 40;')
+    found = []
+    for el in await overpass(session, q):
+        item = _from_osm(el, (lat, lon))
+        tags = el.get("tags") or {}
+        item["tags"]["opening_hours"] = tags.get("opening_hours", "")
+        item["art"] = tags.get("amenity") or tags.get("shop") or tags.get("office") or tags.get("tourism") or tags.get("leisure") or ""
+        if item["lat"] is not None and item["name"]:
+            found.append(item)
+    return sorted(found, key=lambda f: f["distance_m"])
+
+
+async def geocode(session: aiohttp.ClientSession, query: str) -> tuple[float, float] | None:
+    hits = await _nominatim(session, "search", {"q": query, "limit": 1})
+    return (float(hits[0]["lat"]), float(hits[0]["lon"])) if hits else None

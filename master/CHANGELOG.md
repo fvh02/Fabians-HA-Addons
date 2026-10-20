@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.4
+
+- Kennt die neuen Add-ons **Fabians-HA-Serien** und **Fabians-HA-Himmel** (iMessages über den Master,
+  Brücke für den Assistenten).
+
 ## 1.2.3
 
 - **Behoben: „Supervisor nicht erreichbar“ und alle Add-ons „nicht installiert“.** Der Master

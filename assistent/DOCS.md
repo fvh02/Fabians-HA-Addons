@@ -231,6 +231,18 @@ Mit **Fabians-HA-Karte** führt der Assistent eine Karte deiner Restaurants, Caf
 - „War super, 5 Sterne“ speichert eine Bewertung. „Wo war ich in Köln essen?“ oder „Was hatte
   ich beim Italiener?“ beantwortet er aus der Karte.
 
+## „Hat das gerade offen?“
+
+„Hat der Edeka noch offen?“, „Wann macht die Apotheke am Markt auf?“ – der Assistent sucht in deiner
+Nähe (Standort wie bei der Karte) oder in einem genannten Ort und antwortet aus den Öffnungszeiten in
+OpenStreetMap. Stehen dort keine, schaut er im Internet nach. Braucht **Fabians-HA-Karte**.
+
+## Serien und Himmel
+
+Mit **Fabians-HA-Serien** fragst du „Kommt heute was Neues?“ oder „Füg Severance zu meinen Serien
+hinzu“, mit **Fabians-HA-Himmel** „Kann ich heute die ISS sehen?“ oder „Wann ist Vollmond?“. Beide
+melden sich außerdem von selbst per iMessage.
+
 ## Erinnerungen mit Bedingung
 
 Statt „um 18 Uhr“ erinnert dich der Assistent, **sobald etwas eintritt** – per iMessage an deine

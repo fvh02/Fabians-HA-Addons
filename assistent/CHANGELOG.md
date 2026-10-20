@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0
+
+- **„Hat das gerade offen?“** – `karte offen NAME`: Öffnungszeiten von Läden, Lokalen und Ämtern in
+  deiner Nähe (oder in einem genannten Ort) aus OpenStreetMap, mit „geöffnet bis …“ oder „öffnet um …“.
+- **Serien:** fragt den Serien-Kalender („Kommt heute was Neues?“, „Füg … hinzu“) – Befehl `serien`.
+- **Himmel:** fragt den Himmels-Kalender („Kann ich heute die ISS sehen?“) – Befehl `himmel`.
+
 ## 0.16.0
 
 - **Restaurant-Karte:** Foto der Speisekarte, vom Essen oder vom Beleg schicken („Bin im …“,

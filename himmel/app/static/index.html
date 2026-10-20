@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Himmel</title>
+<style>
+  :root { --bg: #0b1020; --card: #141a2e; --text: #e8ecf8; --muted: #93a0c0; --line: #253050; --accent: #ffd166; --ok: #51cf66; --bad: #ff8787; }
+  @media (prefers-color-scheme: light) { :root { --bg: #f3f5fb; --card: #fff; --text: #1a2140; --muted: #66708e; --line: #dfe4f0; --accent: #d98e04; --ok: #2f9e44; --bad: #c92a2a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 1.3rem; margin: 6px 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 14px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .big { font-size: 1.6rem; font-weight: 750; }
+  .row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .muted { color: var(--muted); }
+  .good { color: var(--ok); }
+  .bad { color: var(--bad); }
+  .wide { grid-column: 1 / -1; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--line); font-size: .8rem; margin-left: 6px; }
+  #tonight { white-space: pre-line; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>✨ Himmels-Kalender</h1>
+  <div class="sub" id="sub">lädt …</div>
+  <div class="grid">
+    <div class="card wide"><h2>Heute Nacht</h2><div id="tonight" class="muted">…</div></div>
+    <div class="card"><h2>Mond</h2><div id="moon"></div></div>
+    <div class="card"><h2>Klare Nächte</h2><div id="nights"></div></div>
+    <div class="card wide"><h2>Sichtbare ISS-Überflüge (10 Tage)</h2><div id="iss"></div></div>
+    <div class="card"><h2>Sternschnuppen (90 Tage)</h2><div id="showers"></div></div>
+    <div class="card"><h2>Finsternisse</h2><div id="eclipses"></div></div>
+  </div>
+  <p class="muted" style="font-size:.8rem;margin-top:24px">Bahndaten: CelesTrak · Wetter: Open-Meteo · Finsternisse: NASA. Zeiten in deiner Zeitzone.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const dayLabel = iso => new Date(iso + "T12:00:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" });
+const cloudClass = c => c == null ? "muted" : c <= 30 ? "good" : c <= 60 ? "" : "bad";
+const MOON = { "Neumond": "🌑", "zunehmende Sichel": "🌒", "erstes Viertel": "🌓", "zunehmender Mond": "🌔", "Vollmond": "🌕", "abnehmender Mond": "🌖", "letztes Viertel": "🌗", "abnehmende Sichel": "🌘" };
+
+async function load() {
+  try {
+    const [o, t] = await Promise.all([fetch("api/uebersicht").then(r => r.json()), fetch("api/heute").then(r => r.json())]);
+    if (o.error) throw new Error(o.error);
+    $("sub").textContent = `${o.ort} · Stand ${o.jetzt}`;
+    $("tonight").textContent = t.text || "–";
+    $("moon").innerHTML = `<div class="big">${MOON[o.mond.phase] || "🌙"} ${o.mond.beleuchtet} %</div><div class="muted">${esc(o.mond.phase)}, ${o.mond.alter_tage} Tage alt</div>` +
+      o.mondphasen.map(m => `<div class="row"><span>${m.art === "Vollmond" ? "🌕" : "🌑"} ${m.art}</span><span class="muted">${esc(m.lokal)}</span></div>`).join("");
+    $("nights").innerHTML = o.naechte.map(n => `<div class="row"><span>${dayLabel(n.datum)}${n.dunkel ? ` <span class="muted">${n.dunkel}</span>` : ""}</span>
+      <span class="${cloudClass(n.wolken)}">${n.wolken == null ? "keine Vorhersage" : n.wolken + " % Wolken"}</span></div>`).join("");
+    $("iss").innerHTML = o.iss.length ? o.iss.map(p => `<div class="row"><span><b>${esc(p.lokal)}</b> · ${esc(p.von)} → ${esc(p.nach)}
+        <span class="pill">${p.max_hoehe}°</span>${p.max_hoehe >= o.einstellungen.min_hoehe ? `<span class="pill">gut sichtbar</span>` : ""}</span>
+        <span class="${cloudClass(p.wolken)}">${p.wolken == null ? "" : p.wolken + " % ☁️ · "}${Math.round(p.dauer_s / 60)} Min.</span></div>`).join("")
+      : `<div class="muted">In den nächsten 10 Tagen kein sichtbarer Überflug (die ISS ist nur in der Dämmerung zu sehen).</div>`;
+    $("showers").innerHTML = o.sternschnuppen.length ? o.sternschnuppen.map(s => `<div class="row"><span><b>${esc(s.name)}</b><br><span class="muted">${esc(s.tipp)}</span></span>
+      <span style="text-align:right">${dayLabel(s.datum)}<br><span class="muted">bis ${s.pro_stunde}/h · Mond ${s.mond} %</span></span></div>`).join("")
+      : `<div class="muted">Keine großen Ströme in den nächsten 90 Tagen.</div>`;
+    $("eclipses").innerHTML = o.finsternisse.length ? o.finsternisse.map(e => `<div class="row"><span><b>${esc(e.name)}</b><br><span class="muted">${esc(e.sichtbarkeit)}</span></span>
+      <span>${new Date(e.datum + "T12:00:00").toLocaleDateString("de-DE")}</span></div>`).join("") : `<div class="muted">–</div>`;
+  } catch (e) {
+    $("sub").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+  }
+}
+load();
+setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);
+</script>
+</body>
+</html>

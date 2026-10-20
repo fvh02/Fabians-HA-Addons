@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Serien</title>
+<style>
+  :root { --bg: #f6f7fb; --card: #fff; --text: #1d2130; --muted: #6b7185; --line: #e3e6ef; --accent: #7048e8; --new: #2f9e44; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #11131a; --card: #1b1e28; --text: #eceef5; --muted: #9aa0b4; --line: #2b2f3c; --accent: #9775fa; --new: #51cf66; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 1.3rem; margin: 6px 0 14px; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 26px 0 8px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; font: inherit; }
+  .tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  input { width: 100%; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; }
+  .card { display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin: 8px 0; align-items: center; }
+  .card img { width: 56px; height: 80px; object-fit: cover; border-radius: 8px; background: var(--line); flex: none; }
+  .card .noimg { width: 56px; height: 80px; border-radius: 8px; background: var(--line); display: grid; place-items: center; font-size: 24px; flex: none; }
+  .card .info { flex: 1; min-width: 0; }
+  .card b { display: block; }
+  .meta { color: var(--muted); font-size: .86rem; }
+  .next { font-size: .9rem; margin-top: 3px; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 7px 12px; border-radius: 10px; cursor: pointer; font: inherit; white-space: nowrap; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .day { margin-top: 14px; font-weight: 700; }
+  .ep { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .ep .code { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 64px; }
+  .badge { font-size: .75rem; padding: 1px 8px; border-radius: 999px; background: var(--new); color: #fff; margin-left: 6px; }
+  .empty { color: var(--muted); padding: 14px 2px; }
+  .hidden { display: none !important; }
+  .bell { border: 0; background: none; font-size: 20px; cursor: pointer; padding: 4px; }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 30px; }
+  a { color: var(--accent); }
+  .toast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>📺 Serien-Kalender</h1>
+  <div class="tabs">
+    <button class="tab on" data-tab="kalender">Demnächst</button>
+    <button class="tab" data-tab="meine">Meine Serien</button>
+    <button class="tab" data-tab="suche">Hinzufügen</button>
+  </div>
+  <section id="kalender"></section>
+  <section id="meine" class="hidden"></section>
+  <section id="suche" class="hidden">
+    <input id="q" type="search" placeholder="Serie suchen, z. B. Stranger Things" autocomplete="off">
+    <div id="hits"></div>
+  </section>
+  <footer>Daten von <a href="https://www.tvmaze.com" target="_blank" rel="noopener">TVmaze</a> (CC BY-SA). Zeiten in deiner Zeitzone.</footer>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json" } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `Fehler ${r.status}`);
+  return d;
+}
+function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.append(t); setTimeout(() => t.remove(), 2500); }
+const img = s => s.bild ? `<img src="${esc(s.bild)}" alt="" loading="lazy">` : `<div class="noimg">📺</div>`;
+const dayName = iso => {
+  const d = new Date(iso + "T12:00:00"), today = new Date(); today.setHours(12, 0, 0, 0);
+  const diff = Math.round((d - today) / 86400000);
+  const label = d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
+  return diff === 0 ? "Heute, " + label : diff === 1 ? "Morgen, " + label : diff === -1 ? "Gestern, " + label : label;
+};
+const time = z => z ? new Date(z).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "";
+
+for (const t of document.querySelectorAll(".tab")) t.onclick = () => {
+  for (const x of document.querySelectorAll(".tab")) x.classList.toggle("on", x === t);
+  for (const s of ["kalender", "meine", "suche"]) $(s).classList.toggle("hidden", s !== t.dataset.tab);
+  if (t.dataset.tab === "suche") $("q").focus();
+};
+
+async function calendar() {
+  const { folgen } = await api("api/demnaechst?tage=60");
+  if (!folgen.length) { $("kalender").innerHTML = `<div class="empty">Keine Folgen in den nächsten 60 Tagen. Füge unter „Hinzufügen“ deine Serien hinzu.</div>`; return; }
+  let html = "", last = "";
+  for (const f of folgen) {
+    if (f.tag !== last) { html += `<div class="day">${dayName(f.tag)}</div>`; last = f.tag; }
+    html += `<div class="ep"><span class="code">${esc(f.code)}</span><span><b>${esc(f.serie)}</b>${f.titel ? " – " + esc(f.titel) : ""}
+      <span class="meta">${esc([f.kanal, time(f.zeit)].filter(Boolean).join(" · "))}</span>${f.neu ? `<span class="badge">neu</span>` : ""}</span></div>`;
+  }
+  $("kalender").innerHTML = html;
+}
+
+async function mine() {
+  const { serien } = await api("api/serien");
+  $("meine").innerHTML = serien.length ? serien.map(s => `
+    <div class="card">${img(s)}<div class="info"><b>${esc(s.name)}</b>
+      <div class="meta">${esc([s.kanal, s.status].filter(Boolean).join(" · "))}</div>
+      <div class="next">${s.naechste ? `Nächste: <b style="display:inline">${esc(s.naechste.code)}</b> am ${esc(s.naechste.am)}` :
+        s.letzte ? `<span class="meta">Zuletzt ${esc(s.letzte.code)} am ${esc(s.letzte.am)} – noch nichts Neues angekündigt</span>` : ""}</div></div>
+      <button class="bell" data-bell="${s.id}" data-on="${s.melden ? 1 : 0}" title="Meldungen">${s.melden ? "🔔" : "🔕"}</button>
+      <button class="btn" data-del="${s.id}" data-name="${esc(s.name)}">Entfernen</button></div>`).join("")
+    : `<div class="empty">Noch keine Serien.</div>`;
+  for (const b of document.querySelectorAll("[data-del]")) b.onclick = async () => {
+    if (!confirm(`„${b.dataset.name}“ entfernen?`)) return;
+    await api("api/folgen/" + b.dataset.del, { method: "DELETE" }); refresh();
+  };
+  for (const b of document.querySelectorAll("[data-bell]")) b.onclick = async () => {
+    await api("api/folgen/" + b.dataset.bell, { method: "PATCH", body: JSON.stringify({ melden: b.dataset.on !== "1" }) }); mine();
+  };
+}
+
+let timer;
+$("q").oninput = () => { clearTimeout(timer); timer = setTimeout(search, 350); };
+async function search() {
+  const q = $("q").value.trim();
+  if (!q) { $("hits").innerHTML = ""; return; }
+  try {
+    const { treffer } = await api("api/suche?q=" + encodeURIComponent(q));
+    $("hits").innerHTML = treffer.length ? treffer.map(s => `
+      <div class="card">${img(s)}<div class="info"><b>${esc(s.name)}</b>
+        <div class="meta">${esc([s.kanal, s.start && s.start.slice(0, 4), s.genres.join(", ")].filter(Boolean).join(" · "))}</div>
+        <div class="meta" style="margin-top:3px">${esc(s.beschreibung.slice(0, 160))}</div></div>
+        ${s.gefolgt ? `<span class="meta">✓ dabei</span>` : `<button class="btn primary" data-add="${s.id}">Hinzufügen</button>`}</div>`).join("")
+      : `<div class="empty">Nichts gefunden.</div>`;
+    for (const b of document.querySelectorAll("[data-add]")) b.onclick = async () => {
+      b.disabled = true; b.textContent = "…";
+      try { const s = await api("api/folgen", { method: "POST", body: JSON.stringify({ id: b.dataset.add }) }); toast(s.name + " hinzugefügt"); search(); refresh(); }
+      catch (e) { toast(e.message); b.disabled = false; b.textContent = "Hinzufügen"; }
+    };
+  } catch (e) { toast(e.message); }
+}
+
+function refresh() { calendar().catch(e => toast(e.message)); mine().catch(() => {}); }
+refresh();
+</script>
+</body>
+</html>

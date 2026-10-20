@@ -1,0 +1,10 @@
+configuration:
+  meldungen:
+    name: Notifications by iMessage
+    description: On the day new episodes come out and when a new season is announced (through Fabians-HA-Master).
+  ruhe_ab:
+    name: Quiet hours from
+    description: No notifications during quiet hours; episodes released at night are reported in the morning.
+  ruhe_bis:
+    name: Quiet hours until
+    description: From this hour the night's notifications are sent.
