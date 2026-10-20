@@ -60,6 +60,10 @@
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .row > * { flex: 1 1 auto; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid2 > * { min-width: 0; }
+    input[type=date] { -webkit-appearance: none; appearance: none; display: block; min-height: 46px; text-align: left; }
+    input[type=date]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+    input[type=date]::-webkit-calendar-picker-indicator { opacity: .7; }
     label.f { display: flex; flex-direction: column; gap: 5px; font-size: .8rem; font-weight: 700; color: var(--muted); }
     .wrap { max-width: 620px; margin: 0 auto; padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); animation: rise .45s ease both; }
     .panel { border-radius: 22px; padding: 16px; margin-bottom: 12px; }
@@ -93,13 +97,13 @@
     /* trip header & tabs */
     .head { border-radius: 24px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
     .head h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.02em; padding-right: 92px; }
-    .head .where { color: var(--muted); margin-top: 2px; font-weight: 600; }
+    .head .where { color: var(--muted); margin-top: 2px; font-weight: 600; padding-right: 92px; }
     .head .code { position: absolute; top: 14px; right: 14px; text-align: center; }
     .head .code b { display: block; font-family: ui-monospace, monospace; letter-spacing: .14em; font-size: 1rem; }
     .back { display: inline-flex; gap: 6px; color: var(--muted); text-decoration: none; font-weight: 650; font-size: .9rem; margin-bottom: 10px; background: none; border: 0; padding: 0; }
     nav.tabs { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom)); width: min(600px, calc(100% - 20px));
-      display: grid; grid-template-columns: repeat(5, 1fr); border-radius: 22px; padding: 6px; z-index: 40; }
-    nav.tabs button { border: 0; background: none; border-radius: 16px; padding: 6px 0 5px; display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: .68rem; font-weight: 700; color: var(--muted); }
+      display: grid; grid-template-columns: repeat(6, 1fr); border-radius: 22px; padding: 6px; z-index: 40; }
+    nav.tabs button { border: 0; background: none; border-radius: 16px; padding: 6px 0 5px; display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: .64rem; font-weight: 700; color: var(--muted); }
     nav.tabs button span { font-size: 1.35rem; line-height: 1.2; }
     nav.tabs button.on { background: var(--glass-strong); color: var(--text); }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -168,6 +172,27 @@
     .sheet h3 { margin: 0 0 12px; }
     .sheet .group { margin: 12px 0; }
     .sheet .group > p { margin: 0 0 6px; font-size: .8rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    /* polls */
+    .poll { border-radius: 20px; padding: 14px 16px; margin-bottom: 12px; animation: rise .4s ease both; }
+    .poll .ph { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+    .poll .ph b { flex: 1; font-size: 1.05rem; }
+    .opt { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; margin-top: 8px; border-radius: 14px;
+      border: 1px solid var(--glass-border); background: var(--input); text-align: left; overflow: hidden; }
+    .opt .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent-2) 22%, transparent)); transition: width .4s; z-index: 0; }
+    .opt > :not(.fill) { position: relative; z-index: 1; }
+    .opt .tx { flex: 1; font-weight: 650; }
+    .opt .ck { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; font-size: .8rem; flex: none; }
+    .poll.multi .opt .ck { border-radius: 6px; }
+    .opt.on { border-color: var(--accent); }
+    .opt.on .ck { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .opt .n { font-weight: 850; font-variant-numeric: tabular-nums; }
+    .opt .vs { display: flex; margin-left: 2px; }
+    .opt .vs .avatar { width: 22px; height: 22px; font-size: .65rem; margin-left: -6px; border: 2px solid var(--bg-1); }
+    .opt.win { border-color: var(--ok); }
+    .opt .x { border: 0; background: none; color: var(--muted); padding: 0 2px; font-size: .9rem; }
+    .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .presets button { border-radius: 16px; padding: 12px 10px; border: 1px solid var(--glass-border); background: var(--input); font-weight: 700; text-align: left; }
+    .presets button span { display: block; font-size: 1.4rem; }
     .warn { background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 14px; padding: 10px 12px; font-size: .88rem; }
   </style>
 </head>
@@ -191,8 +216,9 @@
       <h2>Neuen Urlaub planen</h2>
       <form id="createForm" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
         <label class="f">Name des Urlaubs<input name="trip" placeholder="z. B. Kroatien mit den Jungs" maxlength="60" required></label>
-        <label class="f">Wohin?<input name="destination" placeholder="Ort, Insel oder Region – z. B. Hvar, Kroatien" maxlength="120" required></label>
+        <label class="f">Wohin?<input name="destination" placeholder="z. B. Hvar, Kroatien" maxlength="120"></label>
         <div class="grid2"><label class="f">Von<input type="date" name="start"></label><label class="f">Bis<input type="date" name="end"></label></div>
+        <p class="small muted" style="margin:-4px 0 0">Ziel noch offen? Einfach leer lassen – dann stimmt ihr gemeinsam ab.</p>
         <label class="f">Dein Name<input name="name" placeholder="z. B. Alex" maxlength="30" required></label>
         <button class="btn">Urlaub erstellen ✈️</button>
       </form>
@@ -210,6 +236,7 @@
     <button data-tab="people"><span>👥</span>Leute</button>
     <button data-tab="stays"><span>🏠</span>Unterkunft</button>
     <button data-tab="spots"><span>📍</span>Spots</button>
+    <button data-tab="polls"><span>🗳️</span>Abstimmen</button>
     <button data-tab="money"><span>🧾</span>Kasse</button>
   </nav>
 
@@ -273,6 +300,12 @@
       try { const r = await api("join", { body: { code: c, name } }); trips[r.code] = { token: r.token, name }; store.set("urlaub-trips", trips); openTrip(r.code); }
       catch (err) { toast(err.message); }
     };
+    // "Bis" can't be before "Von"; picking "Von" first opens "Bis" in the same month.
+    function linkDates(f) {
+      const sync = () => { f.end.min = f.start.value; if (f.end.value && f.start.value && f.end.value < f.start.value) f.end.value = f.start.value; };
+      f.start.addEventListener("change", sync); sync();
+    }
+    linkDates($("createForm"));
     $("createForm").onsubmit = async e => {
       e.preventDefault(); const f = e.target, d = Object.fromEntries(new FormData(f));
       store.set("urlaub-name", d.name);
@@ -306,12 +339,12 @@
       const t = S.trip;
       document.title = `${t.name} · Urlaubsplaner`;
       const days = t.start ? Math.ceil((new Date(t.start + "T00:00") - new Date()) / 86400000) : null;
-      $("head").innerHTML = `<h1>${esc(t.name)}</h1><div class="where">📍 ${esc(t.destination)}${t.start ? ` · ${fmtDate(t.start)}${t.end ? " – " + fmtDate(t.end) : ""}` : ""}</div>
+      $("head").innerHTML = `<h1>${esc(t.name)}</h1><div class="where">📍 ${t.destination ? esc(t.destination) : "Ziel noch offen"}${t.start ? ` · ${fmtDate(t.start)}${t.end ? " – " + fmtDate(t.end) : ""}` : ""}</div>
         ${days != null && days > 0 ? `<div class="muted small" style="margin-top:6px">⏳ noch ${days} ${days === 1 ? "Tag" : "Tage"}</div>` : ""}
         <button class="code btn ghost small" id="share" title="Einladen"><span class="small muted">Code</span><b>${esc(t.code)}</b></button>`;
       $("share").onclick = invite;
       document.querySelectorAll("#tabs [data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-      $("view").innerHTML = ({ home, people, stays, spots, money: moneyTab })[tab]();
+      $("view").innerHTML = ({ home, people, stays, spots, polls, money: moneyTab })[tab]();
       bind[tab] && bind[tab]();
     }
 
@@ -333,6 +366,7 @@
           <div class="stat glass"><b>${S.stays.length}</b><span>Unterkünfte</span></div>
           <div class="stat glass"><b>${(S.spots || []).length}</b><span>Spots${gems ? ` · ${gems} 💎` : ""}</span></div>
         </div>
+        ${pollHint()}
         <section class="panel glass" style="margin-top:12px"><h2>Deine Kasse</h2>
           <div class="bal"><b>${mine > 0 ? "Du bekommst noch" : mine < 0 ? "Du schuldest noch" : "Du bist ausgeglichen"}</b>
           <span class="amount ${mine > 0 ? "plus" : mine < 0 ? "minus" : ""}">${money(Math.abs(mine))}</span></div>
@@ -345,7 +379,7 @@
         ${S.me.owner ? `<details class="panel glass"><summary>⚙️ Urlaub bearbeiten</summary>
           <form id="editTrip" style="display:flex;flex-direction:column;gap:10px">
             <label class="f">Name<input name="trip" value="${esc(S.trip.name)}" maxlength="60"></label>
-            <label class="f">Ziel<input name="destination" value="${esc(S.trip.destination)}" maxlength="120"></label>
+            <label class="f">Ziel<input name="destination" value="${esc(S.trip.destination)}" maxlength="120" placeholder="z. B. Hvar, Kroatien"></label>
             <div class="grid2"><label class="f">Von<input type="date" name="start" value="${esc(S.trip.start || "")}"></label><label class="f">Bis<input type="date" name="end" value="${esc(S.trip.end || "")}"></label></div>
             <label class="f">Währung der Kasse<select name="currency">${["EUR", "CHF", "GBP", "USD", "HRK", "CZK", "PLN", "HUF", "DKK", "SEK", "NOK", "TRY"].map(c => `<option ${c === S.trip.currency ? "selected" : ""}>${c}</option>`).join("")}</select></label>
             <button class="btn">Speichern</button></form></details>` : `<button class="btn danger small" id="leave">Urlaub verlassen</button>`}`;
@@ -357,7 +391,14 @@
         document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { tab = b.dataset.go; render(); });
         $("invite2").onclick = invite;
         const f = $("editTrip");
-        if (f) f.onsubmit = e => { e.preventDefault(); act(() => api("trip", { method: "PATCH", body: Object.fromEntries(new FormData(f)) }), "Wird gespeichert …"); };
+        if (f) {
+          linkDates(f);
+          f.onsubmit = e => {
+            e.preventDefault(); const d = Object.fromEntries(new FormData(f));
+            if (!d.destination && !S.trip.destination) delete d.destination;     // still open: keep voting
+            act(() => api("trip", { method: "PATCH", body: d }), "Wird gespeichert …");
+          };
+        }
         const l = $("leave");
         if (l) l.onclick = async () => {
           if (!confirm("Diesen Urlaub wirklich verlassen?")) return;
@@ -485,7 +526,7 @@
             <div class="row"><label class="f" style="flex:1 1 110px">Umkreis<select name="radius"><option value="8">8 km</option><option value="15" selected>15 km</option><option value="25">25 km</option><option value="40">40 km</option></select></label>
             <button class="btn" ${S.ai ? "" : "disabled"} style="flex:2 1 170px;align-self:flex-end">${list.length ? "🔄 Neue Vorschläge" : "✨ Spots finden"}</button></div></form>
           ${S.ai ? "" : `<p class="small muted">Dafür fehlt der Anthropic-API-Key im Fabians-HA-Master.</p>`}
-          ${S.trip.lat == null ? `<p class="warn">⚠️ Das Ziel wurde nicht auf der Karte gefunden – bitte in der Übersicht genauer angeben (z. B. „Hvar, Kroatien“).</p>` : ""}</section>
+          ${S.trip.lat == null ? `<p class="warn">⚠️ ${S.trip.destination ? "Das Ziel wurde nicht auf der Karte gefunden – bitte in der Übersicht genauer angeben (z. B. „Hvar, Kroatien“)." : "Das Ziel steht noch nicht fest – stimmt unter 🗳️ Abstimmen ab, dann findet Claude Spots in der Nähe."}</p>` : ""}</section>
         ${groups.map(([c, l]) => `<section class="panel glass"><h2>${CATS[c]} ${esc(c)}</h2>${l.map(s => {
           const v = votes[s.id] || [];
           return `<div class="spot"><div class="t"><b>${esc(s.titel)}</b>${s.geheimtipp ? '<span class="gem">💎 Geheimtipp</span>' : ""}
@@ -503,6 +544,90 @@
         act(() => api("spots", { body: d }), "Coole Spots werden gesucht …", "Orte aus OpenStreetMap, ausgewählt von Claude – das dauert etwa eine Minute");
       };
       document.querySelectorAll("[data-spotvote]").forEach(b => b.onclick = () => act(() => api("vote", { body: { kind: "spot", ref: b.dataset.spotvote } })));
+    };
+
+    // ---------------- polls ----------------
+    const PRESETS = [
+      { icon: "✈️", question: "Wo geht's hin?", kind: "ziel", multi: true, options: [] },
+      { icon: "🎒", question: "Was für ein Urlaub?", multi: true,
+        options: ["⛺ Campen", "🏙️ Städtetrip", "🏖️ Strand & Meer", "🥾 Wandern & Berge", "🚐 Roadtrip", "🎉 Party", "🧖 Wellness", "⛷️ Skiurlaub"] },
+      { icon: "🛫", question: "Wie kommen wir hin?", multi: false, options: ["✈️ Flugzeug", "🚗 Auto", "🚆 Zug", "🚌 Bus", "⛴️ Fähre"] },
+      { icon: "🏠", question: "Wie wollen wir wohnen?", multi: false, options: ["🏡 Ferienhaus", "🏨 Hotel", "🛏️ Hostel", "⛺ Zelt", "🚐 Camper"] },
+      { icon: "📅", question: "Wann passt es euch?", multi: true, options: [] },
+      { icon: "💶", question: "Wie viel darf es pro Person kosten?", multi: false, options: ["bis 300 €", "300–600 €", "600–1000 €", "über 1000 €"] },
+    ];
+    const pollVoters = p => new Set(p.options.flatMap(o => o.votes));
+    const myOpenPolls = () => (S.polls || []).filter(p => !p.closed && p.options.length && !pollVoters(p).has(S.me.id));
+    function pollHint() {
+      const open = myOpenPolls();
+      return open.length ? `<section class="panel glass" style="margin-top:12px"><h2>🗳️ Deine Stimme fehlt</h2>
+        ${open.map(p => `<p style="margin:0 0 6px"><b>${esc(p.question)}</b></p>`).join("")}
+        <button class="btn small" data-go="polls" style="margin-top:4px">Jetzt abstimmen</button></section>` : "";
+    }
+    function pollCard(p) {
+      const voters = pollVoters(p).size, max = Math.max(0, ...p.options.map(o => o.votes.length));
+      const order = p.closed ? [...p.options].sort((a, b) => b.votes.length - a.votes.length) : p.options;
+      const mine = p.created_by === S.me.id || S.me.owner;
+      const lead = max > 0 ? p.options.filter(o => o.votes.length === max) : [];
+      const adopt = p.kind === "ziel" && S.me.owner && lead.length === 1 && lead[0].text !== S.trip.destination;
+      return `<article class="poll glass ${p.multi ? "multi" : ""}"><div class="ph"><b>${esc(p.question)}</b>
+          ${p.closed ? `<span class="chip">🔒 beendet</span>` : ""}</div>
+        <p class="small muted" style="margin:0">${p.multi ? "Mehrere Antworten möglich" : "Eine Antwort pro Person"} · ${voters} von ${S.members.length} ${S.members.length === 1 ? "hat" : "haben"} abgestimmt</p>
+        ${order.map(o => {
+          const on = o.votes.includes(S.me.id), pct = voters ? Math.round(o.votes.length / voters * 100) : 0;
+          const win = p.closed && max > 0 && o.votes.length === max;
+          return `<div class="opt ${on ? "on" : ""} ${win ? "win" : ""}" ${p.closed ? "" : `role="button" data-pv="${p.id}:${o.id}"`}>
+            <span class="fill" style="width:${pct}%"></span><span class="ck">${on ? "✓" : ""}</span>
+            <span class="tx">${win ? "🏆 " : ""}${esc(o.text)}</span>
+            <span class="vs">${o.votes.slice(0, 5).map(id => avatar(member(id))).join("")}</span>
+            <span class="n">${o.votes.length || ""}</span>
+            ${!p.closed && (o.added_by === S.me.id || S.me.owner) ? `<button class="x" data-delopt="${o.id}" title="Antwort entfernen">✕</button>` : ""}</div>`;
+        }).join("") || `<p class="small muted" style="margin:10px 0 0">Noch keine Antworten – mach den ersten Vorschlag.</p>`}
+        ${p.closed ? "" : `<form class="row" data-addopt="${p.id}" style="margin-top:10px" autocomplete="off">
+          <input name="text" maxlength="60" placeholder="${p.kind === "ziel" ? "Ziel vorschlagen, z. B. Lissabon" : "Eigene Antwort"}" style="flex:1 1 160px">
+          <button class="btn ghost small" style="flex:0 0 auto">+ Vorschlagen</button></form>`}
+        ${adopt ? `<button class="btn small" data-adopt="${esc(lead[0].text)}" style="margin-top:10px;width:100%">📍 „${esc(lead[0].text)}“ als Ziel übernehmen</button>` : ""}
+        ${mine ? `<div class="row" style="margin-top:10px;justify-content:flex-end">
+          <button class="btn ghost small" data-closepoll="${p.id}" data-v="${p.closed ? 0 : 1}" style="flex:0 0 auto">${p.closed ? "🔓 Wieder öffnen" : "🔒 Beenden"}</button>
+          <button class="btn danger small" data-delpoll="${p.id}" style="flex:0 0 auto">🗑️</button></div>` : ""}</article>`;
+    }
+    function polls() {
+      const list = S.polls || [];
+      return `<section class="panel glass"><h2>🗳️ Neue Abstimmung</h2>
+          <div class="presets">${PRESETS.map((p, i) => `<button data-preset="${i}"><span>${p.icon}</span>${esc(p.question)}</button>`).join("")}</div>
+          <details style="margin-top:12px"><summary>Eigene Frage stellen</summary>
+            <form id="pollForm" style="display:flex;flex-direction:column;gap:10px;margin-top:8px" autocomplete="off">
+              <input name="question" maxlength="100" placeholder="z. B. Welcher Tag wird der Partytag?" required>
+              <textarea name="options" maxlength="1200" placeholder="Antworten, eine pro Zeile (optional – alle können Vorschläge ergänzen)"></textarea>
+              <label class="chip" style="align-self:flex-start"><input type="checkbox" name="multi" checked style="width:auto;margin:0"> Mehrere Antworten pro Person</label>
+              <button class="btn">Abstimmung starten</button></form></details></section>
+        ${list.map(pollCard).join("") || `<p class="muted" style="text-align:center">Noch keine Abstimmungen – wählt oben eine Frage aus.</p>`}`;
+    }
+    bind.polls = () => {
+      document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
+        const p = PRESETS[+b.dataset.preset];
+        if ((S.polls || []).some(x => !x.closed && x.question === p.question)) return toast("Diese Abstimmung läuft schon");
+        act(() => api("polls", { body: { question: p.question, kind: p.kind || "", multi: p.multi, options: p.options } }));
+      });
+      $("pollForm").onsubmit = e => {
+        e.preventDefault(); const f = e.target;
+        act(() => api("polls", { body: { question: f.question.value, multi: f.multi.checked, options: f.options.value.split("\n") } }));
+      };
+      document.querySelectorAll("[data-pv]").forEach(el => el.onclick = e => {
+        if (e.target.closest("[data-delopt]")) return;
+        const [poll, option] = el.dataset.pv.split(":");
+        act(() => api(`polls/${poll}/vote`, { body: { option: +option } }));
+      });
+      document.querySelectorAll("[data-delopt]").forEach(b => b.onclick = () => { if (confirm("Diese Antwort entfernen?")) act(() => api("poll-options/" + b.dataset.delopt, { method: "DELETE" })); });
+      document.querySelectorAll("[data-addopt]").forEach(f => f.onsubmit = e => {
+        e.preventDefault(); act(() => api(`polls/${f.dataset.addopt}/options`, { body: { text: f.text.value } }));
+      });
+      document.querySelectorAll("[data-closepoll]").forEach(b => b.onclick = () => act(() => api("polls/" + b.dataset.closepoll, { method: "PATCH", body: { closed: b.dataset.v === "1" } })));
+      document.querySelectorAll("[data-delpoll]").forEach(b => b.onclick = () => { if (confirm("Abstimmung löschen?")) act(() => api("polls/" + b.dataset.delpoll, { method: "DELETE" })); });
+      document.querySelectorAll("[data-adopt]").forEach(b => b.onclick = () => {
+        if (confirm(`„${b.dataset.adopt}“ als Urlaubsziel festlegen?`))
+          act(() => api("trip", { method: "PATCH", body: { destination: b.dataset.adopt } }), "Ziel wird auf der Karte gesucht …");
+      });
     };
 
     // ---------------- money ----------------

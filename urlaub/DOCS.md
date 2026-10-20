@@ -5,6 +5,7 @@ Plant euren Urlaub gemeinsam – jeder am eigenen Handy.
 ## So geht's
 
 1. **Urlaub erstellen:** Name, Ziel und Reisezeit eingeben. Du bekommst einen 6-stelligen **Code**.
+   Steht das Ziel noch nicht fest, lass es leer – dann startet gleich die Abstimmung „Wo geht's hin?“.
 2. **Freunde einladen:** „📨 Einladung teilen“ schickt Code und Link in den Gruppenchat. Die anderen
    tragen nur ihren Namen ein und sind dabei.
 3. **👥 Leute:** Jeder tippt an, was er trinkt und isst – 🍺 Bier, 🥃 Vodka & Schnaps, 🍷 Alkohol,
@@ -18,7 +19,12 @@ Plant euren Urlaub gemeinsam – jeder am eigenen Handy.
 5. **📍 Spots:** Sucht coole Orte in der Nähe – auch unbekannte Geheimtipps (💎): Buchten,
    Aussichtspunkte, Wasserfälle, Ruinen, kleine Bars … Die Orte kommen aus OpenStreetMap und
    Wikipedia, Claude wählt aus und beschreibt sie. Wünsche („Schnorcheln, Sonnenuntergang“) helfen.
-6. **🧾 Kasse:** Kassenzettel fotografieren – Claude liest jeden Artikel, erkennt Bier, Schnaps,
+6. **🗳️ Abstimmen:** Fertige Fragen mit einem Tipp starten – „Wo geht's hin?“, „Was für ein Urlaub?“
+   (Campen, Städtetrip, Strand, Wandern, Roadtrip …), „Wie kommen wir hin?“, „Wie wollen wir wohnen?“,
+   „Wann passt es euch?“, Budget – oder eine eigene Frage stellen. Alle können Antworten vorschlagen;
+   man sieht, wer wofür gestimmt hat. Wer die Abstimmung gestartet hat (oder den Urlaub erstellt hat),
+   kann sie beenden. Beim Ziel übernimmt „📍 Als Ziel übernehmen“ den Favoriten als Urlaubsziel.
+7. **🧾 Kasse:** Kassenzettel fotografieren – Claude liest jeden Artikel, erkennt Bier, Schnaps,
    Fleisch usw. und teilt automatisch auf: Bier zahlen nur die Biertrinker, Brot und Wasser alle.
    Jeden Artikel kann man antippen und ändern (Kategorie, Preis, wer mitzahlt). Ausgaben ohne Bon
    (Tanken, Fähre) lassen sich von Hand eintragen. Unten steht, wer wem wie viel überweisen muss.

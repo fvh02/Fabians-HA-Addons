@@ -91,6 +91,13 @@ def date(data: dict, key: str) -> str:
     return value if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) else ""
 
 
+def dates(data: dict) -> tuple[str, str]:
+    start, end = date(data, "start"), date(data, "end")
+    if start and end and end < start:
+        raise Fail(400, "Das Ende liegt vor dem Anfang – bitte die Daten prüfen")
+    return start, end
+
+
 def me(request: web.Request) -> tuple[dict, dict]:
     member = store.member_by_token(request.headers.get("X-Token", ""))
     if not member:
@@ -115,16 +122,20 @@ async def index(_: web.Request) -> web.Response:
 async def create_trip(request: web.Request) -> web.Response:
     data = await body(request)
     name, owner = text(data, "trip", 60, True), text(data, "name", 30, True)
-    destination = text(data, "destination", 120, True)
+    destination = text(data, "destination", 120)
+    start, end = dates(data)
     place = None
-    try:
-        async with aiohttp.ClientSession() as session:
-            place = await geo.geocode(session, destination)
-    except geo.GeoError as err:
-        log.info("Ziel nicht gefunden: %s", err)
-    trip, token = store.create_trip(name, destination, date(data, "start"), date(data, "end"), owner, place)
-    log.info("Neuer Urlaub %s (%s) nach %s", trip["code"], name, destination)
-    return web.json_response({"code": trip["code"], "token": token, "found": bool(place)})
+    if destination:
+        try:
+            async with aiohttp.ClientSession() as session:
+                place = await geo.geocode(session, destination)
+        except geo.GeoError as err:
+            log.info("Ziel nicht gefunden: %s", err)
+    trip, token = store.create_trip(name, destination, start, end, owner, place)
+    if not destination:
+        store.add_poll(trip["id"], "Wo geht's hin?", "ziel", True, [], store.member_by_token(token)["id"])
+    log.info("Neuer Urlaub %s (%s) nach %s", trip["code"], name, destination or "(Ziel offen)")
+    return web.json_response({"code": trip["code"], "token": token, "found": bool(place) or not destination})
 
 
 @routes.post("/api/join")
@@ -173,6 +184,7 @@ def state(trip: dict, member: dict) -> dict:
         "ranking": json.loads(trip["ranking"]) if trip["ranking"] else None, "ranking_at": trip["ranking_at"],
         "spots": json.loads(trip["spots"]) if trip["spots"] else None, "spots_at": trip["spots_at"],
         "votes": {"stay": store.votes(trip["id"], "stay"), "spot": store.votes(trip["id"], "spot")},
+        "polls": store.polls(trip["id"]),
         "receipts": receipts, "money": money, "settle": split.settle(money["net"]),
     }
 
@@ -191,7 +203,7 @@ async def edit_trip(request: web.Request) -> web.Response:
         if "trip" in data:
             fields["name"] = text(data, "trip", 60, True)
         if "start" in data:
-            fields["start"], fields["end"] = date(data, "start"), date(data, "end")
+            fields["start"], fields["end"] = dates(data)
         if "destination" in data and text(data, "destination", 120, True) != trip["destination"]:
             fields["destination"] = text(data, "destination", 120, True)
             try:
@@ -282,6 +294,108 @@ async def vote(request: web.Request) -> web.Response:
     if kind not in ("stay", "spot"):
         raise Fail(400, "Ungültige Anfrage")
     store.toggle_vote(trip["id"], kind, str(data.get("ref"))[:40], member["id"])
+    return web.json_response(state(trip, member))
+
+
+# -- polls ----------------------------------------------------------------------------------------------
+MAX_POLLS, MAX_OPTIONS = 20, 30
+
+
+def own_poll(trip: dict, poll_id: int) -> dict:
+    poll = store.one("SELECT * FROM polls WHERE id = ? AND trip_id = ?", poll_id, trip["id"])
+    if not poll:
+        raise Fail(404, "Diese Abstimmung gibt es nicht mehr")
+    return poll
+
+
+def option_texts(values, existing: list[str] = ()) -> list[str]:
+    seen, out = {e.casefold() for e in existing}, []
+    for value in values if isinstance(values, list) else []:
+        option = re.sub(r"\s+", " ", str(value or "")).strip()[:60]
+        if option and option.casefold() not in seen:
+            seen.add(option.casefold())
+            out.append(option)
+    return out
+
+
+@routes.post("/api/polls")
+async def add_poll(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    data = await body(request)
+    question = text(data, "question", 100)
+    if not question:
+        raise Fail(400, "Bitte eine Frage eingeben")
+    if len(store.q("SELECT id FROM polls WHERE trip_id = ?", trip["id"])) >= MAX_POLLS:
+        raise Fail(409, "Es gibt schon sehr viele Abstimmungen – bitte erst alte löschen")
+    kind = "ziel" if data.get("kind") == "ziel" else ""
+    store.add_poll(trip["id"], question, kind, bool(data.get("multi", True)), option_texts(data.get("options"))[:MAX_OPTIONS], member["id"])
+    return web.json_response(state(trip, member))
+
+
+@routes.post("/api/polls/{id}/options")
+async def add_poll_option(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    poll = own_poll(trip, int(request.match_info["id"]))
+    if poll["closed"]:
+        raise Fail(409, "Diese Abstimmung ist schon beendet")
+    data = await body(request)
+    existing = [o["text"] for o in store.q("SELECT text FROM poll_options WHERE poll_id = ?", poll["id"])]
+    new = option_texts([data.get("text")], existing)
+    if not new:
+        raise Fail(409, "Diese Antwort gibt es schon") if text(data, "text", 60) else Fail(400, "Bitte eine Antwort eingeben")
+    if len(existing) >= MAX_OPTIONS:
+        raise Fail(409, "Mehr Antworten passen nicht in diese Abstimmung")
+    option_id = store.run("INSERT INTO poll_options (poll_id, text, added_by, created) VALUES (?,?,?,?)", poll["id"], new[0], member["id"], time.time())
+    store.toggle_poll_vote(poll, option_id, member["id"])     # whoever suggests something votes for it
+    return web.json_response(state(trip, member))
+
+
+@routes.post("/api/polls/{id}/vote")
+async def poll_vote(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    poll = own_poll(trip, int(request.match_info["id"]))
+    if poll["closed"]:
+        raise Fail(409, "Diese Abstimmung ist schon beendet")
+    data = await body(request)
+    option = store.one("SELECT id FROM poll_options WHERE id = ? AND poll_id = ?", int(data.get("option")), poll["id"])
+    if not option:
+        raise Fail(404, "Diese Antwort gibt es nicht mehr")
+    store.toggle_poll_vote(poll, option["id"], member["id"])
+    return web.json_response(state(trip, member))
+
+
+@routes.patch("/api/polls/{id}")
+async def edit_poll(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    poll = own_poll(trip, int(request.match_info["id"]))
+    if poll["created_by"] != member["id"]:
+        owner_only(member)
+    data = await body(request)
+    if "closed" in data:
+        store.run("UPDATE polls SET closed = ? WHERE id = ?", int(bool(data["closed"])), poll["id"])
+    return web.json_response(state(trip, member))
+
+
+@routes.delete("/api/polls/{id}")
+async def remove_poll(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    poll = own_poll(trip, int(request.match_info["id"]))
+    if poll["created_by"] != member["id"]:
+        owner_only(member)
+    store.run("DELETE FROM polls WHERE id = ?", poll["id"])
+    return web.json_response(state(trip, member))
+
+
+@routes.delete("/api/poll-options/{id}")
+async def remove_poll_option(request: web.Request) -> web.Response:
+    trip, member = me(request)
+    option = store.one("SELECT poll_options.* FROM poll_options JOIN polls ON polls.id = poll_options.poll_id "
+                       "WHERE poll_options.id = ? AND polls.trip_id = ?", int(request.match_info["id"]), trip["id"])
+    if not option:
+        raise Fail(404, "Diese Antwort gibt es nicht mehr")
+    if option["added_by"] != member["id"]:
+        owner_only(member)
+    store.run("DELETE FROM poll_options WHERE id = ?", option["id"])
     return web.json_response(state(trip, member))
 
 

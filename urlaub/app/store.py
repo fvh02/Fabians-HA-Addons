@@ -44,6 +44,15 @@ CREATE TABLE IF NOT EXISTS items (
   id INTEGER PRIMARY KEY, receipt_id INTEGER NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
   name TEXT NOT NULL, qty REAL DEFAULT 1, price REAL NOT NULL, tags TEXT DEFAULT '[]', people TEXT DEFAULT '[]',
   unsure INTEGER DEFAULT 0, sort INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS polls (
+  id INTEGER PRIMARY KEY, trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, question TEXT NOT NULL,
+  kind TEXT DEFAULT '', multi INTEGER DEFAULT 1, closed INTEGER DEFAULT 0, created_by INTEGER, created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS poll_options (
+  id INTEGER PRIMARY KEY, poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE, text TEXT NOT NULL,
+  added_by INTEGER, created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS poll_votes (
+  option_id INTEGER NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE, PRIMARY KEY (option_id, member_id));
 """
 
 
@@ -128,6 +137,32 @@ class Store:
         for v in self.q("SELECT ref, member_id FROM votes WHERE trip_id = ? AND kind = ?", trip_id, kind):
             out.setdefault(v["ref"], []).append(v["member_id"])
         return out
+
+    # -- polls ----------------------------------------------------------------------------------------
+    def add_poll(self, trip_id: int, question: str, kind: str, multi: bool, options: list[str], member_id: int) -> int:
+        poll_id = self.run("INSERT INTO polls (trip_id, question, kind, multi, created_by, created) VALUES (?,?,?,?,?,?)",
+                           trip_id, question, kind, int(multi), member_id, time.time())
+        for text in options:
+            self.run("INSERT INTO poll_options (poll_id, text, added_by, created) VALUES (?,?,?,?)", poll_id, text, member_id, time.time())
+        return poll_id
+
+    def polls(self, trip_id: int) -> list[dict]:
+        out = self.q("SELECT id, question, kind, multi, closed, created_by FROM polls WHERE trip_id = ? ORDER BY closed, id DESC", trip_id)
+        for p in out:
+            p["multi"], p["closed"] = bool(p["multi"]), bool(p["closed"])
+            p["options"] = self.q("SELECT id, text, added_by FROM poll_options WHERE poll_id = ? ORDER BY id", p["id"])
+            for o in p["options"]:
+                o["votes"] = [v["member_id"] for v in self.q("SELECT member_id FROM poll_votes WHERE option_id = ?", o["id"])]
+        return out
+
+    def toggle_poll_vote(self, poll: dict, option_id: int, member_id: int) -> None:
+        if self.one("SELECT 1 FROM poll_votes WHERE option_id = ? AND member_id = ?", option_id, member_id):
+            self.run("DELETE FROM poll_votes WHERE option_id = ? AND member_id = ?", option_id, member_id)
+            return
+        if not poll["multi"]:      # one vote per person: the new choice replaces the old one
+            self.run("DELETE FROM poll_votes WHERE member_id = ? AND option_id IN (SELECT id FROM poll_options WHERE poll_id = ?)",
+                     member_id, poll["id"])
+        self.run("INSERT INTO poll_votes (option_id, member_id) VALUES (?,?)", option_id, member_id)
 
     # -- receipts ---------------------------------------------------------------------------------------
     def receipts(self, trip_id: int) -> list[dict]:
