@@ -20,6 +20,7 @@ h2{font-size:16px;margin:0 0 12px}
 .dot.started{background:var(--ok)}.dot.stopped,.dot.error{background:var(--warn)}.dot.none{background:transparent;border:2px solid var(--line)}
 .tool b{display:block;font-size:14px}.tool small{color:var(--muted);display:block}
 .tool .miss{color:var(--warn)}
+#toolNotes{margin-top:10px;font-size:14px;color:var(--muted)}#toolNotes .miss{color:var(--warn)}#toolNotes ul{margin:4px 0 0;padding-left:20px}
 .field{display:grid;grid-template-columns:200px 1fr;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
 .field:first-of-type{border-top:0}
 .field label{font-weight:600;padding-top:8px}
@@ -49,6 +50,7 @@ button:disabled{opacity:.5;cursor:default}
   <section class="card">
     <h2>Add-ons</h2>
     <div class="tools" id="tools"></div>
+    <div id="toolNotes" class="help"></div>
   </section>
 
   <section class="card">
@@ -94,6 +96,16 @@ function render(state) {
     if (t.installed && t.missing.length) info.append(el("small", {class: "miss", text: "Fehlt: " + t.missing.join(", ")}));
     tools.append(el("div", {class: "tool"}, el("span", {class: "dot " + (t.installed ? t.state : "none")}), info));
   }
+  const notes = $("#toolNotes"); notes.replaceChildren();
+  if (state.supervisor_error) notes.append(el("p", {class: "miss", text: state.supervisor_error + " – ist „Schutzmodus“ beim Master aus und hat er Zugriff auf den Supervisor?"}));
+  if (state.others && state.others.length) {
+    notes.append(el("p", {text: "Aus den alten Repositories installiert (zählen hier nicht – die neuen „Fabians-HA-…“-Versionen im Add-on Store installieren):"}));
+    const list = el("ul");
+    for (const o of state.others) list.append(el("li", {text: `${o.name} (${o.state === "started" ? "läuft" : "gestoppt"}${o.version ? ", " + o.version : ""})`}));
+    notes.append(list);
+  }
+  if (!state.tools.some(t => t.installed) && !state.supervisor_error)
+    notes.append(el("small", {text: "Gesucht wird nach Add-ons mit dem Präfix " + state.prefix + "_ (dieses Repository)."}));
   form.replaceChildren(); cleared = new Set();
   for (const g of state.groups) {
     const card = el("section", {class: "card"}, el("h2", {text: g.title}));

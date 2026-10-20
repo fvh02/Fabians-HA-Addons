@@ -214,6 +214,8 @@ class Supervisor:
         self.addons: dict[str, dict] = {}   # tool name → info
         self.refreshed = 0.0
         self.installed: dict[str, dict] = {}
+        self.error = ""                     # last Supervisor problem, shown on the page
+        self.prefix_checked = bool(os.environ.get("MASTER_PREFIX"))
 
     @staticmethod
     def _own_prefix() -> str:
@@ -238,17 +240,34 @@ class Supervisor:
                 raise RuntimeError((data or {}).get("message") if isinstance(data, dict) else f"Supervisor {resp.status}")
             return data.get("data") or {}
 
+    async def check_prefix(self) -> None:
+        """The repository prefix of the add-ons, from the master's own slug (more reliable than the host name)."""
+        if self.prefix_checked:
+            return
+        try:
+            slug = str((await self.call("GET", "/addons/self/info")).get("slug") or "")
+        except (aiohttp.ClientError, asyncio.TimeoutError, RuntimeError, web.HTTPException) as err:
+            log.warning("Eigenen Add-on-Namen nicht ermittelt: %s", err)
+            return
+        self.prefix_checked = True
+        if "_" in slug and slug.split("_", 1)[0] != self.prefix:
+            log.info("Präfix aus dem Supervisor: %s (Hostname ergab %s)", slug.split("_", 1)[0], self.prefix)
+            self.prefix = slug.split("_", 1)[0]
+
     async def refresh(self, force: bool = False) -> bool:
         """Reloads which add-ons are installed and their addresses; False if the Supervisor failed."""
         if not force and time.time() - self.refreshed < 5:
             return True
         self.refreshed = time.time()
         try:
+            await self.check_prefix()
             installed = {a["slug"]: a for a in (await self.call("GET", "/addons")).get("addons", [])}
         except (aiohttp.ClientError, asyncio.TimeoutError, RuntimeError, web.HTTPException) as err:
             log.warning("Supervisor nicht erreichbar: %s", err)
+            self.error = f"Supervisor nicht erreichbar: {err}"
             self.ips = {}       # never answer from an outdated list
             return False
+        self.error = ""
         ips, addons = {}, {}
         for tool in TOOLS:
             slug = f"{self.prefix}_{tool}"
@@ -527,7 +546,15 @@ async def state(app: web.Application) -> dict:
         needs = [FIELD[k][2] for k in REQUIRED.get(name, []) if not store.get(k)]
         tools.append({"name": name, "title": title, "installed": bool(info), "state": (info or {}).get("state"),
                       "version": (info or {}).get("version"), "missing": needs})
-    return {"groups": [{"title": g, "fields": f} for g, f in groups.items()], "tools": tools,
+    # Same kind of add-on, but from an old repository: shown so "not installed" isn't confusing.
+    others = []
+    for slug, a in sv.installed.items():
+        prefix, _, name = slug.partition("_")
+        if prefix != sv.prefix and (name in TOOLS or name in IMPORT or name == "inkbox_claude_gateway" or name == "brain"):
+            others.append({"slug": slug, "name": a.get("name") or slug, "state": a.get("state"), "version": a.get("version"),
+                           "repository": a.get("repository") or prefix})
+    return {"groups": [{"title": g, "fields": f} for g, f in groups.items()], "tools": tools, "others": others,
+            "prefix": sv.prefix, "supervisor_error": sv.error,
             "imessage": bool(store.get("inkbox_api_key") and store.get("phone")), "supervisor": bool(SUPERVISOR_TOKEN)}
 
 
