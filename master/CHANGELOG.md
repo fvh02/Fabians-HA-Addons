@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- **Behoben: „Supervisor nicht erreichbar“ und alle Add-ons „nicht installiert“.** Der Master
+  startete ohne das Supervisor-Token von Home Assistant. Dadurch konnte er weder die Add-ons sehen
+  noch ihnen ihre Schlüssel geben – der Assistent wartete beim Start endlos auf den Master.
+
 ## 1.2.2
 
 - **Add-ons werden zuverlässig erkannt:** Welche Add-ons zu diesem Repository gehören, fragt der
