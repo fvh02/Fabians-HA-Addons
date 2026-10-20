@@ -1,0 +1,6 @@
+Einkaufsliste und schnelle Notizen, die per iMessage befüllt werden.
+
+- „Milch auf die Liste“ oder „Notiz: Reifenwechsel im Oktober“ an den Assistenten schicken
+- Liste in der Home-Assistant-Seitenleiste ansehen, abhaken und bearbeiten (modernes oder Terminal-Design)
+- Mehrere Listen möglich, z. B. Supermarkt, Baumarkt, Drogerie
+- Auf Nachfrage schickt der Assistent die aktuelle Liste per iMessage („Was steht auf der Einkaufsliste?“)

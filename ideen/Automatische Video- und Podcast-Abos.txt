@@ -1,0 +1,6 @@
+Kanäle abonnieren, neue Folgen landen von selbst in der Mediathek.
+
+- YouTube-Kanäle, Playlists und Podcast-Feeds abonnieren
+- Neue Folgen werden automatisch in der gewünschten Qualität geladen
+- Alte Folgen nach einer einstellbaren Zeit löschen, damit der Speicher nicht vollläuft
+- iMessage bei neuen Folgen (optional)

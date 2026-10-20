@@ -1,0 +1,6 @@
+Die Internetgeschwindigkeit im Blick behalten.
+
+- Regelmäßiger Speedtest (z. B. stündlich): Download, Upload, Ping
+- Verlauf als Diagramm in der Seitenleiste, Vergleich mit dem gebuchten Tarif
+- iMessage, wenn das Internet deutlich langsamer ist oder ausfällt
+- Werte als Sensoren in Home Assistant für eigene Automationen

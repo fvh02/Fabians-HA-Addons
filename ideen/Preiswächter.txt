@@ -1,0 +1,7 @@
+Preise von Produkten beobachten und bei Preissenkungen benachrichtigen.
+
+- Produkt-Link (z. B. Amazon, Geizhals, Shops) per iMessage schicken oder in der Weboberfläche einfügen
+- Wunschpreis festlegen („Sag Bescheid, wenn es unter 200 € kostet“)
+- Das Add-on prüft die Preise regelmäßig und speichert den Verlauf
+- iMessage, sobald der Preis unter den Wunschpreis fällt
+- Preisverlauf als Diagramm in der Seitenleiste

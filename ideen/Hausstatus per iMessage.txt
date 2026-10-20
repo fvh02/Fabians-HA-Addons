@@ -1,0 +1,6 @@
+Der Assistent kennt den Zustand des Hauses.
+
+- Fragen wie „Ist irgendwo ein Fenster offen?“, „Wie warm ist es im Schlafzimmer?“, „Ist die Waschmaschine fertig?“
+- Lesender Zugriff auf Geräte und Sensoren in Home Assistant
+- Schalten (Licht, Heizung, Steckdosen) nur nach Bestätigung per iMessage
+- Optional: Hinweise von selbst, z. B. „Die Haustür ist seit 10 Minuten offen“
