@@ -1,0 +1,6 @@
+Videos oder nur die Musik von YouTube und anderen Plattformen herunterladen (mit yt-dlp).
+
+- Link per iMessage schicken („Lade das als MP3 runter: …“) oder in der Weboberfläche einfügen
+- Auswahl zwischen Video (Qualität wählbar) und reinem Audio
+- Warteschlange, Fortschritt und Benachrichtigung wie beim Downloader
+- Kann als Erweiterung des Downloaders umgesetzt werden: YouTube-Links werden automatisch erkannt

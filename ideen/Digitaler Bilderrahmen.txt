@@ -1,0 +1,6 @@
+Fotos als Diashow auf einem alten Tablet oder Fernseher.
+
+- Fotos aus einem Ordner, aus der Familien-Pinnwand oder per iMessage geschickt
+- Schöne Übergänge, Uhrzeit und Wetter eingeblendet
+- Nachts automatisch dunkel, morgens wieder an
+- „Zeig das Foto auf dem Bilderrahmen“ per iMessage

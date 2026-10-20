@@ -1,0 +1,5 @@
+Klassische Brettspiele im Spieleabend-Add-on.
+
+- Vier gewinnt, Kniffel mit animierten 3D-Würfeln, Mensch-ärgere-dich-nicht
+- Jeder spielt am eigenen Handy; auf Wunsch zeigt ein Fernseher oder Tablet das große Spielfeld für alle
+- Computer-Gegner in mehreren Stärken

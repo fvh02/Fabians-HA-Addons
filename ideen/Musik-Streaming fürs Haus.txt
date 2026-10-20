@@ -1,0 +1,5 @@
+Die Musik aus der Mediathek im ganzen Haus abspielen.
+
+- MP3s aus der Mediathek auf Lautsprechern abspielen, die Home Assistant kennt (Sonos, Google, AirPlay, Musik-Assistent)
+- Playlisten anlegen, Zufallswiedergabe, Wecker mit Musik
+- Steuerung per iMessage: „Spiel meine Downloads im Wohnzimmer“, „Lauter“, „Was läuft gerade?“

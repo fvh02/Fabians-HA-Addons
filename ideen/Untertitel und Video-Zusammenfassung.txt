@@ -1,0 +1,6 @@
+Mehr aus den heruntergeladenen Videos herausholen.
+
+- Automatische Untertitel per Spracherkennung (Whisper), auch für Videos ohne eigene Untertitel
+- Untertitel im Mediathek-Player einblendbar, auf Wunsch übersetzt
+- Der Assistent fasst ein Video auf Nachfrage zusammen („Worum geht es in dem Video von gestern?“)
+- Suche in der Mediathek auch nach gesprochenen Inhalten

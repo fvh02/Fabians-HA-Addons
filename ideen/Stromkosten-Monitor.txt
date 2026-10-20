@@ -1,0 +1,6 @@
+Sehen, was der Strom im Haus kostet.
+
+- Verbrauch aus Zählern und smarten Steckdosen in Euro umgerechnet, mit eigenem Tarif
+- Größte Verbraucher, Tages- und Monatsverlauf, Vergleich zum Vormonat
+- iMessage bei ungewöhnlich hohem Verbrauch („Der Trockner läuft seit 4 Stunden“)
+- Frage per iMessage: „Was hat der Strom diesen Monat gekostet?“

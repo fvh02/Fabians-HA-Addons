@@ -1,0 +1,7 @@
+Zusätzliche Kartenspiele im Spieleabend-Add-on, mit Lobby, Spielcode, Computer-Spielern und Glas-Design wie Stapeljagd und Tiefpunkt.
+
+- Mau-Mau (Klassiker mit 32 Karten)
+- Ein Ablegespiel nach dem Uno-Prinzip unter eigenem Namen (Farben, Zahlen, Aktionskarten)
+- Ein Stichspiel nach Wizard-Art: Stiche vorhersagen, Punkte für richtige Ansagen
+- Rommé: Sätze und Folgen auslegen
+- Auswahl auf der Startseite des Spieleabends

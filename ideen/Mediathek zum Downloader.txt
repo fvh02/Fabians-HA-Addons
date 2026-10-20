@@ -1,0 +1,6 @@
+Ergänzung zum Downloader: heruntergeladene Dateien direkt ansehen, abspielen und verwalten.
+
+- Videos und Musik aus dem Download-Ordner direkt im Browser abspielen
+- Dateien umbenennen, verschieben, löschen und als Link teilen
+- Speicherplatz-Wächter: iMessage, wenn die Festplatte fast voll ist
+- Optional in den Downloader integriert statt als eigenes Add-on

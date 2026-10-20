@@ -1,0 +1,6 @@
+Nie wieder vertrocknete Pflanzen.
+
+- Pflanzen mit Foto und Gießintervall anlegen (der Assistent schlägt Werte vor)
+- Erinnerung per iMessage, wenn gegossen werden muss
+- Mit Feuchtigkeitssensoren: Erinnerung nur, wenn die Erde wirklich trocken ist
+- Urlaubsmodus: Liste für die Nachbarn

@@ -1,0 +1,6 @@
+Dateien im Heimnetz austauschen, ganz ohne Cloud.
+
+- Dateien vom Handy oder PC per Drag-and-drop hochladen
+- Auf allen Geräten im WLAN abrufbar, mit Vorschau für Bilder, Videos und PDFs
+- Teilen per QR-Code für Gäste
+- Optional: automatisches Löschen nach einigen Tagen

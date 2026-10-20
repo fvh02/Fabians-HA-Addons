@@ -1,0 +1,6 @@
+PCs und andere Geräte im Heimnetz per Wake-on-LAN starten.
+
+- Geräteliste in der Seitenleiste mit Status (an/aus)
+- Ein Klick zum Wecken, oder per iMessage: „Weck meinen PC“
+- Optional: Herunterfahren über SSH
+- Praktisch zusammen mit Tailscale, um von unterwegs auf den PC zuzugreifen

@@ -1,0 +1,5 @@
+Geburtstage nicht mehr vergessen.
+
+- Geburtstage aus den Kontakten oder dem Kalender übernehmen
+- Erinnerung per iMessage ein paar Tage vorher und am Tag selbst
+- Auf Wunsch schlägt der Assistent ein Geschenk oder einen Glückwunschtext vor

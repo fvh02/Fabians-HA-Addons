@@ -1,0 +1,6 @@
+Eine gemeinsame Pinnwand für alle im Haushalt.
+
+- Seite im WLAN für Notizen, Termine, Fotos und kleine Listen
+- Jeder kann etwas anpinnen, auch per iMessage an den Assistenten
+- Ideal auf einem Tablet im Flur oder in der Küche
+- Glas-Design mit hellem und dunklem Modus

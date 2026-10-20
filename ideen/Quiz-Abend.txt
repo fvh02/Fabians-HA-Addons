@@ -1,0 +1,6 @@
+Ein Quiz für die ganze Runde.
+
+- Der Fernseher zeigt Fragen, Antworten und den Punktestand, jeder antwortet am eigenen Handy
+- Schnelle Antworten geben Bonuspunkte, mit Countdown und Animationen
+- Fragen zu jedem Thema erstellt der Assistent auf Zuruf („Mach ein Quiz über die 90er mit 15 Fragen“)
+- Eigene Fragenkataloge speichern und wiederverwenden

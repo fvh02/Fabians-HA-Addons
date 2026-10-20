@@ -1,0 +1,7 @@
+Jeden Morgen eine Zusammenfassung des Tages per iMessage.
+
+- Wetter für den Tag
+- Termine aus dem Apple-Kalender
+- Laufende Downloads und Pakete, die heute kommen
+- Optional: Müllabfuhr, Erinnerungen, Status des Hauses (offene Fenster, Akkustände)
+- Uhrzeit und Inhalte in der Konfiguration einstellbar

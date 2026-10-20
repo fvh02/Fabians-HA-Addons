@@ -1,0 +1,5 @@
+Gästen das WLAN ganz einfach geben.
+
+- Seite mit großem QR-Code zum Verbinden, ideal auf einem Tablet oder ausgedruckt
+- Auf Wunsch neues Gast-Passwort pro Woche (über die Fritzbox-Anbindung von Home Assistant)
+- Per iMessage: „Schick mir das Gäste-WLAN“ liefert QR-Code und Passwort

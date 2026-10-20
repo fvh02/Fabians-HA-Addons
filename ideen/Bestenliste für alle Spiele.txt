@@ -1,0 +1,6 @@
+Statistiken über alle Spiele und Abende hinweg.
+
+- Siege, Punkte und Serien pro Spieler und Spiel
+- Rangliste der Woche, des Monats und aller Zeiten
+- Erfolge wie „Erster Sieg“, „3 Siege in Folge“, „Tiefpunkt mit unter 10 Punkten“
+- Auf Wunsch per iMessage: „Wer führt diesen Monat bei Stapeljagd?“
