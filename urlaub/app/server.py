@@ -1,10 +1,12 @@
 """Urlaubsplaner: plan a trip together – accommodations, spots nearby, and shared shopping costs.
 
 One person creates the trip and gets a code; everyone else joins with the code. Each browser keeps a
-secret token per trip, which the API expects in the X-Token header.
+secret token per trip, which the API expects in the X-Token header. With an account (Sign in with Apple
+or Google) the trips are on every device: then X-Account carries the session and X-Code the trip.
 """
 
 import asyncio
+import html
 import io
 import json
 import logging
@@ -22,6 +24,7 @@ import fabians_master
 import geo
 import split
 from ai import AI, AIError
+from login import PROVIDERS, Login, LoginError
 from store import Store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -44,8 +47,11 @@ def load_options() -> dict:
 
 OPTIONS = load_options()
 store = Store(DATA / "urlaub.sqlite3")
-# The Anthropic API key comes from Fabians-HA-Master (the same key the assistant can use).
-API_KEY = os.environ["ANTHROPIC_API_KEY"] if "ANTHROPIC_API_KEY" in os.environ else fabians_master.keys(wait=90).get("anthropic_api_key")
+# The keys come from Fabians-HA-Master: the Anthropic API key (the same the assistant can use) and the
+# Google / Apple sign-in. URLAUB_KEYS (JSON) replaces the master for tests.
+KEYS = json.loads(os.environ["URLAUB_KEYS"]) if "URLAUB_KEYS" in os.environ else fabians_master.keys(wait=90)
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", KEYS.get("anthropic_api_key"))
+login = Login(KEYS)
 ai = AI(str(API_KEY or "").strip(),
         str(OPTIONS.get("model") or "claude-opus-5-5").strip())
 routes = web.RouteTableDef()
@@ -98,8 +104,15 @@ def dates(data: dict) -> tuple[str, str]:
     return start, end
 
 
+def account(request: web.Request) -> dict | None:
+    return store.account_by_session(request.headers.get("X-Account", ""))
+
+
 def me(request: web.Request) -> tuple[dict, dict]:
     member = store.member_by_token(request.headers.get("X-Token", ""))
+    if not member and request.headers.get("X-Code"):
+        acc = account(request)
+        member = acc and store.member_by_account(request.headers["X-Code"], acc["id"])
     if not member:
         raise Fail(401, "Du bist (nicht mehr) Teil dieses Urlaubs – bitte mit dem Code neu beitreten")
     trip = store.trip(member["trip_id"])
@@ -131,7 +144,8 @@ async def create_trip(request: web.Request) -> web.Response:
                 place = await geo.geocode(session, destination)
         except geo.GeoError as err:
             log.info("Ziel nicht gefunden: %s", err)
-    trip, token = store.create_trip(name, destination, start, end, owner, place)
+    acc = account(request)
+    trip, token = store.create_trip(name, destination, start, end, owner, place, acc and acc["id"])
     if not destination:
         store.add_poll(trip["id"], "Wo geht's hin?", "ziel", True, [], store.member_by_token(token)["id"])
     log.info("Neuer Urlaub %s (%s) nach %s", trip["code"], name, destination or "(Ziel offen)")
@@ -149,14 +163,17 @@ async def join(request: web.Request) -> web.Response:
     if not trip:
         join_attempts[ip] = tries + [now]
         raise Fail(404, "Zu diesem Code gibt es keinen Urlaub")
+    acc = account(request)
+    if acc and (mine := store.member_by_account(trip["code"], acc["id"])):
+        return web.json_response({"code": trip["code"], "token": "", "name": mine["name"]})     # already in it
     name = text(data, "name", 30, True)
     members = store.members(trip["id"])
     if len(members) >= MAX_MEMBERS:
         raise Fail(409, "Dieser Urlaub ist voll")
     if any(m["name"].casefold() == name.casefold() for m in members):
         raise Fail(409, f"„{name}“ ist schon dabei – bitte einen anderen Namen wählen")
-    token = store.add_member(trip["id"], name)
-    return web.json_response({"code": trip["code"], "token": token})
+    token = store.add_member(trip["id"], name, account_id=acc and acc["id"])
+    return web.json_response({"code": trip["code"], "token": token, "name": name})
 
 
 @routes.get("/api/trip")
@@ -295,6 +312,118 @@ async def vote(request: web.Request) -> web.Response:
         raise Fail(400, "Ungültige Anfrage")
     store.toggle_vote(trip["id"], kind, str(data.get("ref"))[:40], member["id"])
     return web.json_response(state(trip, member))
+
+
+# -- accounts -------------------------------------------------------------------------------------------
+def public_base(request: web.Request) -> str | None:
+    """The add-on's own HTTPS address when it is opened through the tunnel; sign-in only works there."""
+    https = request.headers.get("X-Forwarded-Proto", "").lower() == "https" or '"https"' in request.headers.get("Cf-Visitor", "")
+    host = request.headers.get("X-Forwarded-Host") or request.host
+    if not https or not re.fullmatch(r"[A-Za-z0-9.-]+(:\d+)?", host or ""):
+        return None
+    return f"https://{host}"
+
+
+@routes.get("/api/account")
+async def get_account(request: web.Request) -> web.Response:
+    acc = account(request)
+    return web.json_response({
+        "account": acc and {"name": acc["name"], "email": acc["email"], "provider": PROVIDERS[acc["provider"]]["title"]},
+        "trips": store.account_trips(acc["id"]) if acc else [],
+        "providers": login.available() if public_base(request) else [],
+        "configured": login.available(),
+    })
+
+
+@routes.post("/api/account/link")
+async def link_account(request: web.Request) -> web.Response:
+    """Adds a trip this browser joined without an account to the account."""
+    acc = account(request)
+    if not acc:
+        raise Fail(401, "Bitte zuerst anmelden")
+    member = store.member_by_token(request.headers.get("X-Token", ""))
+    if not member:
+        raise Fail(404, "Diesen Urlaub gibt es auf diesem Gerät nicht mehr")
+    trip = store.trip(member["trip_id"])
+    other = store.member_by_account(trip["code"], acc["id"])
+    if other and other["id"] != member["id"]:
+        raise Fail(409, f"Du bist in „{trip['name']}“ schon als {other['name']} dabei")
+    if member["account_id"] and member["account_id"] != acc["id"]:
+        raise Fail(409, f"{member['name']} in „{trip['name']}“ gehört schon zu einem anderen Konto")
+    store.run("UPDATE members SET account_id = ? WHERE id = ?", acc["id"], member["id"])
+    return web.json_response({"ok": True})
+
+
+@routes.post("/api/account/logout")
+async def logout(request: web.Request) -> web.Response:
+    store.sign_out(request.headers.get("X-Account", ""))
+    return web.json_response({"ok": True})
+
+
+@routes.delete("/api/account")
+async def delete_account(request: web.Request) -> web.Response:
+    """Deletes the account; the trips stay, the person just is no longer linked to them."""
+    acc = account(request)
+    if not acc:
+        raise Fail(401, "Bitte zuerst anmelden")
+    store.run("UPDATE members SET account_id = NULL WHERE account_id = ?", acc["id"])
+    store.run("DELETE FROM accounts WHERE id = ?", acc["id"])
+    log.info("Konto %s gelöscht", acc["id"])
+    return web.json_response({"ok": True})
+
+
+LOGIN_COOKIE = "urlaub_login"
+
+
+def login_page(message: str = "", token: str = "", status: int = 200) -> web.Response:
+    """End of the sign-in: hands the session to the page (same origin) or shows what went wrong."""
+    if token:
+        script = f"try {{ localStorage.setItem('urlaub-account', {json.dumps(json.dumps(token))}); }} catch (e) {{}} location.replace('/');"
+        page = f"<!doctype html><meta charset=utf-8><title>Angemeldet</title><script>{script}</script>"
+    else:
+        page = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Anmeldung</title>"
+                "<body style='font-family:system-ui;max-width:420px;margin:15vh auto;padding:0 20px;text-align:center'>"
+                f"<h2>Anmeldung nicht möglich</h2><p>{html.escape(message)}</p>"
+                "<p><a href='/'>Zurück zum Urlaubsplaner</a></p>")
+    resp = web.Response(text=page, content_type="text/html", status=status,
+                        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+    resp.del_cookie(LOGIN_COOKIE, path="/auth")
+    return resp
+
+
+@routes.get("/auth/{provider}")
+async def auth_start(request: web.Request) -> web.Response:
+    provider, base = request.match_info["provider"], public_base(request)
+    if not base:
+        return login_page("Die Anmeldung geht nur über die Internet-Adresse des Urlaubsplaners (https, Cloudflare Tunnel).", status=400)
+    try:
+        url, state = login.start(provider, f"{base}/auth/{provider}/callback")
+    except LoginError as err:
+        return login_page(str(err), status=400)
+    resp = web.HTTPFound(url)
+    # SameSite=None: Apple sends the answer as a cross-site POST.
+    resp.set_cookie(LOGIN_COOKIE, state, path="/auth", max_age=600, secure=True, httponly=True, samesite="None")
+    raise resp
+
+
+@routes.route("*", "/auth/{provider}/callback")
+async def auth_callback(request: web.Request) -> web.Response:
+    provider = request.match_info["provider"]
+    if provider not in PROVIDERS or request.method not in ("GET", "POST"):
+        raise Fail(404, "Unbekannte Anmeldung")
+    params = dict(request.query)
+    if request.method == "POST":
+        params.update({k: str(v) for k, v in (await request.post()).items()})
+    if params.get("error"):
+        return login_page("Die Anmeldung wurde abgebrochen." if "cancel" in params["error"] or params["error"] == "access_denied"
+                          else f"{PROVIDERS[provider]['title']} meldet: {params['error']}", status=400)
+    try:
+        who = await login.finish(provider, params.get("state", ""), request.cookies.get(LOGIN_COOKIE, ""), params.get("code", ""), params.get("user", ""))
+    except LoginError as err:
+        return login_page(str(err), status=400)
+    acc, token = store.sign_in(**who)
+    log.info("Anmeldung mit %s: Konto %s", PROVIDERS[provider]["title"], acc["id"])
+    return login_page(token=token)
 
 
 # -- polls ----------------------------------------------------------------------------------------------
@@ -649,7 +778,7 @@ def own_receipt(trip: dict, receipt_id: int) -> dict:
 async def receipt_image(request: web.Request) -> web.StreamResponse:
     member = store.member_by_token(request.query.get("t", ""))
     if not member:
-        raise Fail(401, "Kein Zugriff")
+        _, member = me(request)
     receipt = own_receipt(store.trip(member["trip_id"]), int(request.match_info["id"]))
     if not receipt["image"]:
         raise Fail(404, "Kein Bild")
@@ -736,6 +865,7 @@ def main() -> None:
     app = web.Application(middlewares=[errors], client_max_size=MAX_IMAGE + 1024 * 1024)
     app.add_routes(routes)
     app.router.add_static("/static/", STATIC)
+    log.info("Anmeldung: %s", ", ".join(PROVIDERS[p]["title"] for p in login.available()) or "nicht eingerichtet (Schlüssel im Fabians-HA-Master)")
     if not ai.ready:
         log.warning("Kein Anthropic-API-Key gesetzt: Kassenzettel, Unterkunft-Vergleich und Geheimtipps sind aus")
     log.info("Urlaubsplaner läuft auf Port %s (Modell %s)", PORT, ai.model)
