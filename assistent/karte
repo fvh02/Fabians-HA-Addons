@@ -14,6 +14,7 @@
   karte ort ID                           one place: online info, differences, visits, menu
   karte bewerten ORT_ID BESUCH_ID STERNE [NOTIZ]
   karte abgleich ID                      look the place up online again (result by iMessage)
+  karte offen NAME [--ort ORT]           is it open now? (shops, restaurants, offices around the person or ORT)
 """
 
 import json
@@ -124,10 +125,14 @@ def main(argv: list[str]) -> None:
             body["notiz"] = " ".join(args[3:])
         result = call("PATCH", f"/api/ort/{int(args[0])}", body)
         out({"ok": True, "ort": result["name"]})
+    elif cmd == "offen" and args:
+        place = flag(args, "--ort")
+        query = {"q": " ".join(args).strip(), **({"ort": place[0]} if place else {})}
+        out(call("GET", "/api/offen?" + urllib.parse.urlencode(query), timeout=60))
     elif cmd == "abgleich" and args:
         out(call("POST", f"/api/ort/{int(args[0])}/abgleich?melden=1"))
     else:
-        fail("karte standort|in-der-naehe|besuch|orte|ort|bewerten|abgleich")
+        fail("karte standort|in-der-naehe|besuch|orte|ort|bewerten|abgleich|offen")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,23 @@
+name: Fabians-HA-Serien
+version: "1.0.0"
+slug: serien
+description: Serien-Kalender – neue Folgen und Staffeln deiner Serien, mit Meldung am Erscheinungstag
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-serien
+arch:
+  - aarch64
+  - amd64
+  - armv7
+init: false
+ingress: true
+ingress_port: 8103
+panel_icon: mdi:television-classic
+panel_title: Serien
+options:
+  meldungen: true
+  ruhe_ab: 22
+  ruhe_bis: 8
+schema:
+  meldungen: bool
+  ruhe_ab: int(0,23)
+  ruhe_bis: int(0,23)

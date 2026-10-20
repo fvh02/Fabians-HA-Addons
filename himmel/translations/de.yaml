@@ -1,0 +1,19 @@
+configuration:
+  meldung_uhrzeit:
+    name: Abendmeldung um (Uhr)
+    description: Um diese Uhrzeit kommt per iMessage, was heute Nacht zu sehen ist – nur wenn es etwas gibt und der Himmel klar genug ist.
+  iss_erinnerung:
+    name: ISS-Erinnerung
+    description: Etwa 10 Minuten vor einem gut sichtbaren ISS-Überflug kommt eine Nachricht.
+  min_hoehe:
+    name: ISS mindestens so hoch (Grad)
+    description: Nur Überflüge, die mindestens so hoch über den Horizont steigen, werden gemeldet (30° = gut zu sehen).
+  wolken_max:
+    name: Höchstens so bewölkt (%)
+    description: Bei mehr Wolken laut Vorhersage gibt es keine Meldung (außer bei Finsternissen).
+  erinnerung_von:
+    name: Erinnerungen ab (Uhr)
+    description: Vorher keine ISS-Erinnerungen (z. B. frühmorgens).
+  erinnerung_bis:
+    name: Erinnerungen bis (Uhr)
+    description: Danach keine ISS-Erinnerungen mehr.

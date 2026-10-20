@@ -1,0 +1,19 @@
+configuration:
+  meldung_uhrzeit:
+    name: Evening message at (hour)
+    description: At this hour an iMessage tells what is to be seen tonight – only if there is something and the sky is clear enough.
+  iss_erinnerung:
+    name: ISS reminder
+    description: About 10 minutes before a well visible ISS pass a message is sent.
+  min_hoehe:
+    name: ISS at least this high (degrees)
+    description: Only passes that rise at least this high above the horizon are reported (30° = easy to see).
+  wolken_max:
+    name: At most this cloudy (%)
+    description: With more clouds in the forecast there is no message (except for eclipses).
+  erinnerung_von:
+    name: Reminders from (hour)
+    description: No ISS reminders before this hour.
+  erinnerung_bis:
+    name: Reminders until (hour)
+    description: No ISS reminders after this hour.

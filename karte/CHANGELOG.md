@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- **„Hat das gerade offen?“:** Läden, Lokale und Ämter in der Nähe (oder in einem Ort) mit ihren
+  Öffnungszeiten aus OpenStreetMap – „geöffnet bis 20:00 Uhr“ oder „öffnet morgen um 9:00 Uhr“. Für den
+  Assistenten (`karte offen`).
+
 ## 1.0.0
 
 - Erste Version: Restaurant-Karte, die der Assistent füllt – Speisekarte, Bestellung, Summe und Fotos

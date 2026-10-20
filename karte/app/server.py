@@ -26,6 +26,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 import abgleich
 import fabians_master
 import geo
+import oeffnung
 from store import Store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -236,6 +237,41 @@ async def api_nearby(request: web.Request) -> web.Response:
     except geo.GeoError as err:
         raise Fail(503, str(err))
     return web.json_response({"lat": lat, "lon": lon, "places": found[:15]})
+
+
+@routes.get("/api/offen")
+async def api_open(request: web.Request) -> web.Response:
+    """Is a shop, restaurant or office open now? Looked up around the person (or a named place)."""
+    query = text(request.query.get("q"), 80)
+    if not query:
+        raise Fail(400, "Wonach soll ich suchen? ?q=NAME")
+    session = request.app["http"]
+    place_name = text(request.query.get("ort"), 80)
+    if place_name:
+        try:
+            point = await geo.geocode(session, place_name)
+        except geo.GeoError as err:
+            raise Fail(503, str(err))
+        if not point:
+            raise Fail(404, f"Ort „{place_name}“ nicht gefunden")
+        lat, lon, where = point[0], point[1], place_name
+    else:
+        lat, lon, where = await position(request, dict(request.query))
+    try:
+        found = await geo.find_named(session, query, lat, lon, 5000)
+    except geo.GeoError as err:
+        raise Fail(503, str(err))
+    now = datetime.now()
+    results = []
+    for f in found[:6]:
+        hours = f["tags"].get("opening_hours", "")
+        state = oeffnung.status(hours, now) if hours else {"verstanden": False, "roh": ""}
+        results.append({"name": f["name"], "art": f["art"], "adresse": f["address"], "entfernung_m": f["distance_m"],
+                        "oeffnungszeiten": hours or "nicht in OpenStreetMap", "heute": oeffnung.today_text(hours) if hours else "",
+                        "jetzt": state.get("text") or ("unbekannt – Öffnungszeiten bitte online prüfen" if not hours
+                                                      else "Öffnungszeiten zu speziell – Rohtext prüfen"),
+                        "offen": state.get("offen")})
+    return web.json_response({"suche": query, "um": now.strftime("%a %d.%m. %H:%M"), "standort": where, "treffer": results})
 
 
 @routes.post("/api/besuch")

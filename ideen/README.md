@@ -214,10 +214,10 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 209. **RSS-Reader mit Filter** – Nachrichtenquellen abonnieren, Claude filtert nach deinen Interessen.
 210. **Webseiten-Wächter** – Seite beobachten, Nachricht bei Änderung (Preis, Termin, Ankündigung).
 211. **Verfügbarkeits-Alarm** – meldet, wenn ein Produkt wieder lieferbar oder ein Termin frei ist.
-212. **„Hat das gerade offen?“** – Öffnungszeiten von Läden und Ämtern auf eine Frage hin.
+212. ✅ **„Hat das gerade offen?“** – Öffnungszeiten von Läden und Ämtern auf eine Frage hin.
 213. **Abfahrtsmonitor** – nächste Busse und Bahnen der Haltestelle vor der Tür auf einem Bildschirm im Flur.
 214. **Flug-Verfolgung** – Flüge von Familie und Freunden verfolgen, Meldung bei Landung oder Verspätung.
-215. **Himmels-Kalender** – ISS-Überflüge, Sternschnuppen, Finsternisse und klare Nächte für die Beobachtung.
+215. ✅ **Himmels-Kalender** – ISS-Überflüge, Sternschnuppen, Finsternisse und klare Nächte für die Beobachtung.
 216. **Golden-Hour-Wecker** – Erinnerung vor Sonnenaufgang und -untergang für Fotos.
 217. **Gezeiten und Surf-Bericht** – Ebbe, Flut, Wellen und Wind für Strände in der Nähe.
 218. **Schneebericht** – Schneehöhe, offene Lifte und Wetter in Skigebieten.
@@ -230,7 +230,7 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 225. **Gute-Nacht-Routine** – ein Knopf: alles aus, Türen prüfen, Alarm scharf, Wecker stellen.
 226. **Kleiderschrank-Inventar** – Kleidung per Foto, Outfit-Vorschlag passend zum Wetter.
 227. **Wein- und Getränkekeller** – Bestand, Trinkreife und Notizen zu jeder Flasche.
-228. **Serien-Kalender** – neue Folgen und Staffeln deiner Serien, Meldung am Erscheinungstag.
+228. ✅ **Serien-Kalender** – neue Folgen und Staffeln deiner Serien, Meldung am Erscheinungstag.
 229. **„Was spielen wir heute?“** – aus der eigenen Brettspielsammlung passend zu Spielerzahl und Zeit.
 230. **Live-Dolmetscher am Tablet** – Gespräch mit Gästen in zwei Sprachen, abwechselnd übersetzt.
 231. **Großschrift-Modus** – einfaches Dashboard mit großen Knöpfen und Sprachausgabe für ältere Menschen.

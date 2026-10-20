@@ -1,0 +1,10 @@
+configuration:
+  meldungen:
+    name: Meldungen per iMessage
+    description: Am Erscheinungstag neuer Folgen und wenn eine neue Staffel angekündigt wird (über Fabians-HA-Master).
+  ruhe_ab:
+    name: Nachtruhe ab (Uhr)
+    description: In der Nachtruhe kommen keine Meldungen; Folgen, die nachts erscheinen, werden morgens gemeldet.
+  ruhe_bis:
+    name: Nachtruhe bis (Uhr)
+    description: Ab dieser Uhrzeit kommen die Meldungen der Nacht.

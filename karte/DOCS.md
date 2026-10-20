@@ -34,6 +34,13 @@ oder Gericht. Ein Ort zeigt Infos, Abweichungen, deine Besuche mit Bestellung un
 zum Bewerten), Fotos und die Speisekarte vom Foto. **Neu abgleichen** startet die Online-Recherche
 noch einmal.
 
+## „Hat das gerade offen?“
+
+Der Assistent fragt die Karte auch nach Öffnungszeiten: Sie sucht Läden, Lokale und Ämter mit dem
+Namen in 5 km Umkreis um deinen Standort (oder um einen genannten Ort) und wertet die Öffnungszeiten
+aus OpenStreetMap aus. Feiertage kennt sie nicht; stehen keine Zeiten in OpenStreetMap, schaut der
+Assistent im Internet nach.
+
 ## Einrichtung
 
 - **Fabians-HA-Master** und **Fabians-HA-Assistent** müssen laufen (der Abgleich nutzt Claude über
