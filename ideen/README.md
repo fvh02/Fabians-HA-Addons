@@ -241,3 +241,53 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 236. **Aquarium- und Terrarium-Wächter** – Temperatur, Licht und Fütterung, Alarm bei Abweichung.
 237. **Haustür-Paketbox** – Code für Lieferdienste, Nachricht wenn etwas eingelegt wurde.
 238. **Dokumente-Erinnerung fürs Auto** – TÜV, Versicherung, Steuer und Winterreifen-Wechsel im Jahr.
+239. **Kinoprogramm** – Filme und Zeiten der Kinos in der Nähe, mit Link zur Reservierung.
+240. **„Was koche ich heute?“** – Zutaten nennen oder Kühlschrank fotografieren, Claude schlägt Rezepte vor.
+241. **Mängel-Protokoll für Mieter** – Lärm, Schimmel oder Defekte mit Foto, Datum und Uhrzeit dokumentieren.
+242. **Fahrtenbuch** – Fahrten privat und beruflich erfassen, Kilometer und Auswertung für die Steuer.
+243. **Stromausfall-Melder** – meldet Ausfall und Wiederkehr des Stroms, wenn der Server an einer USV hängt.
+244. **Heizungs-Störmelder** – meldet Fehlercodes und Ausfälle von Therme oder Wärmepumpe.
+245. **Tor-offen-Warnung** – Garagentor oder Gartentor steht abends noch offen – Nachricht oder automatisch schließen.
+246. **Frost-Warnung** – Kübelpflanzen rein, Außenwasserhahn abdrehen, Scheibe abdecken.
+247. **Regen-Warnung** – Fenster offen oder Wäsche draußen und gleich kommt Regen.
+248. **Sturm-Schutz** – Markise einfahren und Rollläden sichern bei Sturmwarnung.
+249. **Hitze-Schutz** – Rollläden auf der Sonnenseite automatisch runter, nachts lüften.
+250. **Feinstaub-Ampel** – Luftqualität draußen: jetzt lüften oder lieber nicht.
+251. **Grillwetter-Ampel** – die nächsten trockenen, warmen Abende auf einen Blick.
+252. **Babyphone** – altes Handy oder Tablet als Babyphone mit Geräuschmeldung.
+253. **Gassi-Planer** – Gassi-Runden nach Wetter und wer heute dran ist.
+254. **Gemeinsames Geschenk** – Geld für ein Geschenk unter Freunden sammeln, wer hat schon gezahlt.
+255. **Event-Zusagen** – Einladungsseite für Feiern mit Zu- und Absagen, Essenswünschen und Gästeliste.
+256. **Sitzordnung-Planer** – Tische für Feiern planen per Ziehen und Ablegen.
+257. **Party-Playlist** – Gäste wünschen sich per QR-Code Songs für die Warteschlange.
+258. **Gäste-Fotoalbum** – Gäste laden ihre Fotos per QR-Code in ein gemeinsames Album.
+259. **Adressbuch für Karten** – Adressen für Weihnachts- und Hochzeitskarten, mit Etiketten zum Drucken.
+260. **Kundenkarten-Wallet** – alle Kundenkarten als Barcode an einem Ort.
+261. **Gutschein-Wächter** – Gutscheine und Guthaben mit Ablaufdatum, Erinnerung vor Ablauf.
+262. **Leseliste** – Bücher mit Lesefortschritt, Notizen und Empfehlungen für das nächste.
+263. **Buchclub** – gemeinsames Buch, Lesetempo und Termin für die Runde.
+264. **Sprach-To-do** – Sprachnachricht wird Aufgabe mit Termin und Erinnerung.
+265. **Projekt-Board** – Aufgaben fürs Zuhause als Kanban-Tafel, mit Zuständigen und Fristen.
+266. **Gewohnheits-Tracker** – tägliche Gewohnheiten abhaken, Serien und Statistik.
+267. **Hochwasser-Warnung** – Pegelstände von Flüssen in der Nähe, Meldung bei Grenzwert.
+268. **Katastrophen-Warnungen** – amtliche Warnungen (NINA) für den eigenen Ort.
+269. **Stau-Wächter** – Verkehrslage auf dem Weg zur Arbeit, Meldung wenn du früher losmusst.
+270. **Ladesäulen-Finder** – freie Ladesäulen in der Nähe mit Preis und Leistung.
+271. **Hotelpreis-Wächter** – Preis einer Unterkunft beobachten, Meldung wenn er fällt.
+272. **Flugpreis-Alarm** – Strecke und Zeitraum beobachten, Meldung bei günstigem Preis.
+273. **Sport-Liveticker** – Tore und Ergebnisse des Lieblingsvereins als Nachricht.
+274. **Sport-Termine** – Spielplan, Rennen und Startzeiten im Kalender, Erinnerung vorher.
+275. **Livestream-Alarm** – Nachricht, wenn ein Streamer oder Kanal live geht.
+276. **Spielzeit-Statistik** – wie viel und was gespielt wurde, pro Woche und Spiel.
+277. **Heimkino-Modus** – ein Knopf: Licht dimmen, Rollläden zu, Fernseher und Anlage an.
+278. **TV-Programm-Merker** – Sendungen und Filme vormerken, Erinnerung vor Beginn.
+279. **Durchsagen im Haus** – Ansagen per Sprachausgabe auf allen Lautsprechern („Essen ist fertig“).
+280. **Nachbarschafts-Tauschbörse** – Dinge verleihen, verschenken oder tauschen in der Straße.
+281. **Gartenbewässerung** – gießt nach Regenmenge und Vorhersage, nicht nach festem Plan.
+282. **Pool-Wächter** – Wassertemperatur, Pumpe und Pflege-Erinnerungen.
+283. **Solar-Prognose** – erwarteter Ertrag der PV-Anlage für heute und morgen.
+284. **Heizöl- und Pellet-Preisalarm** – Preis beobachten, Meldung bei günstigem Moment zum Bestellen.
+285. **Tarif-Wechsel-Helfer** – vor Vertragsende Strom- und Gastarife vergleichen.
+286. **Fenster-offen-Heizung-aus** – Heizung im Raum aus, solange das Fenster offen ist.
+287. **Saugroboter-Planer** – saugt, wenn niemand zu Hause ist, und meldet Probleme.
+288. **Tageslicht-Beleuchtung** – Lichtfarbe und Helligkeit folgen der Tageszeit.
