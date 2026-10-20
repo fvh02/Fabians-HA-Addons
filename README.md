@@ -37,7 +37,7 @@ Inkbox-Identität stören sich. Daten in den alten Add-ons (Krypto-Verlauf, Down
 eBay-Preisalarme, claude.ai-Anmeldung, Spieleabend-Konten und Bestenliste, Urlaube) ziehen nicht
 automatisch mit.
 
-Ideen für weitere Add-ons stehen in [ideen/](ideen/README.md).
+Alle Ideen für weitere Add-ons stehen in einer Liste: [ideen/](ideen/README.md).
 
 Schlüssel gehören ausschließlich in den Master, nie in dieses Repository.
 Das Internet-Setup (Cloudflare Tunnel) steht in [TUNNEL.md](TUNNEL.md).
