@@ -17,7 +17,7 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 12. **Server-Wächter** – Speicher, Festplatte, RAM des Home-Assistant-Rechners; räumt auf Wunsch alte Backups und Images weg.
 13. **Update-Assistent** – Changelog in zwei Sätzen, Backup vor dem Update, Meldung wenn ein Add-on danach nicht startet.
 14. **Krypto-Steuerbericht** – Jahresübersicht von Krypto-Käufen und -Verkäufen für die Steuer als PDF.
-15. **Putzplan** – Aufgaben reihum, iMessage an den, der dran ist, „erledigt“ als Antwort, Monatssieger.
+15. **Putzplan** – Aufgaben reihum, Nachricht an den, der dran ist, „erledigt“ als Antwort, Monatssieger.
 16. **Vorratsschrank** – Einkäufe per Kassenzettel, Mindesthaltbarkeit, Rezepte für Bald-Ablaufendes.
 17. **Müllabfuhr-Erinnerung** – Abfuhrkalender einlesen, am Vorabend „Morgen: Gelber Sack“.
 18. **Gerätehandbücher** – PDFs ablegen, Fragen beantwortet Claude aus dem Handbuch.
