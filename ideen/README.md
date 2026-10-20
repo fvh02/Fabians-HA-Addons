@@ -191,3 +191,53 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 186. **Unwetter- und Pollenwarnung** – Wichtige Warnungen für den eigenen Ort per Nachricht. ([Details](<Unwetter- und Pollenwarnung.txt>))
 187. ✅ **Weitere Kartenspiele für den Spieleabend** – Zusätzliche Kartenspiele im Spieleabend-Add-on, mit Lobby, Spielcode, Computer-Spielern und Glas-Design wie Stapeljagd und Tiefpunkt. ([Details](<Weitere Kartenspiele für den Spieleabend.txt>)) – umgesetzt: Spieleabend
 188. ✅ **YouTube- und Video-Downloader** – Videos oder nur die Musik von YouTube und anderen Plattformen herunterladen (mit yt-dlp). ([Details](<YouTube- und Video-Downloader.txt>)) – umgesetzt: Video-Downloader
+189. **Batterie-Wächter** – Batteriestände aller Sensoren und Fernbedienungen, Erinnerung bevor eine leer ist.
+190. **Offline-Melder** – meldet Geräte und Sensoren, die sich seit Stunden nicht mehr gemeldet haben.
+191. **Monatlicher Energie-Bericht** – Strom, Gas und Wasser des Monats als kurze Nachricht mit Vergleich zum Vormonat.
+192. **Solar-Überschuss-Steuerung** – Geräte starten, wenn die PV-Anlage mehr erzeugt als verbraucht wird.
+193. **E-Auto-Lade-Planer** – lädt zur günstigsten Zeit oder mit Solarstrom bis zur gewünschten Abfahrt.
+194. **Rauchmelder-Zentrale** – bei Alarm Nachricht an alle, Licht an, Rollläden hoch.
+195. **Wasserleck-Alarm** – Wassermelder schlägt an, Ventil geht zu, Nachricht geht raus.
+196. **Alarmanlage** – scharf und unscharf schalten, Tür- und Bewegungsmelder, Sirene und Kamerabild.
+197. **Gäste-Zugangscodes** – zeitlich begrenzte Codes für ein smartes Türschloss, automatisch gelöscht.
+198. **Ferienwohnungs-Helfer** – Infoseite für Gäste, Check-in-Codes und Heizung nach Buchungskalender.
+199. **Haus-Wiki** – wie funktioniert die Heizung, wo ist der Haupthahn – Wissen fürs Haus an einem Ort.
+200. **Babysitter-Seite** – Notfallnummern, Schlafenszeiten und Regeln auf einer Seite, nur für einen Abend freigegeben.
+201. **Familien-Kalender** – alle Kalender zusammen auf dem Wandbildschirm, mit Farben pro Person.
+202. **Hausaufgaben-Planer** – Aufgaben und Abgabetermine für Schüler mit Erinnerung.
+203. **Kinder-Belohnungssystem** – Punkte für erledigte Aufgaben, einlösbar gegen Belohnungen.
+204. **Taschengeld-Konto** – Taschengeld, Ausgaben und Sparziele für Kinder übersichtlich.
+205. **Vereinsverwaltung** – Mitglieder, Beiträge, Termine und Rundmails für kleine Vereine.
+206. **Trainings-Zusagen** – wer kommt zum Training oder Spiel, mit Erinnerung und Fahrgemeinschaft.
+207. **Lesezeichen-Sammlung** – Links speichern, durchsuchen und mit Vorschau ordnen.
+208. **Später-lesen-Liste** – Artikel sammeln und als Kurzfassung lesen.
+209. **RSS-Reader mit Filter** – Nachrichtenquellen abonnieren, Claude filtert nach deinen Interessen.
+210. **Webseiten-Wächter** – Seite beobachten, Nachricht bei Änderung (Preis, Termin, Ankündigung).
+211. **Verfügbarkeits-Alarm** – meldet, wenn ein Produkt wieder lieferbar oder ein Termin frei ist.
+212. **„Hat das gerade offen?“** – Öffnungszeiten von Läden und Ämtern auf eine Frage hin.
+213. **Abfahrtsmonitor** – nächste Busse und Bahnen der Haltestelle vor der Tür auf einem Bildschirm im Flur.
+214. **Flug-Verfolgung** – Flüge von Familie und Freunden verfolgen, Meldung bei Landung oder Verspätung.
+215. **Himmels-Kalender** – ISS-Überflüge, Sternschnuppen, Finsternisse und klare Nächte für die Beobachtung.
+216. **Golden-Hour-Wecker** – Erinnerung vor Sonnenaufgang und -untergang für Fotos.
+217. **Gezeiten und Surf-Bericht** – Ebbe, Flut, Wellen und Wind für Strände in der Nähe.
+218. **Schneebericht** – Schneehöhe, offene Lifte und Wetter in Skigebieten.
+219. **Badesee-Ampel** – Wasserqualität und Temperatur von Badestellen in der Nähe.
+220. **Fitness-Challenge** – Schritte oder Kilometer in der Gruppe, mit Wochenrangliste.
+221. **Atem- und Meditations-Timer** – mit ruhigem Licht und Klang.
+222. **Fokus-Modus** – Licht, Musik und Benachrichtigungen für konzentriertes Arbeiten, mit Pomodoro-Timer.
+223. **Bildschirmzeit-Regeln** – Internet für einzelne Geräte zu bestimmten Zeiten über den Router begrenzen.
+224. **Musik-Wecker** – Wecker mit Playlist und langsam heller werdendem Licht.
+225. **Gute-Nacht-Routine** – ein Knopf: alles aus, Türen prüfen, Alarm scharf, Wecker stellen.
+226. **Kleiderschrank-Inventar** – Kleidung per Foto, Outfit-Vorschlag passend zum Wetter.
+227. **Wein- und Getränkekeller** – Bestand, Trinkreife und Notizen zu jeder Flasche.
+228. **Serien-Kalender** – neue Folgen und Staffeln deiner Serien, Meldung am Erscheinungstag.
+229. **„Was spielen wir heute?“** – aus der eigenen Brettspielsammlung passend zu Spielerzahl und Zeit.
+230. **Live-Dolmetscher am Tablet** – Gespräch mit Gästen in zwei Sprachen, abwechselnd übersetzt.
+231. **Großschrift-Modus** – einfaches Dashboard mit großen Knöpfen und Sprachausgabe für ältere Menschen.
+232. **Täglicher Check-in** – „Alles in Ordnung?“-Knopf; ohne Antwort werden Angehörige benachrichtigt.
+233. **Inaktivitäts-Melder** – keine Bewegung seit vielen Stunden → Nachricht an Angehörige.
+234. **Medikamenten-Box** – Fach-Sensor erkennt, ob die Tablette genommen wurde, sonst Erinnerung.
+235. **Pflanzenlicht-Steuerung** – Grow-Lampen nach Tageslicht und Pflanzenart.
+236. **Aquarium- und Terrarium-Wächter** – Temperatur, Licht und Fütterung, Alarm bei Abweichung.
+237. **Haustür-Paketbox** – Code für Lieferdienste, Nachricht wenn etwas eingelegt wurde.
+238. **Dokumente-Erinnerung fürs Auto** – TÜV, Versicherung, Steuer und Winterreifen-Wechsel im Jahr.
