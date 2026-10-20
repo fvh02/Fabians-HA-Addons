@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2
+
+- **Add-ons werden zuverlässig erkannt:** Welche Add-ons zu diesem Repository gehören, fragt der
+  Master jetzt beim Supervisor nach (vorher nur über den Hostnamen – passte der nicht, standen alle
+  als „nicht installiert“ da).
+- Unter der Add-on-Liste steht, wenn der Supervisor nicht erreichbar ist, und welche Add-ons noch aus
+  den alten Repositories laufen (z. B. Inkbox Claude Gateway) – die zählen hier nicht, dafür die
+  „Fabians-HA-…“-Versionen installieren.
+
 ## 1.2.1
 
 - Kennt das neue Add-on **Fabians-HA-Karte** (iMessages und Claude-Abgleich über den Master); die
