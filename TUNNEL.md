@@ -9,6 +9,7 @@ Home Assistant selbst bleibt privat.
 | Downloader | `https://downloads.deine-domain.de` | `192.168.178.103:8099` |
 | Video-Downloader | `https://videos.deine-domain.de` | `192.168.178.103:8097` |
 | Spieleabend | `https://spiele.deine-domain.de` | `192.168.178.103:8098` |
+| Urlaub | `https://urlaub.deine-domain.de` | `192.168.178.103:8100` |
 
 `192.168.178.103` ist die IP deines Home Assistant – bei dir ggf. anders
 (Einstellungen → System → Netzwerk).
@@ -53,6 +54,7 @@ Im Tunnel unter **Public Hostname → Add a public hostname** für jedes Add-on 
 | `downloads` | deine Domain | HTTP | `192.168.178.103:8099` |
 | `videos` | deine Domain | HTTP | `192.168.178.103:8097` |
 | `spiele` | deine Domain | HTTP | `192.168.178.103:8098` |
+| `urlaub` | deine Domain | HTTP | `192.168.178.103:8100` |
 
 Path leer lassen. Speichern – die Adresse funktioniert nach wenigen Sekunden.
 

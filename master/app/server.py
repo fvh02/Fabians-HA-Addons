@@ -89,6 +89,16 @@ FIELDS = [
     ("E-Mail (Spieleabend)", "smtp_user", "Benutzer", False, "Meist deine E-Mail-Adresse", ["spieleabend"]),
     ("E-Mail (Spieleabend)", "smtp_password", "Passwort", True, "Bei Gmail und iCloud ein App-Passwort", ["spieleabend"]),
     ("E-Mail (Spieleabend)", "smtp_from", "Absender", False, "Leer = Benutzer", ["spieleabend"]),
+    ("Anmeldung (Urlaub)", "google_client_id", "Google: Client-ID", False,
+     "console.cloud.google.com → APIs & Dienste → Anmeldedaten → OAuth-Client-ID (Webanwendung). "
+     "Weiterleitungs-URI: https://<Urlaub-Adresse>/auth/google/callback", ["urlaub"]),
+    ("Anmeldung (Urlaub)", "google_client_secret", "Google: Client-Secret", True, "", ["urlaub"]),
+    ("Anmeldung (Urlaub)", "apple_client_id", "Apple: Services-ID", False,
+     "developer.apple.com → Identifiers → Services IDs, z. B. de.deinname.urlaub. Return-URL: https://<Urlaub-Adresse>/auth/apple/callback",
+     ["urlaub"]),
+    ("Anmeldung (Urlaub)", "apple_team_id", "Apple: Team-ID", False, "Oben rechts im Apple-Developer-Konto (10 Zeichen)", ["urlaub"]),
+    ("Anmeldung (Urlaub)", "apple_key_id", "Apple: Key-ID", False, "Keys → Schlüssel mit „Sign in with Apple“", ["urlaub"]),
+    ("Anmeldung (Urlaub)", "apple_private_key", "Apple: Schlüssel (.p8)", True, "Den ganzen Inhalt der .p8-Datei einfügen", ["urlaub"]),
 ]
 FIELD = {f[1]: f for f in FIELDS}
 # API keys, secrets and tokens never contain spaces: line breaks or quotes from copying are removed.

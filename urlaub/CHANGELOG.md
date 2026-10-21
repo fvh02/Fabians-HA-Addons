@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- **Mit Apple oder Google anmelden:** Die erste Anmeldung legt das Konto an. Mit Konto sind deine
+  Urlaube auf jedem Gerät da – ohne Code. Urlaube, denen du vorher auf diesem Gerät beigetreten bist,
+  werden beim Anmelden übernommen. Abmelden und Konto löschen gehen auf der Startseite.
+- Ohne Konto geht alles weiter wie bisher mit Code und Name.
+- Die Zugangsdaten kommen aus dem **Fabians-HA-Master** (ab 1.2.5, Gruppe „Anmeldung (Urlaub)“).
+  Anmelden geht nur über die Internet-Adresse (Cloudflare Tunnel, https).
+- Der Kassenbon öffnet sich jetzt direkt in der App statt in einem neuen Tab.
+
 ## 1.1.0
 
 - **🗳️ Abstimmen:** neuer Tab mit Umfragen – fertige Fragen (Ziel, Art des Urlaubs, Anreise,

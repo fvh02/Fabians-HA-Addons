@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.5
+
+- Neue Gruppe **Anmeldung (Urlaub)**: Zugangsdaten für „Mit Apple / Google anmelden“ im
+  Urlaubsplaner (ab Fabians-HA-Urlaub 1.2.0).
+
 ## 1.2.4
 
 - Kennt die neuen Add-ons **Fabians-HA-Serien** und **Fabians-HA-Himmel** (iMessages über den Master,

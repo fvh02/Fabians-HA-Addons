@@ -29,6 +29,33 @@ Plant euren Urlaub gemeinsam – jeder am eigenen Handy.
    Jeden Artikel kann man antippen und ändern (Kategorie, Preis, wer mitzahlt). Ausgaben ohne Bon
    (Tanken, Fähre) lassen sich von Hand eintragen. Unten steht, wer wem wie viel überweisen muss.
 
+## Anmelden mit Apple oder Google (optional)
+
+Ohne Konto funktioniert alles mit Code und Name. Mit Konto hat jeder seine Urlaube auf jedem Gerät –
+Handy, Tablet, Laptop – ohne den Code noch einmal einzugeben. Die erste Anmeldung legt das Konto an.
+
+Die Anmeldung braucht die **Internet-Adresse** des Urlaubsplaners (z. B. `https://urlaub.deine-domain.de`,
+siehe [TUNNEL.md](../TUNNEL.md)); im Heimnetz und in Home Assistant gibt es die Knöpfe nicht. Die
+Zugangsdaten gehören in den **Fabians-HA-Master** unter **Anmeldung (Urlaub)** – nicht in dieses Add-on.
+
+**Google** (kostenlos):
+1. [console.cloud.google.com](https://console.cloud.google.com) → Projekt anlegen → **APIs & Dienste →
+   OAuth-Zustimmungsbildschirm**: Typ „Extern“, App-Name „Urlaubsplaner“, veröffentlichen.
+2. **Anmeldedaten → Anmeldedaten erstellen → OAuth-Client-ID**, Typ **Webanwendung**.
+3. Autorisierte Weiterleitungs-URI: `https://urlaub.deine-domain.de/auth/google/callback`.
+4. Client-ID und Client-Secret im Master eintragen.
+
+**Apple** (braucht das Apple Developer Program, 99 €/Jahr):
+1. [developer.apple.com](https://developer.apple.com/account) → **Identifiers → App IDs**: neue App-ID mit
+   „Sign in with Apple“.
+2. **Identifiers → Services IDs**: neue Services-ID (z. B. `de.deinname.urlaub`), „Sign in with Apple“
+   einschalten → Configure: Primary App ID von oben, Domain `urlaub.deine-domain.de`, Return-URL
+   `https://urlaub.deine-domain.de/auth/apple/callback`.
+3. **Keys**: neuen Schlüssel mit „Sign in with Apple“ anlegen, die **.p8-Datei** herunterladen (geht nur einmal).
+4. Im Master eintragen: Services-ID, Team-ID (oben rechts im Developer-Konto), Key-ID und den Inhalt der .p8-Datei.
+
+Der Master startet den Urlaubsplaner danach neu; die Knöpfe erscheinen auf der Startseite.
+
 ## Einrichtung
 
 - **Anthropic-API-Key** (console.anthropic.com → API Keys) im **Fabians-HA-Master** unter

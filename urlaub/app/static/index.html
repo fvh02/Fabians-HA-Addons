@@ -193,6 +193,17 @@
     .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .presets button { border-radius: 16px; padding: 12px 10px; border: 1px solid var(--glass-border); background: var(--input); font-weight: 700; text-align: left; }
     .presets button span { display: block; font-size: 1.4rem; }
+    /* account */
+    .signin { display: flex; flex-direction: column; gap: 10px; }
+    .sso { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; border-radius: 14px; font-weight: 700; text-decoration: none; font-size: 1rem; border: 1px solid transparent; }
+    .sso svg { width: 20px; height: 20px; flex: none; }
+    .sso.apple { background: #000; color: #fff; border-color: rgba(255,255,255,.25); }
+    .sso.google { background: #fff; color: #1f1f1f; border-color: #dadce0; }
+    .me { display: flex; align-items: center; gap: 12px; }
+    .me b { display: block; }
+    .me > div { flex: 1; min-width: 0; }
+    .me .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+    .bon { width: 100%; border-radius: 14px; display: block; }
     .warn { background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 14px; padding: 10px 12px; font-size: .88rem; }
   </style>
 </head>
@@ -203,6 +214,7 @@
   <main class="wrap hidden" id="start">
     <h1 class="logo">Urlaubsplaner</h1>
     <p class="sub">Gemeinsam planen: Unterkunft, coole Orte und die Urlaubskasse.</p>
+    <section class="panel glass hidden" id="account"></section>
     <section class="panel glass hidden" id="mine"><h2>Meine Urlaube</h2><div id="mineList"></div></section>
     <section class="panel glass">
       <h2>Urlaub beitreten</h2>
@@ -251,7 +263,9 @@
       get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
       set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
     };
-    let trips = store.get("urlaub-trips", {});     // code → { token, name, trip }
+    let trips = store.get("urlaub-trips", {});     // code → { token, name, trip, where } – token is "" for trips that only belong to the account
+    let session = store.get("urlaub-account", "");  // session of the Apple/Google account, if signed in
+    let acct = null;                                // what the server says about it
     let S = null, code = null, tab = "home";
 
     function toast(text) { const t = $("toast"); t.textContent = text; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3200); }
@@ -262,11 +276,13 @@
     const fmtDate = d => d ? new Date(d + "T12:00").toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" }) : "";
 
     async function api(path, opts = {}) {
-      const headers = { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...(code && trips[code] ? { "X-Token": trips[code].token } : {}) };
+      const headers = { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
+        ...(code && trips[code] && trips[code].token ? { "X-Token": trips[code].token } : {}),
+        ...(session ? { "X-Account": session } : {}), ...(code ? { "X-Code": code } : {}), ...(opts.headers || {}) };
       const res = await fetch("api/" + path, { method: opts.method || (opts.body ? "POST" : "GET"), headers, cache: "no-store",
         body: opts.body instanceof FormData ? opts.body : opts.body ? JSON.stringify(opts.body) : undefined });
       const data = await res.json().catch(() => ({ error: "Keine Verbindung zum Urlaubsplaner" }));
-      if (!res.ok) { if (res.status === 401 && code) { delete trips[code]; store.set("urlaub-trips", trips); } throw new Error(data.error || "Fehler"); }
+      if (!res.ok) { if (res.status === 401 && code && path !== "account/link") { delete trips[code]; store.set("urlaub-trips", trips); } throw new Error(data.error || "Fehler"); }
       return data;
     }
     // Runs an action, shows errors as a toast and renders the new state.
@@ -287,8 +303,62 @@
       $("mineList").innerHTML = list.map(([c, t]) => `<div class="tripcard" data-open="${esc(c)}"><span class="em">🏝️</span>
         <div style="flex:1"><b>${esc(t.trip || c)}</b><span class="muted small">${esc(t.where || "")} · als ${esc(t.name || "")}</span></div><span class="muted">›</span></div>`).join("");
       if (invited) $("joinForm").code.value = invited.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const name = store.get("urlaub-name", "");
+      const name = store.get("urlaub-name", "") || (acct && acct.account && acct.account.name) || "";
       if (name) { $("joinForm").name.value = name; $("createForm").name.value = name; }
+      renderAccount();
+    }
+
+    // ---------------- account ----------------
+    const ICON = {
+      apple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.6c-.02-2.28 1.86-3.38 1.95-3.43-1.06-1.55-2.71-1.77-3.3-1.79-1.4-.14-2.74.83-3.45.83-.71 0-1.81-.81-2.97-.79-1.53.02-2.94.89-3.73 2.26-1.59 2.76-.41 6.85 1.14 9.09.76 1.1 1.66 2.33 2.84 2.28 1.14-.05 1.57-.74 2.95-.74 1.38 0 1.77.74 2.97.71 1.23-.02 2-1.11 2.75-2.22.87-1.27 1.22-2.51 1.24-2.57-.03-.01-2.37-.91-2.39-3.63zM14.1 5.9c.63-.77 1.06-1.83.94-2.9-.91.04-2.01.61-2.66 1.37-.58.67-1.09 1.76-.96 2.8 1.02.08 2.05-.52 2.68-1.27z"/></svg>`,
+      google: `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.56-5.17 3.56-8.81z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3c-1.07.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.72-4.95H1.28v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.28 14.29a7.2 7.2 0 0 1 0-4.58v-3.1H1.28a12 12 0 0 0 0 10.78z"/><path fill="#EA4335" d="M12 4.75c1.76 0 3.34.61 4.59 1.8l3.44-3.44A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.28 6.61l4 3.1C6.22 6.86 8.87 4.75 12 4.75z"/></svg>`,
+    };
+    function renderAccount() {
+      const el = $("account");
+      if (!acct || (!acct.account && !acct.configured.length)) return el.classList.add("hidden");
+      el.classList.remove("hidden");
+      if (acct.account) {
+        const a = acct.account;
+        el.innerHTML = `<h2>Dein Konto</h2><div class="me">${avatar({ name: a.name || a.email || "?" })}<div><b>${esc(a.name || "Angemeldet")}</b>
+            <span class="small muted">mit ${esc(a.provider)}${a.email ? " · " + esc(a.email) : ""}</span></div>
+            <button class="btn ghost small" id="logout" style="flex:0 0 auto">Abmelden</button></div>
+          <p class="small muted" style="margin:10px 0 0">Deine Urlaube sind auf jedem Gerät da, auf dem du dich anmeldest.</p>
+          <details style="margin-top:10px"><summary>Konto löschen</summary><p class="small muted">Die Urlaube bleiben, du bist dort aber nicht mehr mit diesem Konto verbunden.</p>
+            <button class="btn danger small" id="delAccount">Konto endgültig löschen</button></details>`;
+        $("logout").onclick = signOut;
+        $("delAccount").onclick = async () => {
+          if (!confirm("Konto wirklich löschen?")) return;
+          try { await api("account", { method: "DELETE" }); } catch (e) { return toast(e.message); }
+          signOut(true);
+        };
+        return;
+      }
+      el.innerHTML = `<h2>Anmelden</h2>${acct.providers.length ? `<div class="signin">
+          ${acct.providers.includes("apple") ? `<a class="sso apple" href="auth/apple">${ICON.apple}Mit Apple anmelden</a>` : ""}
+          ${acct.providers.includes("google") ? `<a class="sso google" href="auth/google">${ICON.google}Mit Google anmelden</a>` : ""}</div>
+          <p class="small muted" style="margin:10px 0 0">Beim ersten Mal wird dein Konto angelegt. Damit hast du deine Urlaube auf jedem Gerät – ohne Code. Ohne Konto geht es weiterhin mit Code und Name.</p>`
+        : `<p class="small muted" style="margin:0">Anmelden mit Apple oder Google geht über die Internet-Adresse des Urlaubsplaners (https). Hier geht es mit Code und Name.</p>`}`;
+    }
+    async function loadAccount() {
+      try { acct = await api("account"); } catch { acct = null; return; }
+      if (session && !acct.account) { session = ""; store.set("urlaub-account", ""); }      // expired or deleted
+      if (!acct.account) return;
+      const known = new Set(acct.trips.map(t => t.code));
+      for (const [c, t] of Object.entries(trips)) {       // trips joined on this device before signing in
+        if (known.has(c) || !t.token) continue;
+        try { await api("account/link", { method: "POST", body: {}, headers: { "X-Token": t.token } }); known.add(c); }
+        catch (e) { toast(e.message); }
+      }
+      if (known.size > acct.trips.length) acct = await api("account").catch(() => acct);
+      for (const t of acct.trips) trips[t.code] = { token: "", ...trips[t.code], name: t.name, trip: t.trip, where: t.where };
+      store.set("urlaub-trips", trips);
+    }
+    async function signOut(silent) {
+      if (silent !== true) { try { await api("account/logout", { method: "POST", body: {} }); } catch {} }
+      session = ""; store.set("urlaub-account", ""); acct = acct && { ...acct, account: null, trips: [] };
+      for (const [c, t] of Object.entries(trips)) if (!t.token) delete trips[c];       // those were only in the account
+      store.set("urlaub-trips", trips);
+      showStart(); toast("Abgemeldet");
     }
     $("mineList").onclick = e => { const el = e.target.closest("[data-open]"); if (el) openTrip(el.dataset.open); };
     $("joinForm").code.oninput = e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); };
@@ -297,7 +367,7 @@
       const c = f.code.value.trim().toUpperCase(), name = f.name.value.trim();
       if (trips[c]) return openTrip(c);
       store.set("urlaub-name", name);
-      try { const r = await api("join", { body: { code: c, name } }); trips[r.code] = { token: r.token, name }; store.set("urlaub-trips", trips); openTrip(r.code); }
+      try { const r = await api("join", { body: { code: c, name } }); trips[r.code] = { token: r.token, name: r.name || name }; store.set("urlaub-trips", trips); openTrip(r.code); }
       catch (err) { toast(err.message); }
     };
     // "Bis" can't be before "Von"; picking "Von" first opens "Bis" in the same month.
@@ -329,7 +399,7 @@
       $("start").classList.add("hidden"); $("trip").classList.remove("hidden"); $("tabs").classList.remove("hidden");
       render();
     }
-    $("toStart").onclick = showStart;
+    $("toStart").onclick = () => loadAccount().finally(showStart);
     $("tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); scrollTo({ top: 0 }); } };
     const member = id => S.members.find(m => m.id === id) || { name: "?", id };
     const isMe = id => id === S.me.id;
@@ -660,7 +730,7 @@
           <div class="row" style="margin-top:10px">
             <select data-payer="${r.id}" style="flex:1 1 140px">${S.members.map(m => `<option value="${m.id}" ${m.id === r.payer ? "selected" : ""}>💳 ${esc(m.name)}</option>`).join("")}</select>
             <button class="btn ghost small" data-additem="${r.id}" style="flex:0 0 auto">+ Artikel</button>
-            ${r.image ? `<a class="btn ghost small" target="_blank" href="api/receipts/${r.id}/bild?t=${encodeURIComponent(trips[code].token)}" style="flex:0 0 auto;text-decoration:none">🖼️ Bon</a>` : ""}
+            ${r.image ? `<button class="btn ghost small" data-bon="${r.id}" style="flex:0 0 auto">🖼️ Bon</button>` : ""}
             <button class="btn danger small" data-delreceipt="${r.id}" style="flex:0 0 auto">🗑️</button></div>` : ""}</article>`;
     }
     function itemRow(i, r) {
@@ -694,6 +764,14 @@
       document.querySelectorAll("[data-additem]").forEach(el => el.onclick = () => act(() => api(`receipts/${el.dataset.additem}/items`, { body: {} })));
       document.querySelectorAll("[data-delreceipt]").forEach(el => el.onclick = () => { if (confirm("Kassenzettel löschen?")) act(() => api("receipts/" + el.dataset.delreceipt, { method: "DELETE" })); });
       document.querySelectorAll("[data-item]").forEach(el => el.onclick = () => editItem(+el.dataset.item, +el.dataset.receipt));
+      document.querySelectorAll("[data-bon]").forEach(el => el.onclick = async () => {
+        const headers = { ...(trips[code].token ? { "X-Token": trips[code].token } : {}), ...(session ? { "X-Account": session, "X-Code": code } : {}) };
+        try {
+          const res = await fetch(`api/receipts/${el.dataset.bon}/bild`, { headers });
+          if (!res.ok) throw new Error("Das Bild ist nicht mehr da");
+          sheet(`<img class="bon" alt="Kassenzettel" src="${URL.createObjectURL(await res.blob())}"><button class="btn ghost" data-close style="margin-top:12px;width:100%">Schließen</button>`);
+        } catch (e) { toast(e.message); }
+      });
     };
 
     function editItem(id, receiptId) {
@@ -741,8 +819,11 @@
     }
 
     // ---------------- go ----------------
-    const fromHash = location.hash.slice(1).toUpperCase();
-    if (fromHash && trips[fromHash]) openTrip(fromHash); else showStart();
+    (async () => {
+      await loadAccount();
+      const fromHash = location.hash.slice(1).toUpperCase();
+      if (fromHash && trips[fromHash]) openTrip(fromHash); else showStart();
+    })();
   </script>
 </body>
 </html>

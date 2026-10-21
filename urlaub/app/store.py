@@ -53,7 +53,13 @@ CREATE TABLE IF NOT EXISTS poll_options (
 CREATE TABLE IF NOT EXISTS poll_votes (
   option_id INTEGER NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
   member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE, PRIMARY KEY (option_id, member_id));
+CREATE TABLE IF NOT EXISTS accounts (
+  id INTEGER PRIMARY KEY, provider TEXT NOT NULL, sub TEXT NOT NULL, email TEXT DEFAULT '', name TEXT DEFAULT '',
+  created REAL NOT NULL, UNIQUE (provider, sub));
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY, account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, created REAL NOT NULL, used REAL);
 """
+SESSION_DAYS = 180
 
 
 def token_hash(token: str) -> str:
@@ -68,6 +74,8 @@ class Store:
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.execute("PRAGMA journal_mode = WAL")
         self.db.executescript(SCHEMA)
+        if "account_id" not in {c["name"] for c in self.q("PRAGMA table_info(members)")}:     # added in 1.2.0
+            self.db.execute("ALTER TABLE members ADD COLUMN account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL")
 
     def q(self, sql: str, *args) -> list[dict]:
         return [dict(r) for r in self.db.execute(sql, args).fetchall()]
@@ -86,20 +94,21 @@ class Store:
             if not self.one("SELECT 1 FROM trips WHERE code = ?", code):
                 return code
 
-    def create_trip(self, name: str, destination: str, start: str, end: str, owner: str, place: dict | None) -> tuple[dict, str]:
+    def create_trip(self, name: str, destination: str, start: str, end: str, owner: str, place: dict | None,
+                    account_id: int | None = None) -> tuple[dict, str]:
         code = self.new_code()
         trip_id = self.run("INSERT INTO trips (code, name, destination, start, end, lat, lon, place, created) VALUES (?,?,?,?,?,?,?,?,?)",
                            code, name, destination, start, end, place and place["lat"], place and place["lon"],
                            place and place["name"], time.time())
         for i, (tid, tname, parent, icon) in enumerate(DEFAULT_TAGS):
             self.run("INSERT INTO tags (trip_id, id, name, parent, icon, sort) VALUES (?,?,?,?,?,?)", trip_id, tid, tname, parent, icon, i)
-        token = self.add_member(trip_id, owner, owner=True)
+        token = self.add_member(trip_id, owner, owner=True, account_id=account_id)
         return self.trip(trip_id), token
 
-    def add_member(self, trip_id: int, name: str, owner: bool = False) -> str:
+    def add_member(self, trip_id: int, name: str, owner: bool = False, account_id: int | None = None) -> str:
         token = secrets.token_urlsafe(24)
-        self.run("INSERT INTO members (trip_id, name, token, owner, created) VALUES (?,?,?,?,?)",
-                 trip_id, name, token_hash(token), int(owner), time.time())
+        self.run("INSERT INTO members (trip_id, name, token, owner, account_id, created) VALUES (?,?,?,?,?,?)",
+                 trip_id, name, token_hash(token), int(owner), account_id, time.time())
         return token
 
     def trip(self, trip_id: int) -> dict | None:
@@ -137,6 +146,46 @@ class Store:
         for v in self.q("SELECT ref, member_id FROM votes WHERE trip_id = ? AND kind = ?", trip_id, kind):
             out.setdefault(v["ref"], []).append(v["member_id"])
         return out
+
+    # -- accounts -------------------------------------------------------------------------------------
+    def sign_in(self, provider: str, sub: str, email: str, name: str) -> tuple[dict, str]:
+        """The first sign-in registers the account. Returns the account and a new session token."""
+        account = self.one("SELECT * FROM accounts WHERE provider = ? AND sub = ?", provider, sub)
+        if not account:
+            account_id = self.run("INSERT INTO accounts (provider, sub, email, name, created) VALUES (?,?,?,?,?)",
+                                  provider, sub, email, name, time.time())
+        else:
+            account_id = account["id"]
+            self.run("UPDATE accounts SET email = COALESCE(NULLIF(?, ''), email), name = COALESCE(NULLIF(?, ''), name) WHERE id = ?",
+                     email, name, account_id)
+        token = secrets.token_urlsafe(32)
+        self.run("INSERT INTO sessions (token, account_id, created, used) VALUES (?,?,?,?)", token_hash(token), account_id, time.time(), time.time())
+        return self.one("SELECT * FROM accounts WHERE id = ?", account_id), token
+
+    def account_by_session(self, token: str) -> dict | None:
+        if not token:
+            return None
+        row = self.one("SELECT accounts.*, sessions.used FROM sessions JOIN accounts ON accounts.id = sessions.account_id WHERE sessions.token = ?",
+                       token_hash(token))
+        if not row:
+            return None
+        if time.time() - (row["used"] or 0) > SESSION_DAYS * 86400:
+            self.run("DELETE FROM sessions WHERE token = ?", token_hash(token))
+            return None
+        if time.time() - (row["used"] or 0) > 3600:
+            self.run("UPDATE sessions SET used = ? WHERE token = ?", time.time(), token_hash(token))
+        return row
+
+    def sign_out(self, token: str) -> None:
+        self.run("DELETE FROM sessions WHERE token = ?", token_hash(token))
+
+    def account_trips(self, account_id: int) -> list[dict]:
+        return self.q("SELECT trips.code, trips.name AS trip, trips.destination AS \"where\", members.name FROM members "
+                      "JOIN trips ON trips.id = members.trip_id WHERE members.account_id = ? ORDER BY trips.created DESC", account_id)
+
+    def member_by_account(self, code: str, account_id: int) -> dict | None:
+        return self.one("SELECT members.* FROM members JOIN trips ON trips.id = members.trip_id WHERE trips.code = ? AND members.account_id = ?",
+                        code.strip().upper(), account_id)
 
     # -- polls ----------------------------------------------------------------------------------------
     def add_poll(self, trip_id: int, question: str, kind: str, multi: bool, options: list[str], member_id: int) -> int:
