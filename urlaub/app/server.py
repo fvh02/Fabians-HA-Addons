@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import time
 from pathlib import Path
 
@@ -233,6 +234,17 @@ async def edit_trip(request: web.Request) -> web.Response:
             fields.update(lat=place["lat"], lon=place["lon"], place=place["name"], spots=None, spots_at=None)
     store.update_trip(trip["id"], **fields)
     return web.json_response(state(store.trip(trip["id"]), member))
+
+
+@routes.delete("/api/trip")
+async def delete_trip(request: web.Request) -> web.Response:
+    """Deletes the whole trip for everyone: people, accommodations, votes, receipts and their photos."""
+    trip, member = me(request)
+    owner_only(member)
+    store.run("DELETE FROM trips WHERE id = ?", trip["id"])
+    shutil.rmtree(DATA / "belege" / str(trip["id"]), ignore_errors=True)
+    log.info("Urlaub %s (%s) gelöscht", trip["code"], trip["name"])
+    return web.json_response({"deleted": True})
 
 
 @routes.patch("/api/members/{id}")

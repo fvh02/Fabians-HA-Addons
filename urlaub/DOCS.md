@@ -29,6 +29,10 @@ Plant euren Urlaub gemeinsam – jeder am eigenen Handy.
    Jeden Artikel kann man antippen und ändern (Kategorie, Preis, wer mitzahlt). Ausgaben ohne Bon
    (Tanken, Fähre) lassen sich von Hand eintragen. Unten steht, wer wem wie viel überweisen muss.
 
+**Urlaub löschen:** Wer den Urlaub erstellt hat, findet unter „⚙️ Urlaub bearbeiten“ den Knopf
+„🗑️ Urlaub löschen“. Er löscht den Urlaub für alle Mitreisenden samt Kasse und Kassenzettel-Fotos.
+Alle anderen können einen Urlaub nur für sich verlassen.
+
 ## Anmelden mit Apple oder Google (optional)
 
 Ohne Konto funktioniert alles mit Code und Name. Mit Konto hat jeder seine Urlaube auf jedem Gerät –
