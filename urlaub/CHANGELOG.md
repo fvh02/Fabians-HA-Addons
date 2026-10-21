@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- **Urlaub löschen:** Wer den Urlaub erstellt hat, kann ihn unter „⚙️ Urlaub bearbeiten“ für alle
+  löschen – mit Unterkünften, Abstimmungen, Kasse und den Fotos der Kassenzettel.
+
 ## 1.2.0
 
 - **Mit Apple oder Google anmelden:** Die erste Anmeldung legt das Konto an. Mit Konto sind deine

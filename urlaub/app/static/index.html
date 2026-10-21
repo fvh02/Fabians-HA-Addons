@@ -452,7 +452,10 @@
             <label class="f">Ziel<input name="destination" value="${esc(S.trip.destination)}" maxlength="120" placeholder="z. B. Hvar, Kroatien"></label>
             <div class="grid2"><label class="f">Von<input type="date" name="start" value="${esc(S.trip.start || "")}"></label><label class="f">Bis<input type="date" name="end" value="${esc(S.trip.end || "")}"></label></div>
             <label class="f">Währung der Kasse<select name="currency">${["EUR", "CHF", "GBP", "USD", "HRK", "CZK", "PLN", "HUF", "DKK", "SEK", "NOK", "TRY"].map(c => `<option ${c === S.trip.currency ? "selected" : ""}>${c}</option>`).join("")}</select></label>
-            <button class="btn">Speichern</button></form></details>` : `<button class="btn danger small" id="leave">Urlaub verlassen</button>`}`;
+            <button class="btn">Speichern</button></form>
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--glass-border)">
+            <p class="small muted" style="margin:0 0 8px">Löscht den Urlaub für alle – mit Unterkünften, Abstimmungen und der Kasse. Das lässt sich nicht rückgängig machen.</p>
+            <button class="btn danger small" id="deleteTrip">🗑️ Urlaub löschen</button></div></details>` : `<button class="btn danger small" id="leave">Urlaub verlassen</button>`}`;
     }
     const stayTitle = s => s.manual.titel || s.data.titel || (s.url ? "Unterkunft auf " + new URL(s.url).hostname.replace(/^www\./, "") : "Unterkunft");
 
@@ -469,6 +472,15 @@
             act(() => api("trip", { method: "PATCH", body: d }), "Wird gespeichert …");
           };
         }
+        const del = $("deleteTrip");
+        if (del) del.onclick = async () => {
+          const others = S.members.length - 1;
+          if (!confirm(`„${S.trip.name}“ wirklich für alle löschen?${others ? ` ${others} ${others === 1 ? "Mitreisende verliert" : "Mitreisende verlieren"} ihn auch.` : ""} Unterkünfte, Abstimmungen und die Kasse sind dann weg.`)) return;
+          busy(true, "Urlaub wird gelöscht …");
+          try { await api("trip", { method: "DELETE" }); delete trips[code]; store.set("urlaub-trips", trips); showStart(); toast("Urlaub gelöscht"); }
+          catch (e) { toast(e.message); }
+          finally { busy(false); }
+        };
         const l = $("leave");
         if (l) l.onclick = async () => {
           if (!confirm("Diesen Urlaub wirklich verlassen?")) return;
