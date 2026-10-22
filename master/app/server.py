@@ -300,7 +300,7 @@ class Supervisor:
     async def caller(self, request: web.Request, fresh: bool = False) -> str | None:
         """Which add-on sent the request. Addresses can change when an add-on restarts, so the
         list is never older than 30 seconds – and always fresh before keys are handed out."""
-        ip = request.remote or ""
+        ip = (request.remote or "").removeprefix("::ffff:")
         if fresh or time.time() - self.refreshed > 30:
             if not await self.refresh(force=True):
                 return None
@@ -682,4 +682,6 @@ def make_app() -> web.Application:
 
 
 if __name__ == "__main__":
-    web.run_app(make_app(), port=PORT, access_log=None)
+    # IPv4 only: the Supervisor knows the add-ons only by their IPv4 address. Since Home Assistant turned on IPv6
+    # in the add-on network, requests over IPv6 could not be matched to an add-on (403 for everyone).
+    web.run_app(make_app(), host="0.0.0.0", port=PORT, access_log=None)

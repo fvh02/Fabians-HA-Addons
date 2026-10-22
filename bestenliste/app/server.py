@@ -292,7 +292,8 @@ def main() -> None:
     app.add_routes(routes)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
-    web.run_app(app, port=PORT, print=None, access_log=None)
+    # IPv4 only: callers are checked by their IPv4 address (the add-on network also has IPv6).
+    web.run_app(app, host="0.0.0.0", port=PORT, print=None, access_log=None)
 
 
 if __name__ == "__main__":

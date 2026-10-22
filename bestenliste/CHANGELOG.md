@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- **Behoben:** Ergebnisse des Spieleabends wurden abgewiesen, wenn sie über IPv6 kamen (Home Assistant
+  hat IPv6 im Add-on-Netz eingeschaltet). Das Add-on ist jetzt nur über IPv4 erreichbar.
+
 ## 1.2.1
 
 - Umgezogen nach **Fabians-HA-Addons** und umbenannt in **Fabians-HA-Bestenliste**.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.6
+
+- **Behoben: Assistent und andere Add-ons wurden mit 403 abgewiesen** („Anfrage von fd0c:… ist kein
+  Add-on dieses Repositorys“). Home Assistant hat im internen Add-on-Netz IPv6 eingeschaltet; die Add-ons
+  kamen über ihre IPv6-Adresse, der Master kennt sie aber nur unter IPv4. Der Master ist jetzt nur noch
+  über IPv4 erreichbar, die Add-ons verbinden sich dadurch automatisch über IPv4 und werden wieder erkannt.
+
 ## 1.2.5
 
 - Neue Gruppe **Anmeldung (Urlaub)**: Zugangsdaten für „Mit Apple / Google anmelden“ im

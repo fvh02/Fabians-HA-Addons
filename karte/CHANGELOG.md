@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- **Behoben:** Anfragen des Masters wurden abgewiesen, wenn sie über IPv6 kamen (Home Assistant hat
+  IPv6 im Add-on-Netz eingeschaltet). Das Add-on ist jetzt nur über IPv4 erreichbar.
+
 ## 1.1.0
 
 - **„Hat das gerade offen?“:** Läden, Lokale und Ämter in der Nähe (oder in einem Ort) mit ihren
