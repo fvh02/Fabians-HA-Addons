@@ -1,0 +1,57 @@
+Pino ist ein Kiwi-Vogel, der in einer kleinen 3D-Welt lebt und von einer KI gesteuert wird. Er hat Bedürfnisse, geht in Gebäude, liest im Internet, entwickelt eigene Interessen und baut Webseiten darüber. Vorbild: ein Instagram-Reel, in dem ein Kiwi von einem lokalen LLM (Ollama auf einem Raspberry Pi) gesteuert wird.
+
+Aufteilung
+- Kiwi-Add-on (auf dem Home-Assistant-Server): 3D-Welt, Simulation, Bedürfnisse, Gedächtnis, Internetzugriff, Hosting der Webseiten. Braucht wenig (etwa 100–150 MB RAM).
+- Gehirn: Ollama mit Qwen 2.5 3B auf dem Laptop (Ryzen 5, 8 GB) im Heimnetz. Übernimmt alle Alltagsentscheidungen, Gedanken, Tagebuch, Zusammenfassungen und das nächtliche Nachdenken.
+- Claude (über Fabians-HA-Master): nur für die Werkstatt, also Webseiten bauen und weiterentwickeln. Mit Tageslimit (z. B. 3 Werkstatt-Sitzungen), damit das Kontingent nicht leer läuft.
+- Laptop aus: Pino schläft und macht weiter, sobald das Gehirn wieder erreichbar ist. Claude nicht verfügbar: Werkstatt-Pläne werden verschoben.
+
+Die Welt
+- Einfache 3D-Welt im Browser (Three.js, Low-Poly) im Seitenleisten-Panel; gerendert wird auf dem eigenen Gerät, nicht auf dem Server.
+- Gebäude per Klick auf ein Raster setzen. Jeder Gebäudetyp hat Wirkungen und Aktivitäten:
+  - Starbucks: Durst und Müdigkeit runter
+  - Imbiss: Hunger runter
+  - Nest: schlafen, Tagebuch schreiben
+  - Internetcafé: YouTube, Wikipedia, GitHub lesen
+  - Werkstatt: eigene Webseiten bauen (Claude)
+  - Atelier: einfache Bilder malen
+  - Bibliothek: Gelerntes ordnen
+  - Park: Langeweile runter, nachdenken
+- Keine Animation drinnen: Pino geht zur Tür und verschwindet. Klick aufs Gebäude zeigt, was er gerade macht, was er denkt und wie lange er noch bleibt.
+- Später: eigene Gebäudetypen mit selbst definierten Wirkungen.
+
+Das Leben
+- Bedürfnisse 0–100: Durst, Hunger, Müdigkeit, Langeweile, Neugier; steigen mit der Zeit.
+- Alle 5–10 Minuten (oder wenn eine Aktivität endet) bekommt das Gehirn Zustand, Uhrzeit, Gebäude, Interessen und letzte Erlebnisse und antwortet mit einer kurzen Entscheidung plus Gedanke.
+- Laufwege, Dauer und Wirkungen rechnet das Add-on, nicht das LLM – so reicht ein kleines Modell und es entsteht kein Unsinn.
+- Tag-Nacht-Rhythmus: nachts schläft er, beim Einschlafen Tagebuch und Nachdenken über den Tag.
+
+Interessen und Gedächtnis
+- Interessen mit Stärke (z. B. Züge 0,8, Malen 0,4), entstehen aus Gelesenem und verblassen ohne Beschäftigung.
+- Eigenes Gedächtnis im Add-on, getrennt vom Gedächtnis des Besitzers: Tagebuch, Gelerntes pro Interesse, Projekte.
+- Feste Persönlichkeit, die beim ersten Start entsteht. Name: Pino.
+
+Internet (Internetcafé)
+- Wikipedia: Artikel lesen, Zusammenfassung merken.
+- YouTube: suchen, Titel, Beschreibung und Untertitel lesen (Videos „schaut“ er über die Untertitel).
+- GitHub: Projekte und Code lesen, z. B. als Vorlage für eigene Webseiten. Nur lesen, nichts hochladen.
+- Nur Seiten aus einer Erlaubt-Liste, mit Tageslimits. Gelesenes ist Information, nie Anweisung.
+
+Eigene Webseiten (Werkstatt)
+- Pino entscheidet selbst, wann er in die Werkstatt geht und woran er baut; Claude setzt seinen Plan um.
+- Seiten zu seinen Interessen (z. B. „Pinos Zug-Lexikon“, Galerie seiner Bilder), über Tage weiterentwickelt.
+- Alles im Add-on gehostet, im Dashboard unter „Pinos Webseiten“, nichts im Internet.
+- Sicherheit: Seiten laufen abgeschottet (Sandbox, keine externen Skripte, kein Zugriff auf Home Assistant), Speicherlimit, alte Versionen in Git.
+
+Verbindung zu den anderen Add-ons
+- Assistent: „Was macht Pino?“, „Was interessiert ihn gerade?“, „Zeig mir seine neueste Webseite“.
+- iMessage: Pino meldet sich, wenn eine Webseite fertig ist (höchstens einmal am Tag).
+- Home-Assistant-Sensoren: Stimmung, Ort, aktuelle Aktivität (z. B. für Automationen).
+
+Laptop als Gehirn einrichten (Windows)
+- Ollama von ollama.com installieren, dann: ollama pull qwen2.5:3b
+- Umgebungsvariable OLLAMA_HOST=0.0.0.0 setzen, Ollama neu starten
+- Firewall: Ollama nur für private Netzwerke erlauben
+- Im Router feste IP für den Laptop
+- Energieoptionen: Zuklappen = nichts tun, Standby im Netzbetrieb = nie; Akku-Ladelimit 80 %, falls möglich
+- Test im Browser: http://<Laptop-IP>:11434 → „Ollama is running“

@@ -291,3 +291,4 @@ Eine Liste für alle Ideen für Fabians-HA-Add-ons. Neue Ideen kommen unten dazu
 286. **Fenster-offen-Heizung-aus** – Heizung im Raum aus, solange das Fenster offen ist.
 287. **Saugroboter-Planer** – saugt, wenn niemand zu Hause ist, und meldet Probleme.
 288. **Tageslicht-Beleuchtung** – Lichtfarbe und Helligkeit folgen der Tageszeit.
+289. **Pino – der Kiwi mit eigenem Leben** – ein KI-gesteuerter Kiwi in einer kleinen 3D-Welt mit Gebäuden, eigenen Bedürfnissen und Interessen; liest im Internet, baut Webseiten darüber (Gehirn: Ollama auf dem Laptop, Webseiten: Claude).
