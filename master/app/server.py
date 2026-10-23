@@ -121,6 +121,7 @@ TOOLS = {
     "serien": ("Fabians-HA-Serien", 8103),
     "himmel": ("Fabians-HA-Himmel", 8104),
     "pino": ("Fabians-HA-Pino", 8105),
+    "werkbank": ("Fabians-HA-Werkbank", 8106),
 }
 # Without these an add-on cannot work at all (everything else is optional: Claude also works with an
 # imported claude.ai login, the exchange keys are only needed for real money).

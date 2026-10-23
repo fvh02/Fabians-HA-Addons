@@ -1,0 +1,7 @@
+configuration:
+  material:
+    name: Material
+    description: Filament for weight and printing (can be changed when printing).
+  referenz:
+    name: Reference on photos
+    description: What lies in the photos for scale by default (e.g. an A4 sheet).

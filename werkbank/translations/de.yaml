@@ -1,0 +1,7 @@
+configuration:
+  material:
+    name: Material
+    description: Filament für Gewicht und Druck (beim Drucken änderbar).
+  referenz:
+    name: Referenz auf Fotos
+    description: Was standardmäßig als Größenvergleich auf den Fotos liegt (z. B. ein DIN-A4-Blatt).

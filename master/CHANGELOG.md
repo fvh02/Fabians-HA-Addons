@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.8
+
+- Kennt das neue Add-on **Fabians-HA-Werkbank** (Claude für Konstruktionen, iMessages mit Vorschau,
+  Brücke für den Assistenten).
+
 ## 1.2.7
 
 - Kennt das neue Add-on **Fabians-HA-Pino** (Claude für Gebäude und Webseiten, iMessages, Brücke für

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.0
+
+- **Werkbank:** konstruiert Teile in FreeCAD nach deiner Beschreibung, vermisst Fotos mit A4-Blatt,
+  schickt die Vorschau und druckt nach deinem „Ja“ – Befehl `werkbank` (mit Fabians-HA-Werkbank).
+
 ## 0.18.0
 
 - **Pino:** fragt, was Pino der Kiwi gerade macht, was ihn interessiert und was er erlebt hat – Befehl `pino`

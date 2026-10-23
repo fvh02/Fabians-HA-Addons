@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""Fabians-HA-Werkbank: design parts in FreeCAD and print them, through Fabians-HA-Master. Prints JSON.
+
+  werkbank anleitung                         how to write a Werkbank script (read this before the first design)
+  werkbank liste                             all projects
+  werkbank neu NAME [--beschreibung TEXT]    new project
+  werkbank info ID                           project: description, measurements, versions, chat
+  werkbank skript ID [--version N]           the script of a version (to change it)
+  werkbank bauen ID --skript DATEI|- [--notiz TEXT]
+                                             run a script in FreeCAD → new version; saves the preview picture
+                                             ("-" = script on stdin, e.g. werkbank bauen ID --skript - <<'EOF' … EOF)
+  werkbank parameter ID name=wert ...        new version with other parameter values (no new script)
+  werkbank foto DATEI [--referenz a4|a5|a3|a6|letter|karte] [--groesse BxH] [--projekt ID]
+                                             measure a photo with a reference; saves the straightened picture
+  werkbank mass ID NAME MM                   remember a measurement in the project
+  werkbank zeigen ID [--version N] [--text TEXT]   send the preview to the person by iMessage
+  werkbank drucken ID [--version N] [--material PLA|PETG|ABS|ASA|TPU] [--stuetzen]
+                                             slice it; picture, time and filament go to the person by iMessage
+  werkbank offen                             the print waiting for confirmation
+  werkbank bestaetigen                       start that print (ONLY after the person said yes)
+  werkbank abbrechen                         drop it
+"""
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+BASE = os.environ.get("WERKBANK_URL", "").rstrip("/")
+OUT = os.path.join(os.getcwd(), "werkbank-bilder")
+
+
+def out(data) -> None:
+    print(json.dumps(data, ensure_ascii=False, indent=1))
+
+
+def fail(message: str) -> None:
+    out({"error": message})
+    sys.exit(1)
+
+
+def call(method: str, path: str, body=None, raw: bytes | None = None, ctype: str = "application/json",
+         timeout: int = 1300, binary: bool = False):
+    if not BASE:
+        fail("Fabians-HA-Werkbank ist nicht installiert.")
+    data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
+    req = urllib.request.Request(BASE + path, data=data, method=method, headers={"Content-Type": ctype})
+    try:
+        # The add-ons are inside Home Assistant: never through a proxy.
+        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout) as resp:
+            content = resp.read()
+            return content if binary else json.loads(content or b"null")
+    except urllib.error.HTTPError as err:
+        try:
+            fail(json.loads(err.read()).get("error") or f"Fehler {err.code}")
+        except ValueError:
+            fail(f"Fehler {err.code}")
+    except (urllib.error.URLError, OSError) as err:
+        fail(f"Werkbank nicht erreichbar: {getattr(err, 'reason', err)}")
+
+
+def flag(args: list[str], name: str, has_value: bool = True):
+    if name not in args:
+        return None if has_value else False
+    i = args.index(name)
+    if not has_value:
+        del args[i]
+        return True
+    value = args[i + 1] if i + 1 < len(args) else ""
+    del args[i:i + 2]
+    return value
+
+
+def save(content: bytes, name: str) -> str:
+    os.makedirs(OUT, exist_ok=True)
+    path = os.path.join(OUT, name)
+    with open(path, "wb") as fh:
+        fh.write(content)
+    return path
+
+
+def number(text: str):
+    try:
+        value = float(text.replace(",", "."))
+        return int(value) if value.is_integer() and "." not in text and "," not in text else value
+    except ValueError:
+        return {"true": True, "ja": True, "false": False, "nein": False}.get(text.lower(), text)
+
+
+def main(argv: list[str]) -> None:
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, args = argv[0], argv[1:]
+    if cmd == "anleitung":
+        print(call("GET", "/api/anleitung")["text"])
+    elif cmd == "liste":
+        out(call("GET", "/api/projekte"))
+    elif cmd == "neu":
+        desc = flag(args, "--beschreibung") or ""
+        if not args:
+            fail("werkbank neu NAME [--beschreibung TEXT]")
+        p = call("POST", "/api/projekte", {"name": " ".join(args), "beschreibung": desc, "von": "assistent"})
+        out({"id": p["id"], "name": p["name"]})
+    elif cmd == "info" and args:
+        p = call("GET", f"/api/projekte/{args[0]}")
+        out({"id": p["id"], "name": p["name"], "beschreibung": p["beschreibung"], "material": p.get("material"),
+             "masse": p["masse"], "arbeitet": p.get("arbeitet"),
+             "versionen": [{k: v.get(k) for k in ("n", "von", "notiz", "gesamt", "warnungen", "werte")} for v in p["versionen"]],
+             "chat": [f"{c['rolle']}: {c['text'][:300]}" for c in p["chat"][-8:]], "druck_wartet": p.get("druck")})
+    elif cmd == "skript" and args:
+        version = flag(args, "--version")
+        p = call("GET", f"/api/projekte/{args[0]}")
+        vs = [v for v in p["versionen"] if v.get("ok")]
+        if not vs:
+            fail("Noch keine Version")
+        n = int(version) if version else vs[-1]["n"]
+        print(call("GET", f"/api/projekte/{args[0]}/v/{n}/skript.py", binary=True).decode())
+    elif cmd == "bauen" and args:
+        path, note = flag(args, "--skript"), flag(args, "--notiz") or ""
+        if path == "-":
+            source = sys.stdin.read()
+        elif path and os.path.exists(path):
+            source = open(path, encoding="utf-8").read()
+        else:
+            fail("werkbank bauen ID --skript DATEI  (oder --skript - mit dem Skript auf der Standardeingabe)")
+        v = call("POST", f"/api/projekte/{args[0]}/skript", {"skript": source, "notiz": note, "von": "assistent"})
+        img = call("GET", f"/api/projekte/{args[0]}/v/{v['n']}/vorschau.png", binary=True)
+        out({"version": v["n"], "zusammenfassung": v["zusammenfassung"], "teile": v["teile"], "warnungen": v["warnungen"],
+             "vorschau": save(img, f"{args[0]}-v{v['n']}.png"),
+             "hinweis": "Sieh dir die Vorschau an (Read), bevor du sie der Person zeigst (werkbank zeigen)."})
+    elif cmd == "parameter" and args:
+        pid, values = args[0], {}
+        for pair in args[1:]:
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                values[k.strip()] = number(v.strip())
+        v = call("POST", f"/api/projekte/{pid}/parameter", {"werte": values})
+        img = call("GET", f"/api/projekte/{pid}/v/{v['n']}/vorschau.png", binary=True)
+        out({"version": v["n"], "zusammenfassung": v["zusammenfassung"], "vorschau": save(img, f"{pid}-v{v['n']}.png")})
+    elif cmd == "foto" and args:
+        ref, size, pid = flag(args, "--referenz") or "a4", flag(args, "--groesse"), flag(args, "--projekt")
+        path = args[0]
+        if not os.path.exists(path):
+            fail(f"Datei {path} nicht gefunden")
+        query = {"referenz": ref}
+        if size:
+            parts = size.lower().replace("×", "x").split("x")
+            if len(parts) != 2:
+                fail("--groesse BREITExHOEHE in mm")
+            query.update(breite=parts[0].replace(",", "."), hoehe=parts[1].replace(",", "."))
+        if pid:
+            query["projekt"] = pid
+        with open(path, "rb") as fh:
+            r = call("POST", "/api/fotos?" + urllib.parse.urlencode(query), raw=fh.read(), ctype="application/octet-stream")
+        img = call("GET", f"/api/fotos/{r['id']}/entzerrt.jpg", binary=True)
+        obj = {k: v for k, v in (r.get("objekt") or {}).items() if k != "box"} or None
+        out({"foto": r["id"], "objekt": obj, "px_pro_mm": r["px_pro_mm"], "referenz": r["referenz"],
+             "entzerrt": save(img, f"foto-{r['id']}.jpg"), "hinweis": r["hinweis"] +
+             " Das entzerrte Bild hat ein 10-mm-Raster (gelb alle 50 mm): weitere Maße (Löcher, Anschlüsse) kannst du daran ablesen."})
+    elif cmd == "mass" and len(args) >= 3:
+        out(call("POST", f"/api/projekte/{args[0]}/masse", {"name": " ".join(args[1:-1]), "wert_mm": number(args[-1]), "quelle": "Assistent"}))
+    elif cmd == "zeigen" and args:
+        version, text = flag(args, "--version"), flag(args, "--text")
+        out(call("POST", f"/api/projekte/{args[0]}/zeigen", {"version": int(version) if version else None, "text": text or ""}))
+    elif cmd == "drucken" and args:
+        version, material, supports = flag(args, "--version"), flag(args, "--material"), flag(args, "--stuetzen", False)
+        out(call("POST", f"/api/projekte/{args[0]}/drucken", {"version": int(version) if version else None,
+                                                               "material": material, "stuetzen": supports}))
+    elif cmd == "offen":
+        out(call("GET", "/api/druck"))
+    elif cmd == "bestaetigen":
+        out(call("POST", "/api/druck/bestaetigen", {}))
+    elif cmd == "abbrechen":
+        out(call("POST", "/api/druck/abbrechen", {}))
+    else:
+        fail("Unbekannter Aufruf. Siehe: werkbank --help")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

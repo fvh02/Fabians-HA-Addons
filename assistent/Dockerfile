@@ -24,7 +24,7 @@ RUN bundled="$(/opt/inkbox-claude/bin/python -c 'import claude_agent_sdk, os; pr
 ENV PATH="/opt/inkbox-claude/bin:${PATH}"
 
 COPY run.sh /run.sh
-COPY apple-calendar transcribe downloader ha-addons ebay druck krypto pakete untis erinnern gedaechtnis karte serien himmel pino claude-bridge /usr/local/bin/
-RUN chmod +x /run.sh /usr/local/bin/apple-calendar /usr/local/bin/transcribe /usr/local/bin/downloader /usr/local/bin/ha-addons /usr/local/bin/ebay /usr/local/bin/druck /usr/local/bin/krypto /usr/local/bin/pakete /usr/local/bin/untis /usr/local/bin/erinnern /usr/local/bin/gedaechtnis /usr/local/bin/karte /usr/local/bin/serien /usr/local/bin/himmel /usr/local/bin/pino /usr/local/bin/claude-bridge
+COPY apple-calendar transcribe downloader ha-addons ebay druck krypto pakete untis erinnern gedaechtnis karte serien himmel pino werkbank claude-bridge /usr/local/bin/
+RUN chmod +x /run.sh /usr/local/bin/apple-calendar /usr/local/bin/transcribe /usr/local/bin/downloader /usr/local/bin/ha-addons /usr/local/bin/ebay /usr/local/bin/druck /usr/local/bin/krypto /usr/local/bin/pakete /usr/local/bin/untis /usr/local/bin/erinnern /usr/local/bin/gedaechtnis /usr/local/bin/karte /usr/local/bin/serien /usr/local/bin/himmel /usr/local/bin/pino /usr/local/bin/werkbank /usr/local/bin/claude-bridge
 
 CMD ["/run.sh"]

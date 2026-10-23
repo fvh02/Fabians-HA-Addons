@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Werkbank</title>
+<link rel="stylesheet" href="static/style.css">
+<script type="importmap">{"imports": {"three": "./static/three-module.js"}}</script>
+</head>
+<body>
+<header>
+  <b class="logo" id="home">🛠️ Werkbank</b>
+  <span id="projName" class="muted"></span>
+  <span class="grow"></span>
+  <button id="newBtn">＋ Neues Teil</button>
+</header>
+
+<div id="printBanner" class="banner" hidden></div>
+
+<!-- start: list of projects -->
+<main id="start">
+  <section class="card newcard">
+    <h2>Was brauchst du?</h2>
+    <input id="newName" placeholder="Name, z. B. Kopfhörerhalter">
+    <textarea id="newDesc" placeholder="Beschreib das Teil: wofür, Maße, Besonderheiten. z. B. Halter für meine Kopfhörer unter der Schreibtischplatte (Platte 25 mm dick), zum Anschrauben, Bügel 35 mm breit."></textarea>
+    <div class="row"><button id="createBtn">Claude konstruieren lassen</button><span class="muted">Fotos mit A4-Blatt kannst du danach unter „Maße“ hinzufügen.</span></div>
+  </section>
+  <div id="projects" class="grid"></div>
+</main>
+
+<!-- one project -->
+<main id="project" hidden>
+  <section class="viewer card">
+    <div class="toolbar">
+      <select id="versionSel"></select>
+      <span id="stats" class="muted"></span>
+      <span class="grow"></span>
+      <button class="ghost" id="sendBtn" title="Vorschau per iMessage">📱</button>
+      <a class="btn ghost" id="stepLink" title="STEP herunterladen">STEP</a>
+      <a class="btn ghost" id="stlLink" title="Druckdatei herunterladen">STL</a>
+      <button id="printBtn">🖨️ Drucken</button>
+    </div>
+    <div id="view3d"></div>
+    <div id="busy" class="busy" hidden></div>
+  </section>
+  <section class="side card">
+    <nav class="tabs">
+      <button data-tab="chat" class="on">💬 Claude</button>
+      <button data-tab="params">🎚️ Parameter</button>
+      <button data-tab="masse">📏 Maße</button>
+      <button data-tab="details">📋 Details</button>
+    </nav>
+    <div data-pane="chat" class="pane chatpane">
+      <div id="chat"></div>
+      <div class="chatin">
+        <textarea id="chatText" placeholder="z. B. Mach die Wand 3 mm dick und füg zwei Schraublöcher hinten hinzu"></textarea>
+        <button id="chatBtn">Senden</button>
+      </div>
+    </div>
+    <div data-pane="params" class="pane" hidden>
+      <p class="muted">Ändern ohne Claude – FreeCAD rechnet sofort neu.</p>
+      <div id="params"></div>
+      <button id="paramBtn">Neu berechnen</button>
+    </div>
+    <div data-pane="masse" class="pane" hidden>
+      <h3>Maße für Claude</h3>
+      <div id="masse"></div>
+      <div class="row"><input id="mName" placeholder="z. B. Breite Mainboard"><input id="mVal" type="number" step="0.1" placeholder="mm" style="width:90px"><button id="mAdd" class="small">＋</button></div>
+      <h3>Foto vermessen</h3>
+      <p class="muted">Gegenstand auf (oder neben) ein Blatt legen, senkrecht von oben fotografieren. Das Blatt muss ganz zu sehen sein.</p>
+      <div class="row">
+        <select id="refSel">
+          <option value="a4">DIN A4</option><option value="a5">DIN A5</option><option value="a3">DIN A3</option>
+          <option value="a6">DIN A6</option><option value="letter">US Letter</option><option value="karte">Scheckkarte</option>
+          <option value="eigen">eigene Maße …</option>
+        </select>
+        <label class="btn">📷 Foto wählen<input id="photoIn" type="file" accept="image/*" hidden></label>
+      </div>
+      <div id="photoBox"></div>
+    </div>
+    <div data-pane="details" class="pane" hidden>
+      <div id="details"></div>
+      <h3>Versionen</h3><div id="versions"></div>
+      <h3>Skript</h3><pre id="script"></pre>
+      <button class="danger small" id="delBtn">Projekt löschen</button>
+    </div>
+  </section>
+</main>
+<div id="toast" hidden></div>
+<script type="module" src="static/app.js"></script>
+</body>
+</html>
