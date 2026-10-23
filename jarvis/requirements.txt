@@ -1,3 +1,5 @@
 aiohttp==3.10.10
 faster-whisper==1.2.1
 piper-tts==1.8.0
+# faster-whisper 1.2.1 passes metadata_errors to av.open, which newer av (19) rejects
+av==15.1.0
