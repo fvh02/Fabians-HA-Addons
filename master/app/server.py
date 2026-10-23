@@ -4,6 +4,7 @@
 - /api/keys     an add-on fetches its keys; it is recognised by its address, and gets only its own.
 - /api/notify   iMessage to the owner (Inkbox) for every add-on – none of them needs the Inkbox key.
 - /api/claude   Claude questions (e.g. Krypto-Trader) through the assistant's login.
+- /api/agent    Jarvis: Claude with the assistant's tools (a spoken conversation turn).
 - /api/tool/X/  the assistant reaches the other add-ons through here, without addresses or ports.
 
 Keys are never shown again on the web page and never leave the master except to the add-on that uses them.
@@ -122,6 +123,7 @@ TOOLS = {
     "himmel": ("Fabians-HA-Himmel", 8104),
     "pino": ("Fabians-HA-Pino", 8105),
     "werkbank": ("Fabians-HA-Werkbank", 8106),
+    "jarvis": ("Fabians-HA-Jarvis", 8107),
 }
 # Without these an add-on cannot work at all (everything else is optional: Claude also works with an
 # imported claude.ai login, the exchange keys are only needed for real money).
@@ -503,6 +505,30 @@ async def api_claude(request: web.Request) -> web.Response:
             return web.Response(body=await resp.read(), status=resp.status, content_type="application/json")
     except (aiohttp.ClientError, asyncio.TimeoutError):
         return fail("Fabians-HA-Assistent nicht erreichbar – läuft er?", 503)
+
+
+@routes.post("/api/agent")
+async def api_agent(request: web.Request) -> web.Response:
+    """Fabians-HA-Jarvis talks to the assistant: Claude with the assistant's own tools (voice conversations)."""
+    tool = await require_tool(request)
+    if tool != "jarvis":
+        return fail("Nur Fabians-HA-Jarvis nutzt den Assistenten so", 403)
+    sv: Supervisor = request.app["sv"]
+    if "assistent" not in sv.addons:
+        await sv.refresh(force=True)
+    if "assistent" not in sv.addons:
+        return fail("Jarvis braucht Fabians-HA-Assistent – bitte installieren und starten", 503)
+    body = await request.read()
+    if len(body) > 100_000:
+        return fail("Anfrage zu groß")
+    url = f"http://{sv.host('assistent')}:{TOOLS['assistent'][1]}/agent"
+    try:
+        async with request.app["http"].post(url, data=body, headers={"Content-Type": "application/json",
+                                                                     "X-Bridge-Key": request.app["store"].get("bridge_key")},
+                                            timeout=aiohttp.ClientTimeout(total=1000)) as resp:
+            return web.Response(body=await resp.read(), status=resp.status, content_type="application/json")
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        return fail("Fabians-HA-Assistent nicht erreichbar – läuft er (ab 0.20.0)?", 503)
 
 
 @routes.route("*", "/api/tool/{tool}/{path:.*}")

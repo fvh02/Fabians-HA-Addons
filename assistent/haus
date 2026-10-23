@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+"""Smart home: read and switch the devices in Home Assistant. Prints JSON.
+
+  haus raeume                              rooms (areas) with their devices
+  haus suche WORT                          devices whose name or id contains WORT, with their state
+  haus status ENTITY|NAME                  state and attributes of one device
+  haus schalten ENTITY|NAME an|aus|um      switch (lights, switches, fans, media players, …)
+  haus licht ENTITY|NAME [--helligkeit 0-100] [--farbe rot|#ff8800] [--kelvin 2700] [--aus]
+  haus temperatur ENTITY|NAME GRAD         climate target temperature
+  haus rollo ENTITY|NAME auf|zu|stopp|0-100
+  haus szene NAME                          activate a scene or run a script
+  haus dienst DOMAIN.SERVICE [ENTITY] [--daten JSON] [--bestaetigt]   any other service call
+
+Locks, alarm systems, garage doors and gates only with --bestaetigt (ask the person first).
+"""
+
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.request
+
+SUPERVISOR = os.environ.get("SUPERVISOR_URL", "http://supervisor").rstrip("/")
+SENSITIVE_DOMAINS = {"lock", "alarm_control_panel"}
+SENSITIVE_CLASSES = {"garage", "gate", "door"}
+COLORS = {"rot": [255, 0, 0], "gruen": [0, 255, 0], "grün": [0, 255, 0], "blau": [0, 0, 255], "gelb": [255, 220, 0],
+          "orange": [255, 120, 0], "lila": [150, 0, 255], "violett": [150, 0, 255], "pink": [255, 60, 160],
+          "rosa": [255, 120, 180], "weiss": [255, 255, 255], "weiß": [255, 255, 255], "tuerkis": [0, 220, 200],
+          "türkis": [0, 220, 200], "cyan": [0, 255, 255], "warmweiss": None, "warmweiß": None, "kaltweiss": None, "kaltweiß": None}
+
+
+def out(data) -> None:
+    print(json.dumps(data, ensure_ascii=False, indent=1))
+
+
+def fail(message: str) -> None:
+    out({"error": message})
+    sys.exit(1)
+
+
+def api(method: str, path: str, body=None, raw: bool = False):
+    token = os.environ.get("SUPERVISOR_TOKEN", "")
+    if not token:
+        fail("Kein Zugriff auf Home Assistant (SUPERVISOR_TOKEN fehlt).")
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(f"{SUPERVISOR}/core/api{path}", data=data, method=method,
+                                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=30) as resp:
+            content = resp.read()
+            return content.decode() if raw else json.loads(content or b"null")
+    except urllib.error.HTTPError as err:
+        fail(f"Home Assistant meldet {err.code}: {err.read().decode(errors='replace')[:200]}")
+    except (urllib.error.URLError, OSError) as err:
+        fail(f"Home Assistant nicht erreichbar: {getattr(err, 'reason', err)}")
+
+
+def short(s: dict) -> dict:
+    a = s.get("attributes", {})
+    item = {"id": s["entity_id"], "name": a.get("friendly_name", s["entity_id"]), "zustand": s["state"]}
+    if a.get("unit_of_measurement"):
+        item["einheit"] = a["unit_of_measurement"]
+    if "brightness" in a and a["brightness"] is not None:
+        item["helligkeit"] = round(a["brightness"] / 2.55)
+    if a.get("current_temperature") is not None:
+        item["ist_temperatur"] = a["current_temperature"]
+    if a.get("temperature") is not None:
+        item["soll_temperatur"] = a["temperature"]
+    if a.get("current_position") is not None:
+        item["position"] = a["current_position"]
+    return item
+
+
+def norm(text: str) -> str:
+    return re.sub(r"\s+", " ", text.lower().replace("_", " ")).strip()
+
+
+def resolve(ref: str) -> dict:
+    """An entity by id or by (part of) its name; ambiguous names are refused with the candidates."""
+    states = api("GET", "/states")
+    if "." in ref:
+        for s in states:
+            if s["entity_id"] == ref:
+                return s
+    want = norm(ref)
+    exact = [s for s in states if norm(s.get("attributes", {}).get("friendly_name", "")) == want]
+    if len(exact) == 1:
+        return exact[0]
+    hits = [s for s in states if want in norm(s.get("attributes", {}).get("friendly_name", "")) or want in norm(s["entity_id"])]
+    controllable = [s for s in hits if s["entity_id"].split(".")[0] in ("light", "switch", "fan", "climate", "cover", "media_player", "lock", "scene", "script", "input_boolean", "vacuum")]
+    hits = controllable or hits
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        fail(f"Kein Gerät gefunden für „{ref}“ – mit `haus suche` nachsehen")
+    fail(f"Mehrdeutig: „{ref}“ passt zu " + ", ".join(f"{h['entity_id']} ({h.get('attributes', {}).get('friendly_name', '')})" for h in hits[:10]))
+
+
+def sensitive(state: dict) -> bool:
+    domain = state["entity_id"].split(".")[0]
+    return domain in SENSITIVE_DOMAINS or (domain == "cover" and state.get("attributes", {}).get("device_class") in SENSITIVE_CLASSES)
+
+
+def call(domain: str, service: str, data: dict) -> dict:
+    api("POST", f"/services/{domain}/{service}", data)
+    return {"ok": True, "dienst": f"{domain}.{service}", **({"geraet": data["entity_id"]} if data.get("entity_id") else {})}
+
+
+def flag(args: list[str], name: str, has_value: bool = True):
+    if name not in args:
+        return None if has_value else False
+    i = args.index(name)
+    if not has_value:
+        del args[i]
+        return True
+    value = args[i + 1] if i + 1 < len(args) else ""
+    del args[i:i + 2]
+    return value
+
+
+def main(argv: list[str]) -> None:
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, args = argv[0], argv[1:]
+    confirmed = flag(args, "--bestaetigt", False)
+    if cmd == "raeume":
+        tpl = ("{% set ns = namespace(r=[]) %}{% for a in areas() %}{% set ns.r = ns.r + [{'raum': area_name(a), "
+               "'geraete': area_entities(a)}] %}{% endfor %}{{ ns.r | tojson }}")
+        rooms = json.loads(api("POST", "/template", {"template": tpl}, raw=True) or "[]")
+        states = {s["entity_id"]: s for s in api("GET", "/states")}
+        out([{"raum": r["raum"], "geraete": [short(states[e]) for e in r["geraete"] if e in states
+                                             and e.split(".")[0] in ("light", "switch", "climate", "cover", "fan", "media_player",
+                                                                     "sensor", "binary_sensor", "lock", "vacuum")][:40]}
+             for r in rooms])
+    elif cmd == "suche" and args:
+        want = norm(" ".join(args))
+        hits = [short(s) for s in api("GET", "/states")
+                if want in norm(s.get("attributes", {}).get("friendly_name", "")) or want in norm(s["entity_id"])]
+        out(hits[:40] or {"hinweis": f"Nichts gefunden für „{want}“"})
+    elif cmd == "status" and args:
+        s = resolve(" ".join(args))
+        out({**short(s), "attribute": {k: v for k, v in s.get("attributes", {}).items() if not isinstance(v, (list, dict)) or len(str(v)) < 300},
+             "geaendert": s.get("last_changed")})
+    elif cmd == "schalten" and len(args) >= 2:
+        s = resolve(" ".join(args[:-1]))
+        what = {"an": "turn_on", "ein": "turn_on", "aus": "turn_off", "um": "toggle", "umschalten": "toggle"}.get(args[-1].lower())
+        if not what:
+            fail("an, aus oder um")
+        if sensitive(s) and not confirmed:
+            fail("Sicherheitsrelevant (Schloss/Alarm/Tor): erst die Person fragen, dann mit --bestaetigt")
+        domain = s["entity_id"].split(".")[0]
+        out(call(domain if domain in ("light", "switch", "fan", "media_player", "input_boolean", "climate", "vacuum", "humidifier") else "homeassistant",
+                 what, {"entity_id": s["entity_id"]}))
+    elif cmd == "licht" and args:
+        bright, color, kelvin, off = flag(args, "--helligkeit"), flag(args, "--farbe"), flag(args, "--kelvin"), flag(args, "--aus", False)
+        s = resolve(" ".join(args))
+        if off:
+            out(call("light", "turn_off", {"entity_id": s["entity_id"]}))
+            return
+        data: dict = {"entity_id": s["entity_id"]}
+        if bright is not None:
+            data["brightness_pct"] = max(0, min(100, int(float(bright))))
+        if color:
+            c = color.lower()
+            if c.startswith("#") and len(c) == 7:
+                data["rgb_color"] = [int(c[i:i + 2], 16) for i in (1, 3, 5)]
+            elif c in ("warmweiss", "warmweiß"):
+                data["color_temp_kelvin"] = 2700
+            elif c in ("kaltweiss", "kaltweiß"):
+                data["color_temp_kelvin"] = 6000
+            elif COLORS.get(c):
+                data["rgb_color"] = COLORS[c]
+            else:
+                fail("Farbe: Name (rot, blau, warmweiß …) oder #rrggbb")
+        if kelvin:
+            data["color_temp_kelvin"] = int(kelvin)
+        out(call("light", "turn_on", data))
+    elif cmd == "temperatur" and len(args) >= 2:
+        s = resolve(" ".join(args[:-1]))
+        out(call("climate", "set_temperature", {"entity_id": s["entity_id"], "temperature": float(args[-1].replace(",", "."))}))
+    elif cmd == "rollo" and len(args) >= 2:
+        s = resolve(" ".join(args[:-1]))
+        if sensitive(s) and not confirmed:
+            fail("Garagentor/Tor: erst die Person fragen, dann mit --bestaetigt")
+        what = args[-1].lower()
+        if what.isdigit():
+            out(call("cover", "set_cover_position", {"entity_id": s["entity_id"], "position": max(0, min(100, int(what)))}))
+        else:
+            service = {"auf": "open_cover", "zu": "close_cover", "stopp": "stop_cover"}.get(what)
+            if not service:
+                fail("auf, zu, stopp oder 0-100")
+            out(call("cover", service, {"entity_id": s["entity_id"]}))
+    elif cmd == "szene" and args:
+        states = api("GET", "/states")
+        want = norm(" ".join(args))
+        hits = [s for s in states if s["entity_id"].split(".")[0] in ("scene", "script")
+                and (want in norm(s.get("attributes", {}).get("friendly_name", "")) or want in norm(s["entity_id"]))]
+        if len(hits) != 1:
+            fail("Keine eindeutige Szene: " + ", ".join(h["entity_id"] for h in hits[:10]) if hits else f"Keine Szene „{want}“")
+        domain = hits[0]["entity_id"].split(".")[0]
+        out(call(domain, "turn_on", {"entity_id": hits[0]["entity_id"]}))
+    elif cmd == "dienst" and args:
+        data_text = flag(args, "--daten")
+        if "." not in args[0]:
+            fail("DOMAIN.SERVICE, z. B. media_player.volume_set")
+        domain, service = args[0].split(".", 1)
+        data = json.loads(data_text) if data_text else {}
+        if len(args) > 1:
+            s = resolve(" ".join(args[1:]))
+            if sensitive(s) and not confirmed:
+                fail("Sicherheitsrelevant: erst die Person fragen, dann mit --bestaetigt")
+            data["entity_id"] = s["entity_id"]
+        if domain in SENSITIVE_DOMAINS and not confirmed:
+            fail("Sicherheitsrelevant: erst die Person fragen, dann mit --bestaetigt")
+        out(call(domain, service, data))
+    else:
+        fail("Unbekannter Aufruf. Siehe: haus --help")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -1,0 +1,42 @@
+name: Build Jarvis app
+
+# Builds the Android app for the projector (a thin full-screen shell around Fabians-HA-Jarvis) and publishes it
+# as release "jarvis-app", so the APK always has the same download address.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: gradle -p android/jarvis-app assembleRelease --no-daemon --stacktrace
+
+      - name: Publish as release "jarvis-app"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/jarvis-app/app/build/outputs/apk/release/app-release.apk jarvis.apk
+          if ! gh release view jarvis-app >/dev/null 2>&1; then
+            gh release create jarvis-app --title "Jarvis-App für den Beamer" --notes "Die Android-App für Fabians-HA-Jarvis. Auf dem Beamer installieren (unbekannte Quellen erlauben) und mit dem Kopplungscode aus Home Assistant verbinden." --latest=false
+          fi
+          gh release upload jarvis-app jarvis.apk --clobber

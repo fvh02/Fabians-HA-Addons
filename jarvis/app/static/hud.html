@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J.A.R.V.I.S.</title>
+<link rel="stylesheet" href="static/hud.css">
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="frame">
+  <header>
+    <div><div class="brand">J.A.R.V.I.S.</div><div class="sub" id="status">Systeme werden gestartet …</div></div>
+    <div class="right"><div class="clock" id="clock">--:--</div><div class="sub" id="date"></div></div>
+  </header>
+  <aside class="history" id="history"></aside>
+  <aside class="actions"><div class="label">Aktionen</div><div id="actions"></div></aside>
+  <section class="talk">
+    <div class="question" id="question"></div>
+    <div class="answer" id="answer"></div>
+  </section>
+  <footer id="hint">OK drücken zum Sprechen · oder über die Jarvis-Fernbedienung am Handy</footer>
+</div>
+<div id="note" hidden></div>
+<div id="unlock" hidden>Einmal klicken, damit Jarvis sprechen darf</div>
+<script type="module" src="static/hud.js"></script>
+</body>
+</html>

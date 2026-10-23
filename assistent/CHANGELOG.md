@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.0
+
+- **Smarthome:** Der Assistent liest und schaltet deine Geräte in Home Assistant – Licht (Helligkeit, Farbe),
+  Schalter, Heizung, Rollos, Szenen und jeder andere Dienst (Befehl `haus`). Schlösser, Alarmanlagen und Tore
+  nur nach deiner Bestätigung.
+- **Jarvis:** Fabians-HA-Jarvis spricht über den Master mit dem Assistenten – mit all seinen Werkzeugen.
+
 ## 0.19.1
 
 - Werkbank: Teile werden jetzt mit build123d statt FreeCAD konstruiert (Werkbank ab 1.1.0).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.9
+
+- Kennt das neue Add-on **Fabians-HA-Jarvis**: Jarvis spricht über den Master mit dem Assistenten
+  (Claude mit allen Werkzeugen des Assistenten).
+
 ## 1.2.8
 
 - Kennt das neue Add-on **Fabians-HA-Werkbank** (Claude für Konstruktionen, iMessages mit Vorschau,

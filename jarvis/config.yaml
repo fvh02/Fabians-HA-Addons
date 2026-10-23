@@ -1,0 +1,31 @@
+name: Fabians-HA-Jarvis
+version: "1.0.0"
+slug: jarvis
+description: J.A.R.V.I.S. auf dem Beamer – Sprachassistent mit allen Werkzeugen deines Assistenten und deinem Smarthome
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-jarvis
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+hassio_api: true
+ingress: true
+ingress_port: 8107
+panel_icon: mdi:robot-happy-outline
+panel_title: Jarvis
+ports:
+  8107/tcp: 8107
+ports_description:
+  8107/tcp: Jarvis für den Beamer (nur mit Kopplungscode)
+options:
+  anrede: Sir
+  stimme: de_DE-thorsten-medium
+  sprechtempo: 1.0
+  spracherkennung: base
+schema:
+  anrede: str
+  stimme: list(de_DE-thorsten-medium|de_DE-thorsten-high|de_DE-karlsson-low|de_DE-kerstin-low|de_DE-ramona-low|de_DE-eva_k-x_low)
+  sprechtempo: float(0.6,1.6)
+  spracherkennung: list(tiny|base|small)

@@ -1,0 +1,15 @@
+configuration:
+  anrede:
+    name: Anrede
+    description: So spricht Jarvis dich an (z. B. Sir, Fabian, Boss).
+  stimme:
+    name: Stimme
+    description: Deutsche Piper-Stimme. thorsten-medium ist im Add-on enthalten, andere werden einmal heruntergeladen.
+  sprechtempo:
+    name: Sprechtempo
+    description: 1.0 = normal, kleiner = langsamer, größer = schneller.
+  spracherkennung:
+    name: Spracherkennung
+    description: Größe des Whisper-Modells. tiny = schnell, base = Standard, small = genauer, aber auf schwachen Rechnern langsam.
+network:
+  8107/tcp: Port für den Beamer im Heimnetz (geschützt durch den Kopplungscode).

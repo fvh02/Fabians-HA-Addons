@@ -23,6 +23,7 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | [Fabians-HA-Karte](karte/DOCS.md) | Deine Restaurant-Karte: der Assistent trägt Besuche mit Speisekarte, Bestellung und Fotos ein und gleicht sie online ab |
 | [Fabians-HA-Serien](serien/DOCS.md) | Serien-Kalender: neue Folgen und Staffeln deiner Serien, mit Meldung am Erscheinungstag |
 | [Fabians-HA-Werkbank](werkbank/DOCS.md) | Claude konstruiert Teile (build123d) – Maße aus Fotos, Vorschau aufs Handy, Druck nach deinem „Ja“ |
+| [Fabians-HA-Jarvis](jarvis/DOCS.md) | Jarvis aus Iron Man auf dem Beamer: Sprachsteuerung für Claude, Smart Home und alle Add-ons (mit Android-App) |
 | [Fabians-HA-Pino](pino/DOCS.md) | Pino, ein Kiwi mit eigenem Leben in einer Sandbox-Welt – Gebäude beschreibst du, Claude baut sie |
 | [Fabians-HA-Himmel](himmel/DOCS.md) | Himmels-Kalender: ISS-Überflüge, Mondphasen, Sternschnuppen, Finsternisse und klare Nächte |
 | [Fabians-HA-Browser](browser/DOCS.md) | Google Chrome in Home Assistant, am PC und Handy bedienbar (nur amd64) |

@@ -6,6 +6,9 @@ out), so they send their prompt here instead. Only plain questions are possible:
 builds the command and allows no tools except web search, in an empty working directory.
 
 POST /ask  {"prompt": str, "schema": object?, "web": bool?, "fetch_domains": [str]?, "max_turns": int?, "model": str?}
+POST /agent {"prompt": str, "session": str?, "system": str?}  – for Fabians-HA-Jarvis: Claude with the assistant's own
+           tools (the auto-allowed commands, CLAUDE.md), in the assistant's project folder; "session" continues a
+           conversation. Answers {"text", "session", "tools": [what Claude ran], "error"?}.
 "web" allows web search and fetching any page; "fetch_domains" only allows fetching pages of those domains.
 Header X-Bridge-Key must match the key shared with Fabians-HA-Master (only the master calls the bridge).
 Answers with Claude Code's JSON result.
@@ -26,6 +29,10 @@ TIMEOUT = 900
 MAX_PROMPT = 200_000
 DOMAIN = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}\.)+[a-z]{2,24}$")
 lock = threading.Lock()  # one question at a time
+agent_lock = threading.Lock()  # one Jarvis conversation turn at a time
+AGENT_DIR = os.environ.get("CLAUDE_AGENT_DIR", "/share/claude-workspace")
+AGENT_TOOLS = [t for t in os.environ.get("INKBOX_AUTO_ALLOWED_TOOLS", "").split(",") if t.strip()]
+SESSION = re.compile(r"^[0-9a-f-]{8,64}$")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -44,6 +51,9 @@ class Handler(BaseHTTPRequestHandler):
         self.reply(200, {"ok": True})
 
     def do_POST(self):
+        if self.path == "/agent" and KEY and hmac.compare_digest(self.headers.get("X-Bridge-Key", ""), KEY):
+            self.agent()
+            return
         if self.path != "/ask" or not KEY or not hmac.compare_digest(self.headers.get("X-Bridge-Key", ""), KEY):
             self.reply(403, {"error": "forbidden"})
             return
@@ -77,6 +87,55 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, json.loads(proc.stdout))
         except ValueError:
             self.reply(502, {"error": (proc.stderr or proc.stdout or "keine Antwort").strip()[-400:]})
+
+
+    def agent(self):
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            if length > MAX_PROMPT * 2:
+                raise ValueError("too large")
+            req = json.loads(self.rfile.read(length))
+            prompt = str(req["prompt"])[:20000]
+        except (ValueError, KeyError, TypeError):
+            self.reply(400, {"error": "bad request"})
+            return
+        cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "30"]
+        if AGENT_TOOLS:
+            cmd += ["--allowedTools"] + AGENT_TOOLS
+        session = str(req.get("session") or "")
+        if SESSION.match(session):
+            cmd += ["--resume", session]
+        if req.get("system"):
+            cmd += ["--append-system-prompt", str(req["system"])[:4000]]
+        if os.environ.get("CLAUDE_MODEL"):
+            cmd += ["--model", os.environ["CLAUDE_MODEL"]]
+        os.makedirs(AGENT_DIR, exist_ok=True)
+        with agent_lock:
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT, cwd=AGENT_DIR, stdin=subprocess.DEVNULL)
+            except subprocess.TimeoutExpired:
+                self.reply(504, {"error": "Claude hat zu lange gebraucht"})
+                return
+        text, new_session, tools, error = "", session, [], ""
+        for line in proc.stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            new_session = event.get("session_id") or new_session
+            if event.get("type") == "assistant":
+                for item in (event.get("message") or {}).get("content") or []:
+                    if item.get("type") == "tool_use":
+                        args = item.get("input") or {}
+                        detail = args.get("command") or args.get("file_path") or args.get("pattern") or args.get("url") or ""
+                        tools.append({"tool": item.get("name"), "detail": str(detail)[:160]})
+            elif event.get("type") == "result":
+                text = str(event.get("result") or "")
+                if event.get("is_error"):
+                    error = text or "Claude-Fehler"
+        if not text and not error:
+            error = (proc.stderr or "keine Antwort").strip()[-400:]
+        self.reply(200, {"text": text, "session": new_session, "tools": tools[-30:], "error": error})
 
 
 if __name__ == "__main__":

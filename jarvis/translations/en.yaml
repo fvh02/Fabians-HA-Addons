@@ -1,0 +1,15 @@
+configuration:
+  anrede:
+    name: Form of address
+    description: How Jarvis addresses you (e.g. Sir).
+  stimme:
+    name: Voice
+    description: German Piper voice. thorsten-medium is included, others are downloaded once.
+  sprechtempo:
+    name: Speaking rate
+    description: 1.0 = normal.
+  spracherkennung:
+    name: Speech recognition
+    description: Whisper model size. tiny = fast, base = default, small = more accurate but slow on weak machines.
+network:
+  8107/tcp: Port for the projector in the home network (protected by the pairing code).

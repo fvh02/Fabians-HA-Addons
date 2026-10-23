@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis</title>
+<style>
+  :root { --c: #1aa7c9; --bg: #f3f6f7; --card: #fff; --text: #13232a; --dim: #5d7179; --line: #dce5e8; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b1418; --card: #12222a; --text: #dceff5; --dim: #8fb0ba; --line: #1f3a45; --c: #45e6ff; } }
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 18px 16px 40px; }
+  h1 { font-size: 20px; letter-spacing: .25em; margin: 0 0 4px; } h2 { font-size: 16px; margin: 0 0 8px; }
+  .muted { color: var(--dim); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .code { font: 700 40px/1.2 ui-monospace, Menlo, monospace; letter-spacing: .25em; color: var(--c); margin: 6px 0; }
+  .addr { font: 600 18px ui-monospace, Menlo, monospace; word-break: break-all; }
+  a.btn, button { display: inline-block; background: var(--c); color: #fff; border: none; border-radius: 9px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; margin: 4px 6px 0 0; }
+  @media (prefers-color-scheme: dark) { a.btn, button { color: #03090e; } }
+  button.ghost, a.ghost { background: transparent; color: var(--c); border: 1px solid var(--line); }
+  ol { padding-left: 20px; margin: 6px 0; } li { margin: 4px 0; }
+  .dev { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding: 6px 0; }
+  iframe { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 10px; background: #02070b; }
+</style>
+</head>
+<body>
+<main>
+  <h1>J.A.R.V.I.S.</h1>
+  <div class="muted">Dein Sprachassistent auf dem Beamer – mit allen Werkzeugen deines Assistenten.</div>
+  <div class="grid">
+    <section class="card">
+      <h2>Beamer koppeln</h2>
+      <ol>
+        <li>App installieren (siehe unten) und öffnen.</li>
+        <li>Adresse eingeben: <div class="addr" id="addr">…</div></li>
+        <li>Kopplungscode eingeben: <div class="code" id="code">······</div></li>
+      </ol>
+      <button class="ghost" id="newCode">Neuen Code</button>
+      <div class="muted">Jeder Code gilt einmal. Die Adresse ist die IP deines Home-Assistant-Servers im Heimnetz, Port 8107.</div>
+    </section>
+    <section class="card">
+      <h2>Bedienen</h2>
+      <a class="btn" href="fernbedienung">🎙 Fernbedienung öffnen</a>
+      <a class="btn ghost" href="hud" target="_blank">HUD in neuem Tab</a>
+      <p class="muted">Die Fernbedienung funktioniert auch in der Home-Assistant-App am Handy (Seitenleiste → Jarvis → Fernbedienung). Am Beamer: OK-Taste drücken und sprechen, falls er ein Mikrofon hat.</p>
+      <h2>App für den Beamer</h2>
+      <a class="btn" id="apk" href="#">📦 jarvis.apk herunterladen</a>
+      <p class="muted">Auf dem Beamer installieren: im Browser des Beamers die Adresse der APK öffnen, oder per USB-Stick (Datei-Manager → jarvis.apk → Installieren; „Unbekannte Quellen“ erlauben).</p>
+    </section>
+  </div>
+  <section class="card" style="margin-top:14px">
+    <h2>Vorschau</h2>
+    <iframe src="hud" allow="autoplay; microphone"></iframe>
+  </section>
+  <section class="card" style="margin-top:14px">
+    <h2>Gekoppelte Geräte</h2>
+    <div id="devices" class="muted">–</div>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  async function load() {
+    const r = await fetch("api/einrichtung"); const d = await r.json();
+    $("code").textContent = d.code;
+    $("addr").textContent = (d.adressen.length ? d.adressen : [location.hostname]).map((ip) => `http://${ip}:${d.port}`).join("  oder  ");
+    $("apk").href = d.apk;
+    $("devices").innerHTML = d.geraete.length ? d.geraete.map((g, i) => `<div class="dev"><span>${g.name.replace(/[<>&]/g, "")} <span class="muted">seit ${new Date(g.seit * 1000).toLocaleDateString("de-DE")}</span></span><button class="ghost" data-i="${i}">Entfernen</button></div>`).join("") : "Noch kein Gerät gekoppelt.";
+    document.querySelectorAll("[data-i]").forEach((b) => (b.onclick = async () => { await fetch(`api/einrichtung/geraet/${b.dataset.i}`, { method: "DELETE" }); load(); }));
+  }
+  $("newCode").onclick = async () => { await fetch("api/einrichtung/code", { method: "POST" }); load(); };
+  load(); setInterval(load, 15000);
+</script>
+</body>
+</html>

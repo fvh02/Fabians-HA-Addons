@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Jarvis</title>
+<style>
+  :root { --c: #45e6ff; --bg: #03090e; --card: #0a1820; --line: #12384a; --text: #d8fbff; --dim: #6fa9b8; }
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 18px 16px 30px; display: flex; flex-direction: column; gap: 16px; min-height: 100vh; }
+  h1 { margin: 0; font-size: 15px; letter-spacing: .4em; color: var(--c); text-align: center; text-shadow: 0 0 10px var(--c); }
+  .status { text-align: center; color: var(--dim); font-size: 13px; letter-spacing: .15em; text-transform: uppercase; min-height: 18px; }
+  .mic { width: 190px; height: 190px; border-radius: 50%; margin: 6px auto; border: 2px solid var(--c); background: radial-gradient(circle, #0f3a4a 0%, #04121a 70%);
+    color: var(--c); font-size: 64px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(69,230,255,.35); cursor: pointer;
+    transition: transform .1s; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .mic.on { background: radial-gradient(circle, #45e6ff 0%, #0f5f78 60%, #04121a 100%); color: #02070b; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 60px rgba(69,230,255,.8); } }
+  .hint { text-align: center; color: var(--dim); font-size: 13px; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 11px 12px; font: inherit; }
+  button { background: var(--c); color: #02070b; border: none; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--c); border: 1px solid var(--line); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { background: var(--card); color: var(--text); border: 1px solid var(--line); font-weight: 400; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .q { color: var(--dim); font-size: 14px; } .q:not(:empty)::before { content: "› "; }
+  .a { margin-top: 6px; white-space: pre-wrap; }
+  .acts { margin-top: 8px; font: 12px ui-monospace, Menlo, monospace; color: var(--dim); }
+  label { color: var(--dim); font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .note { color: #ffb347; text-align: center; font-size: 14px; min-height: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>J.A.R.V.I.S.</h1>
+  <div class="status" id="status">verbinde …</div>
+  <div class="mic" id="mic">🎙</div>
+  <div class="hint">Tippen zum Sprechen, nochmal tippen zum Senden · oder im Textfeld die Diktier-Taste 🎤 der Tastatur</div>
+  <div class="note" id="note"></div>
+  <div class="row"><input id="text" placeholder="Oder schreiben …" enterkeyhint="send"><button id="send">Senden</button></div>
+  <div class="chips">
+    <button>Was steht heute an?</button><button>Wie ist das Wetter?</button><button>Mach das Licht im Wohnzimmer gemütlich</button>
+    <button>Wie läuft der Drucker?</button><button>Was macht Pino?</button>
+  </div>
+  <div class="card"><div class="q" id="q"></div><div class="a" id="a">Noch keine Frage.</div><div class="acts" id="acts"></div></div>
+  <div class="row"><button class="ghost" id="stop">⏹ Stopp</button><button class="ghost" id="new">↺ Neues Gespräch</button></div>
+  <label><input type="checkbox" id="here" style="flex:none"> Antwort auch hier abspielen</label>
+</main>
+<script type="module">
+  import { url, post, listen, Recorder } from "./static/common.js";
+  const $ = (id) => document.getElementById(id);
+  const STATUS = { bereit: "bereit", hoert: "höre zu …", versteht: "verstehe …", denkt: "denke nach …", spricht: "antworte …" };
+  let audio = null, last = "";
+  $("here").checked = localStorage.getItem("jarvis-hier") === "1";
+  $("here").onchange = () => localStorage.setItem("jarvis-hier", $("here").checked ? "1" : "0");
+  const note = (t) => { $("note").textContent = t; setTimeout(() => ($("note").textContent = ""), 4000); };
+  const rec = new Recorder((on) => $("mic").classList.toggle("on", on));
+  rec.onError = (e) => note(e.message);
+  $("mic").onclick = async () => { try { if (audio) audio.pause(); await rec.start("handy"); } catch (e) { note(e.message); $("text").focus(); } };
+  const ask = (text) => post("api/frage", { text, quelle: "handy" }).catch((e) => note(e.message));
+  $("send").onclick = () => { const t = $("text").value.trim(); if (t) { ask(t); $("text").value = ""; } };
+  $("text").addEventListener("keydown", (e) => { if (e.key === "Enter") $("send").onclick(); });
+  document.querySelectorAll(".chips button").forEach((b) => (b.onclick = () => ask(b.textContent)));
+  $("stop").onclick = () => { post("api/stopp"); if (audio) audio.pause(); };
+  $("new").onclick = () => post("api/neu").then(() => note("Neues Gespräch"));
+  listen((e) => {
+    if (e.typ === "hinweis") return note(e.text);
+    if (e.typ === "stopp") { if (audio) audio.pause(); return; }
+    if (e.typ !== "zustand") return;
+    $("status").textContent = STATUS[e.modus] || e.modus;
+    $("q").textContent = e.frage || "";
+    if (e.antwort || e.modus === "denkt") $("a").textContent = e.antwort || "…";
+    $("acts").textContent = (e.aktionen || []).join("  ·  ");
+    if (e.audio && e.audio !== last && e.modus === "spricht") {
+      last = e.audio;
+      if ($("here").checked) { audio = new Audio(url(e.audio)); audio.play().catch(() => {}); }
+    }
+  }, (ok) => { if (!ok) $("status").textContent = "Verbindung unterbrochen …"; });
+</script>
+</body>
+</html>
