@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.0
+
+- **Pino:** fragt, was Pino der Kiwi gerade macht, was ihn interessiert und was er erlebt hat – Befehl `pino`
+  (mit Fabians-HA-Pino).
+
 ## 0.17.0
 
 - **„Hat das gerade offen?“** – `karte offen NAME`: Öffnungszeiten von Läden, Lokalen und Ämtern in

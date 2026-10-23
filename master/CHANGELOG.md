@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.7
+
+- Kennt das neue Add-on **Fabians-HA-Pino** (Claude für Gebäude und Webseiten, iMessages, Brücke für
+  den Assistenten).
+
 ## 1.2.6
 
 - **Behoben: Assistent und andere Add-ons wurden mit 403 abgewiesen** („Anfrage von fd0c:… ist kein

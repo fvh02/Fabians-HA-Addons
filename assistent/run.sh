@@ -53,6 +53,7 @@ BRAIN_URL_OPT="$(tool_url gedaechtnis || true)"
 KARTE_URL_OPT="$(tool_url karte || true)"
 SERIEN_URL_OPT="$(tool_url serien || true)"
 HIMMEL_URL_OPT="$(tool_url himmel || true)"
+PINO_URL_OPT="$(tool_url pino || true)"
 
 die() { echo "[assistent] FEHLER: $*" >&2; exit 1; }
 
@@ -514,6 +515,21 @@ Fabians-HA-Himmel knows what is to be seen in the sky above the person's home: v
   echo "[assistent] Himmels-Kalender: verbunden (über Fabians-HA-Master)"
 else
   set_block himmel
+fi
+if [ -n "$PINO_URL_OPT" ]; then
+  export PINO_URL="${PINO_URL_OPT%/}"
+  AUTO_ALLOWED="$AUTO_ALLOWED,Bash(pino:*)"
+  set_block pino "## Pino the kiwi
+
+Pino is a kiwi bird with a life of his own in a small 3D world in the person's Home Assistant (Fabians-HA-Pino). A small language model on the person's laptop drives him: he has needs, visits buildings (coffee shop, internet café, workshop, studio …), reads Wikipedia, YouTube and GitHub, develops interests, writes a diary, paints and builds little websites. Use the \`pino\` command; run it directly; it prints JSON.
+
+- \`pino status\` – what he is doing and thinking, needs, interests, latest experiences
+- \`pino tagebuch [N]\`, \`pino erlebnisse [N]\`, \`pino webseiten\`, \`pino bilder [N]\`, \`pino wissen\`
+
+\"Was macht Pino?\", \"Was interessiert ihn gerade?\", \"Was hat er heute erlebt?\": answer warmly and briefly from these, as if telling about a pet. You only watch: you cannot steer Pino. Buildings are placed and created by the person on the Pino page in Home Assistant. If he dozes, his brain (Ollama on the laptop) is not reachable."
+  echo "[assistent] Pino: verbunden (über Fabians-HA-Master)"
+else
+  set_block pino
 fi
 
 # Reminders on a condition ("when the parcel is here", "when it gets above 20 degrees", "when Max

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Pino</title>
+<link rel="stylesheet" href="static/style.css">
+<script type="importmap">
+{"imports": {"three": "./static/three-module.js"}}
+</script>
+</head>
+<body>
+<div id="scene"></div>
+<div id="bubble" hidden></div>
+
+<section id="pinoCard" class="card">
+  <div class="row"><b>🥝 Pino</b><span id="mode" class="muted"></span></div>
+  <div id="doing"></div>
+  <div id="thought" class="thought"></div>
+  <div id="needs"></div>
+  <div id="brainWarn" class="warn" hidden></div>
+</section>
+
+<nav id="tabs">
+  <button data-tab="bauen" class="on">🏗️ Bauen</button>
+  <button data-tab="leben">📖 Pino</button>
+  <button data-tab="bilder">🎨 Bilder</button>
+  <button data-tab="seiten">🌐 Webseiten</button>
+</nav>
+
+<aside id="panel" class="card">
+  <div data-pane="bauen">
+    <h3>Gebäude setzen</h3>
+    <p class="muted">Gebäude antippen, dann in der Welt platzieren. Gesetzte Gebäude antippen zum Verschieben, Drehen oder Entfernen.</p>
+    <div id="palette"></div>
+    <h3>Neues Gebäude erschaffen</h3>
+    <p class="muted">Beschreib Aussehen und Funktion – Claude baut es mit allem, was Pino darin tun kann.</p>
+    <textarea id="newRequest" placeholder="z. B. Ein kleiner Bahnhof mit Uhrturm. Pino kann dort Züge beobachten und über Eisenbahnen nachdenken; das macht ihn neugierig und vertreibt Langeweile."></textarea>
+    <button id="createBtn">✨ Erschaffen lassen</button>
+    <div id="jobs"></div>
+  </div>
+  <div data-pane="leben" hidden>
+    <h3>Interessen</h3><div id="interests" class="chips"></div>
+    <h3>Tagebuch</h3><div id="diary"></div>
+    <h3>Erlebnisse</h3><div id="events"></div>
+    <h3>Wissen</h3><div id="knowledge"></div>
+  </div>
+  <div data-pane="bilder" hidden><div id="pictures" class="gallery"></div></div>
+  <div data-pane="seiten" hidden><div id="sites"></div></div>
+</aside>
+
+<section id="info" class="card" hidden></section>
+
+<div id="placeBar" class="card" hidden>
+  <span id="placeName"></span>
+  <button id="rotBtn" title="Drehen (R)">↻</button>
+  <button id="okBtn">✓ Hier bauen</button>
+  <button id="cancelBtn" class="ghost">✕</button>
+  <div id="placeMsg" class="muted"></div>
+</div>
+
+<div id="viewer" hidden>
+  <div class="viewerBar">
+    <b id="viewerTitle"></b>
+    <select id="viewerPages"></select>
+    <button id="viewerClose">✕</button>
+  </div>
+  <iframe id="viewerFrame" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+</div>
+
+<div id="toast" hidden></div>
+<script type="module" src="static/app.js"></script>
+</body>
+</html>

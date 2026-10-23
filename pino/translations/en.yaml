@@ -1,0 +1,16 @@
+configuration:
+  ollama_url:
+    name: Brain (Ollama address)
+    description: Address of Ollama on a computer in your home network, e.g. http://192.168.178.50:11434. Empty or unreachable = Pino dozes.
+  ollama_modell:
+    name: Model
+    description: The language model in Ollama that drives Pino. Pull it first with "ollama pull qwen2.5:3b".
+  werkstatt_pro_tag:
+    name: Workshop visits per day
+    description: How often per day Pino may build his websites with Claude (each visit uses Claude quota). 0 = workshop closed.
+  meldungen:
+    name: iMessage notifications
+    description: Pino tells you when he worked on a website – at most once a day (through Fabians-HA-Master).
+  internet:
+    name: Internet
+    description: Pino may read Wikipedia, YouTube and GitHub in the internet café (read-only).

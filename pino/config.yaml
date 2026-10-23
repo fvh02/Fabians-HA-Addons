@@ -1,0 +1,27 @@
+name: Fabians-HA-Pino
+version: "1.0.0"
+slug: pino
+description: Pino, ein Kiwi mit eigenem Leben in einer Sandbox-Welt – mit Gebäuden, die Claude nach deiner Beschreibung baut
+url: https://github.com/fvh02/Fabians-HA-Addons
+image: ghcr.io/fvh02/{arch}-fabians-ha-pino
+arch:
+  - aarch64
+  - amd64
+  - armv7
+init: false
+ingress: true
+ingress_port: 8105
+panel_icon: mdi:bird
+panel_title: Pino
+options:
+  ollama_url: ""
+  ollama_modell: qwen2.5:3b
+  werkstatt_pro_tag: 3
+  meldungen: true
+  internet: true
+schema:
+  ollama_url: str?
+  ollama_modell: str
+  werkstatt_pro_tag: int(0,20)
+  meldungen: bool
+  internet: bool

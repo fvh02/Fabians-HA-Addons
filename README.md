@@ -22,6 +22,7 @@ Oder manuell: *Einstellungen → Add-ons → Add-on Store → ⋮ → Repositori
 | [Fabians-HA-Gedächtnis](gedaechtnis/DOCS.md) | Langzeitgedächtnis für den Assistenten – ein Obsidian-Vault, den Claude pflegt |
 | [Fabians-HA-Karte](karte/DOCS.md) | Deine Restaurant-Karte: der Assistent trägt Besuche mit Speisekarte, Bestellung und Fotos ein und gleicht sie online ab |
 | [Fabians-HA-Serien](serien/DOCS.md) | Serien-Kalender: neue Folgen und Staffeln deiner Serien, mit Meldung am Erscheinungstag |
+| [Fabians-HA-Pino](pino/DOCS.md) | Pino, ein Kiwi mit eigenem Leben in einer Sandbox-Welt – Gebäude beschreibst du, Claude baut sie |
 | [Fabians-HA-Himmel](himmel/DOCS.md) | Himmels-Kalender: ISS-Überflüge, Mondphasen, Sternschnuppen, Finsternisse und klare Nächte |
 | [Fabians-HA-Browser](browser/DOCS.md) | Google Chrome in Home Assistant, am PC und Handy bedienbar (nur amd64) |
 

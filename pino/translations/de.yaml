@@ -1,0 +1,16 @@
+configuration:
+  ollama_url:
+    name: Gehirn (Ollama-Adresse)
+    description: Adresse von Ollama auf deinem Laptop im Heimnetz, z. B. http://192.168.178.50:11434. Leer oder nicht erreichbar = Pino döst.
+  ollama_modell:
+    name: Modell
+    description: Das Sprachmodell in Ollama, das Pino steuert. Vorher auf dem Laptop mit „ollama pull qwen2.5:3b“ laden.
+  werkstatt_pro_tag:
+    name: Werkstatt-Besuche pro Tag
+    description: So oft am Tag darf Pino mit Claude an seinen Webseiten bauen (jeder Besuch verbraucht Claude-Kontingent). 0 = Werkstatt zu.
+  meldungen:
+    name: Meldungen per iMessage
+    description: Pino schreibt dir, wenn er an einer Webseite gebaut hat – höchstens einmal am Tag (über Fabians-HA-Master).
+  internet:
+    name: Internet
+    description: Pino darf im Internetcafé Wikipedia, YouTube und GitHub lesen (nur lesen).
