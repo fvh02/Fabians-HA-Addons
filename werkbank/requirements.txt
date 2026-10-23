@@ -1,2 +1,5 @@
 aiohttp==3.10.10
+build123d==0.13.0
 opencv-python-headless==5.0.0.93
+pillow==13.0.0
+numpy==2.5.4

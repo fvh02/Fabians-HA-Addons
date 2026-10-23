@@ -535,9 +535,9 @@ fi
 if [ -n "$WERKBANK_URL_OPT" ]; then
   export WERKBANK_URL="${WERKBANK_URL_OPT%/}"
   AUTO_ALLOWED="$AUTO_ALLOWED,Bash(werkbank:*)"
-  set_block werkbank "## Werkbank: designing parts (FreeCAD) and printing them
+  set_block werkbank "## Werkbank: designing parts (build123d) and printing them
 
-With Fabians-HA-Werkbank you design 3D-printable parts for the person: you write a parametric FreeCAD script, the add-on builds it, checks it and renders a preview, and it can print it on the Bambu Lab P1S through Fabians-HA-3D-Druck. Use the \`werkbank\` command (\`werkbank --help\`); run it directly; it prints JSON. The person can open the same projects on the Werkbank page in Home Assistant (chat, 3D view, sliders).
+With Fabians-HA-Werkbank you design 3D-printable parts for the person: you write a parametric build123d (Python CAD) script, the add-on builds it, checks it and renders a preview, and it can print it on the Bambu Lab P1S through Fabians-HA-3D-Druck. Use the \`werkbank\` command (\`werkbank --help\`); run it directly; it prints JSON. The person can open the same projects on the Werkbank page in Home Assistant (chat, 3D view, sliders).
 
 How to work:
 1. When the person needs a part (\"Ich brauch einen Halter für …\", \"Konstruier mir …\"), run \`werkbank anleitung\` once per conversation and follow it. Create a project with \`werkbank neu NAME --beschreibung TEXT\`.

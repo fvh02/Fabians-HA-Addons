@@ -1,5 +1,5 @@
-"""Running Werkbank scripts in FreeCAD, safely: a quick check of the code, then freecadcmd in its own
-process with a time and memory limit, as an unprivileged user, in a fresh folder."""
+"""Running Werkbank scripts (build123d), safely: a quick check of the code, then Python in its own process
+with a time and memory limit, as an unprivileged user, in a fresh folder."""
 
 import ast
 import json
@@ -8,20 +8,21 @@ import os
 import pwd
 import resource
 import shutil
+import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
-from designer import HELPERS
-
 log = logging.getLogger("cad")
 
-FREECADCMD = os.environ.get("WERKBANK_FREECAD", "freecadcmd")
+PYTHON = os.environ.get("WERKBANK_PYTHON", sys.executable)
 RUNNER = Path(__file__).parent / "runner.py"
 TIMEOUT = int(os.environ.get("WERKBANK_TIMEOUT", "180"))
 MEMORY = int(os.environ.get("WERKBANK_MEMORY_MB", "2500")) * 1024 * 1024
-ALLOWED_IMPORTS = {"FreeCAD", "App", "Part", "Mesh", "MeshPart", "BOPTools", "math", "itertools", "functools",
-                   "collections", "random", "Sketcher"}
+ALLOWED_IMPORTS = {"build123d", "math", "itertools", "functools", "collections", "random", "copy", "dataclasses",
+                   "enum", "typing"}
+FILE_NAMES = re.compile(r"^(import|export)", re.I)      # build123d's importers/exporters read and write files
 FORBIDDEN_NAMES = {"open", "exec", "eval", "compile", "__import__", "globals", "locals", "vars", "input", "breakpoint",
                    "getattr", "setattr", "delattr", "memoryview", "help", "exit", "quit"}
 MAX_SCRIPT = 60_000
@@ -44,10 +45,14 @@ def check_source(source: str) -> None:
             names = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
             for n in names:
                 if n.split(".")[0] not in ALLOWED_IMPORTS:
-                    raise ScriptError(f"Import von '{n}' ist nicht erlaubt (nur FreeCAD, Part, Mesh, math …)")
-        elif isinstance(node, ast.Name) and node.id in FORBIDDEN_NAMES:
+                    raise ScriptError(f"Import von '{n}' ist nicht erlaubt (nur build123d, math …)")
+            if isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    if FILE_NAMES.match(a.name):
+                        raise ScriptError(f"'{a.name}' ist nicht erlaubt (keine Dateien in Werkbank-Skripten)")
+        elif isinstance(node, ast.Name) and (node.id in FORBIDDEN_NAMES or FILE_NAMES.match(node.id)):
             raise ScriptError(f"'{node.id}' ist in Werkbank-Skripten nicht erlaubt")
-        elif isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+        elif isinstance(node, ast.Attribute) and (node.attr.startswith("__") or FILE_NAMES.match(node.attr)):
             raise ScriptError(f"Zugriff auf '{node.attr}' ist nicht erlaubt")
     if not any(isinstance(n, ast.FunctionDef) and n.name == "build" for n in tree.body):
         raise ScriptError("Das Skript braucht eine Funktion build(p)")
@@ -80,7 +85,6 @@ def run(source: str, values: dict, material: str, target: Path) -> dict:
     work = Path(tempfile.mkdtemp(prefix="werkbank-"))
     try:
         (work / "skript.py").write_text(source, encoding="utf-8")
-        (work / "helfer.py").write_text(HELPERS, encoding="utf-8")
         (work / "params.json").write_text(json.dumps({"werte": values or {}, "material": material}), encoding="utf-8")
         uid = _sandbox_user()
         if uid is not None:
@@ -89,19 +93,17 @@ def run(source: str, values: dict, material: str, target: Path) -> dict:
             for f in work.iterdir():
                 os.chown(f, uid, uid)
         env = {"PATH": os.environ.get("PATH", ""), "WERKBANK_JOB": str(work), "HOME": str(work), "LANG": "C.UTF-8",
-               "QT_QPA_PLATFORM": "offscreen"}
+               "PYTHONDONTWRITEBYTECODE": "1", "MPLCONFIGDIR": str(work)}
         try:
-            proc = subprocess.run([FREECADCMD, str(RUNNER)], cwd=work, env=env, capture_output=True, text=True,
+            proc = subprocess.run([PYTHON, "-I", str(RUNNER)], cwd=work, env=env, capture_output=True, text=True,
                                   timeout=TIMEOUT, preexec_fn=_limits(uid), stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired as err:
-            raise ScriptError(f"FreeCAD hat länger als {TIMEOUT} Sekunden gerechnet – Modell vereinfachen") from err
-        except FileNotFoundError as err:
-            raise ScriptError("FreeCAD ist nicht installiert") from err
+            raise ScriptError(f"Das Modell hat länger als {TIMEOUT} Sekunden gerechnet – vereinfachen") from err
         try:
             result = json.loads((work / "result.json").read_text(encoding="utf-8"))
         except (OSError, ValueError):
             tail = (proc.stderr or proc.stdout or "").strip()[-600:]
-            raise ScriptError(f"FreeCAD ist abgestürzt (zu wenig Speicher oder fehlerhafte Geometrie). {tail}")
+            raise ScriptError(f"Das Modell ist abgestürzt (zu wenig Speicher oder fehlerhafte Geometrie). {tail}")
         if not result.get("ok"):
             line = f" (Zeile {result['zeile']})" if result.get("zeile") else ""
             raise ScriptError(f"{result.get('fehler')}{line}")

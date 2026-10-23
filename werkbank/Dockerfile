@@ -1,19 +1,16 @@
-# FreeCAD (headless) comes from conda-forge – Ubuntu 24.04 no longer ships it, and conda-forge has
-# the same version for amd64 and arm64.
-FROM mambaorg/micromamba:2.0.5
+# build123d (Python CAD on the OpenCASCADE kernel) comes as ready wheels for amd64 and arm64.
+FROM python:3.12-slim-bookworm
 
-USER root
-ENV PYTHONUNBUFFERED=1 QT_QPA_PLATFORM=offscreen PATH=/opt/conda/bin:$PATH
-
-RUN micromamba install -y -n base -c conda-forge "freecad=1.1.3" "python=3.12" pillow numpy pip \
-    && micromamba clean -a -y \
-    && freecadcmd --version
+ENV PYTHONUNBUFFERED=1
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 libexpat1 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && python -c "import build123d; build123d.Box(1, 1, 1)"
 
 COPY app /app
 COPY run.sh /run.sh
 RUN chmod a+rx /run.sh && chmod -R a+rX /app
-ENTRYPOINT []
 CMD [ "/run.sh" ]

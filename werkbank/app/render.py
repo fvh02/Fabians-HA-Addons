@@ -30,7 +30,7 @@ FONT_DIRS = [Path(sys.prefix) / "fonts", Path("/opt/conda/fonts"), Path("/usr/sh
 
 
 def font(size: int):
-    """A font with umlauts and ×; the FreeCAD environment brings Ubuntu and DejaVu fonts."""
+    """A font with umlauts and ×; the image brings DejaVu (fonts-dejavu-core)."""
     for folder in FONT_DIRS:
         for name in ("Ubuntu-R.ttf", "DejaVuSans.ttf"):
             if (folder / name).exists():

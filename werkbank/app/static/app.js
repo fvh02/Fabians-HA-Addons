@@ -30,7 +30,7 @@ controls.enableDamping = true;
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.0));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(200, 400, 300); scene.add(sun);
 const plate = new THREE.GridHelper(256, 16, 0x9aa69d, 0xc9d1ca); scene.add(plate);
-const model = new THREE.Group(); model.rotation.x = -Math.PI / 2; scene.add(model);   // FreeCAD z up → three y up
+const model = new THREE.Group(); model.rotation.x = -Math.PI / 2; scene.add(model);   // CAD z up → three y up
 function themeBg() { scene.background = new THREE.Color(matchMedia("(prefers-color-scheme: dark)").matches ? 0x1b211d : 0xf1f4f0); }
 themeBg();
 function resize() {
@@ -171,7 +171,7 @@ $("paramBtn").onclick = async () => {
   $("params").querySelectorAll("[data-k]").forEach((el) => {
     werte[el.dataset.k] = el.type === "checkbox" ? el.checked : el.type === "number" ? parseFloat(el.value) : el.value;
   });
-  $("paramBtn").disabled = true; $("paramBtn").textContent = "FreeCAD rechnet …";
+  $("paramBtn").disabled = true; $("paramBtn").textContent = "Wird berechnet …";
   try { const v = await post(`api/projekte/${project.id}/parameter`, { version: version.n, werte }); await refresh(); toast(v.zusammenfassung); }
   catch (e) { toast(e.message); }
   $("paramBtn").disabled = false; $("paramBtn").textContent = "Neu berechnen";

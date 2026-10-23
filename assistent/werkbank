@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fabians-HA-Werkbank: design parts in FreeCAD and print them, through Fabians-HA-Master. Prints JSON.
+"""Fabians-HA-Werkbank: design parts (build123d) and print them, through Fabians-HA-Master. Prints JSON.
 
   werkbank anleitung                         how to write a Werkbank script (read this before the first design)
   werkbank liste                             all projects
@@ -7,7 +7,7 @@
   werkbank info ID                           project: description, measurements, versions, chat
   werkbank skript ID [--version N]           the script of a version (to change it)
   werkbank bauen ID --skript DATEI|- [--notiz TEXT]
-                                             run a script in FreeCAD → new version; saves the preview picture
+                                             build a script → new version; saves the preview picture
                                              ("-" = script on stdin, e.g. werkbank bauen ID --skript - <<'EOF' … EOF)
   werkbank parameter ID name=wert ...        new version with other parameter values (no new script)
   werkbank foto DATEI [--referenz a4|a5|a3|a6|letter|karte] [--groesse BxH] [--projekt ID]

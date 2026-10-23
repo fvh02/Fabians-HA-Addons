@@ -1,8 +1,9 @@
-"""Runs one Werkbank script inside FreeCAD (freecadcmd) and exports the result.
+"""Runs one Werkbank script with build123d and exports the result.
 
-Called as: freecadcmd runner.py  with WERKBANK_JOB=<folder>. The folder contains skript.py and
-params.json (values that override the script's PARAMS). Writes result.json, modell.step and
-teile/<name>.stl. Everything the script may use is passed in; imports are limited to an allow-list.
+Called as: python runner.py  with WERKBANK_JOB=<folder>. The folder contains skript.py and params.json
+(values that override the script's PARAMS). Writes result.json, modell.step and teile/<name>.stl.
+The script gets the build123d names (without the ones that read or write files) and may only import a few
+harmless modules.
 """
 
 import builtins
@@ -12,21 +13,31 @@ import os
 import re
 import sys
 import traceback
+import types
 
-import FreeCAD
-import MeshPart
-import Part
+import build123d as bd
 
 JOB = os.environ["WERKBANK_JOB"]
 BED = (256.0, 256.0, 256.0)          # Bambu Lab P1S build volume in mm
 DENSITY = {"PLA": 1.24, "PETG": 1.27, "ABS": 1.04, "ASA": 1.07, "TPU": 1.21}
-ALLOWED = {"FreeCAD", "App", "Part", "Mesh", "MeshPart", "BOPTools", "BOPTools.SplitFeatures", "math", "itertools",
-           "functools", "collections", "random", "Sketcher"}
+SAFE_MODULES = {"math", "itertools", "functools", "collections", "random", "copy", "dataclasses", "enum", "typing"}
+BLOCKED = re.compile(r"^(import_|export_|Import|Export|Mesher|show|set_port|set_defaults)")
+
+NAMES = {n: getattr(bd, n) for n in getattr(bd, "__all__", dir(bd)) if not n.startswith("_") and not BLOCKED.match(n)}
+NAMES = {n: v for n, v in NAMES.items() if not isinstance(v, types.ModuleType)}
+FACADE = types.ModuleType("build123d")       # what "import build123d" / "from build123d import *" gives a script
+FACADE.__dict__.update(NAMES)
+FACADE.__all__ = sorted(NAMES)
 _real_import = builtins.__import__
 
 
 def _import(name, globals=None, locals=None, fromlist=(), level=0):
-    if name.split(".")[0] not in {a.split(".")[0] for a in ALLOWED} and not name.startswith("_"):
+    if name == "build123d":
+        for n in fromlist or ():
+            if n != "*" and n not in NAMES:
+                raise ImportError(f"'{n}' aus build123d ist in Werkbank-Skripten nicht erlaubt")
+        return FACADE
+    if name.split(".")[0] not in SAFE_MODULES:
         raise ImportError(f"Import von '{name}' ist in Werkbank-Skripten nicht erlaubt")
     return _real_import(name, globals, locals, fromlist, level)
 
@@ -34,9 +45,9 @@ def _import(name, globals=None, locals=None, fromlist=(), level=0):
 SAFE_BUILTINS = {k: getattr(builtins, k) for k in (
     "abs", "all", "any", "bool", "dict", "divmod", "enumerate", "filter", "float", "int", "isinstance", "len", "list",
     "map", "max", "min", "pow", "print", "range", "reversed", "round", "set", "sorted", "str", "sum", "tuple", "zip",
-    "ValueError", "Exception", "RuntimeError", "ZeroDivisionError", "True", "False", "None", "hasattr", "getattr",
+    "ValueError", "Exception", "RuntimeError", "ZeroDivisionError", "True", "False", "None", "hasattr",
     "iter", "next", "slice", "frozenset", "type", "__build_class__", "object", "super", "KeyError", "IndexError",
-    "TypeError", "NotImplementedError", "AssertionError")}
+    "TypeError", "NotImplementedError", "AssertionError", "staticmethod", "classmethod", "property", "issubclass")}
 SAFE_BUILTINS["__import__"] = _import
 
 
@@ -50,36 +61,47 @@ def safe_name(name: str, i: int) -> str:
     return name or f"teil-{i + 1}"
 
 
-def as_parts(result) -> list[tuple[str, "Part.Shape"]]:
+def as_shape(value, name: str):
+    if isinstance(value, bd.BuildPart):
+        value = value.part
+    if isinstance(value, (list, tuple)) and value and all(isinstance(v, bd.Shape) for v in value):
+        value = bd.Compound(list(value))
+    if not isinstance(value, bd.Shape):
+        raise TypeError(f"build() muss ein build123d-Teil liefern, '{name}' ist {type(value).__name__}")
+    return value
+
+
+def as_parts(result) -> list[tuple[str, object]]:
     if isinstance(result, dict):
         items = list(result.items())
     elif isinstance(result, (list, tuple)):
         items = [(f"teil-{i + 1}", s) for i, s in enumerate(result)]
     else:
         items = [("modell", result)]
-    parts = []
-    for i, (name, shape) in enumerate(items):
-        if not isinstance(shape, Part.Shape):
-            raise TypeError(f"build() muss Part.Shape liefern, '{name}' ist {type(shape).__name__}")
-        parts.append((safe_name(name, i), shape))
+    parts = [(safe_name(name, i), as_shape(shape, name)) for i, (name, shape) in enumerate(items)]
     if not parts:
         raise ValueError("build() hat keine Teile geliefert")
     return parts
 
 
+def valid(shape) -> bool:
+    v = getattr(shape, "is_valid", True)
+    return bool(v() if callable(v) else v)
+
+
 def check(name: str, shape, material: str) -> dict:
-    bb = shape.BoundBox
-    solids = shape.Solids
-    size = [round(bb.XLength, 2), round(bb.YLength, 2), round(bb.ZLength, 2)]
-    volume = sum(s.Volume for s in solids) if solids else 0.0
+    bb = shape.bounding_box()
+    size = [round(bb.size.X, 2), round(bb.size.Y, 2), round(bb.size.Z, 2)]
+    solids = shape.solids()
+    volume = sum(s.volume for s in solids) if solids else 0.0
     info = {"name": name, "groesse_mm": size, "volumen_cm3": round(volume / 1000, 2),
             "gewicht_g": round(volume / 1000 * DENSITY.get(material, 1.24), 1), "koerper": len(solids),
-            "gueltig": bool(shape.isValid()), "warnungen": []}
+            "gueltig": valid(shape), "warnungen": []}
     w = info["warnungen"]
     if not solids:
-        w.append("Kein geschlossener Körper (nur Flächen oder Kanten) – so nicht druckbar")
+        w.append("Kein geschlossener Körper (nur Flächen oder Linien) – so nicht druckbar")
     if not info["gueltig"]:
-        w.append("Die Geometrie ist fehlerhaft (isValid = False)")
+        w.append("Die Geometrie ist fehlerhaft (nicht gültig)")
     if len(solids) > 1:
         w.append(f"Besteht aus {len(solids)} getrennten Körpern – gewollt?")
     dims = sorted(size)
@@ -91,21 +113,18 @@ def check(name: str, shape, material: str) -> dict:
         w.append(f"Sehr dünn ({dims[0]:.2f} mm) – unter 0,8 mm druckt nicht sauber")
     if volume and volume < 20:
         w.append("Sehr kleines Teil – prüfen, ob die Maße in mm sind")
+    if solids and bb.min.Z < -0.05:
+        w.append("Liegt nicht auf z = 0 – der Slicer legt es auf die Platte, Ausrichtung prüfen")
     return info
 
 
 def main() -> None:
-    material = "PLA"
     try:
         with open(os.path.join(JOB, "params.json"), encoding="utf-8") as fh:
             settings = json.load(fh)
         material = str(settings.get("material") or "PLA").upper()
         source = open(os.path.join(JOB, "skript.py"), encoding="utf-8").read()
-        env = {"__builtins__": SAFE_BUILTINS, "__name__": "werkbank", "FreeCAD": FreeCAD, "App": FreeCAD, "Part": Part,
-               "Vector": FreeCAD.Vector, "Rotation": FreeCAD.Rotation, "Placement": FreeCAD.Placement, "math": math}
-        helpers = os.path.join(JOB, "helfer.py")
-        if os.path.exists(helpers):
-            exec(compile(open(helpers, encoding="utf-8").read(), "helfer.py", "exec"), env)
+        env = {"__builtins__": SAFE_BUILTINS, "__name__": "werkbank", "math": math, **NAMES}
         exec(compile(source, "skript.py", "exec"), env)
         params = env.get("PARAMS") or {}
         if not isinstance(params, dict):
@@ -125,22 +144,20 @@ def main() -> None:
             raise NameError("Das Skript braucht eine Funktion build(p)")
         parts = as_parts(build(values))
         os.makedirs(os.path.join(JOB, "teile"), exist_ok=True)
-        infos, shapes = [], []
-        names = set()
+        infos, shapes, names = [], [], set()
         for name, shape in parts:
             while name in names:
                 name += "-2"
             names.add(name)
             infos.append(check(name, shape, material))
             shapes.append(shape)
-            bb = shape.BoundBox
-            deflection = max(0.02, min(0.2, bb.DiagonalLength / 1500))
-            mesh = MeshPart.meshFromShape(Shape=shape, LinearDeflection=deflection, AngularDeflection=0.35, Relative=False)
-            mesh.write(os.path.join(JOB, "teile", f"{name}.stl"))
-            infos[-1]["dreiecke"] = mesh.CountFacets
-        Part.makeCompound(shapes).exportStep(os.path.join(JOB, "modell.step"))
-        bb = Part.makeCompound(shapes).BoundBox
-        total = {"groesse_mm": [round(bb.XLength, 1), round(bb.YLength, 1), round(bb.ZLength, 1)],
+            diag = shape.bounding_box().diagonal
+            bd.export_stl(shape, os.path.join(JOB, "teile", f"{name}.stl"),
+                          tolerance=max(0.01, min(0.1, diag / 3000)), angular_tolerance=0.2)
+        compound = bd.Compound(shapes) if len(shapes) > 1 else shapes[0]
+        bd.export_step(compound, os.path.join(JOB, "modell.step"))
+        bb = compound.bounding_box()
+        total = {"groesse_mm": [round(bb.size.X, 1), round(bb.size.Y, 1), round(bb.size.Z, 1)],
                  "volumen_cm3": round(sum(i["volumen_cm3"] for i in infos), 2),
                  "gewicht_g": round(sum(i["gewicht_g"] for i in infos), 1)}
         spec = {k: (v if isinstance(v, dict) else {"wert": v}) for k, v in params.items()}
@@ -148,8 +165,7 @@ def main() -> None:
     except BaseException as err:  # noqa: BLE001 – every error goes back to Claude
         tb = traceback.extract_tb(err.__traceback__)
         line = next((f.lineno for f in reversed(tb) if f.filename == "skript.py"), None)
-        write({"ok": False, "fehler": f"{err.__class__.__name__}: {err}"[:1500], "zeile": line,
-               "trace": "".join(traceback.format_exception_only(type(err), err))[-1500:]})
+        write({"ok": False, "fehler": f"{err.__class__.__name__}: {err}"[:1500], "zeile": line})
 
 
 main()

@@ -1,7 +1,7 @@
 name: Fabians-HA-Werkbank
-version: "1.0.0"
+version: "1.1.0"
 slug: werkbank
-description: Claude konstruiert dir Teile in FreeCAD – mit Maßen aus Fotos, Vorschau aufs Handy und Druck nach deinem „Ja“
+description: Claude konstruiert dir Teile (build123d) – mit Maßen aus Fotos, Vorschau aufs Handy und Druck nach deinem „Ja“
 url: https://github.com/fvh02/Fabians-HA-Addons
 image: ghcr.io/fvh02/{arch}-fabians-ha-werkbank
 arch:

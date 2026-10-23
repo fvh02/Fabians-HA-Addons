@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.19.1
+
+- Werkbank: Teile werden jetzt mit build123d statt FreeCAD konstruiert (Werkbank ab 1.1.0).
+
 ## 0.19.0
 
 - **Werkbank:** konstruiert Teile in FreeCAD nach deiner Beschreibung, vermisst Fotos mit A4-Blatt,

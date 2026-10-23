@@ -1,48 +1,63 @@
-"""How Claude designs parts: the rules for Werkbank scripts (shared by the assistant and the dashboard
-chat) and the dashboard chat itself (Claude through Fabians-HA-Master, without tools)."""
+"""How Claude designs parts: the rules for Werkbank scripts (build123d), shared by the assistant and the
+dashboard chat, and the dashboard chat itself (Claude through Fabians-HA-Master, without tools)."""
 
 import json
 import re
 
 import fabians_master
 
-GUIDE = """# Werkbank-Skripte (FreeCAD 1.1, Python)
+GUIDE = """# Werkbank-Skripte (Python mit build123d 0.13)
 
 Ein Skript beschreibt ein druckbares Teil für den Bambu Lab P1S (Bauraum 256 × 256 × 256 mm). Einheit: mm.
+Alle build123d-Namen (Box, Cylinder, Pos, Rot, fillet, …) sind schon da – kein Import nötig.
 
 ```python
 # Kurzbeschreibung des Teils (deutsch)
 PARAMS = {
-    "breite": {"wert": 80, "min": 30, "max": 200, "einheit": "mm", "info": "Außenbreite"},
+    "laenge": {"wert": 80, "min": 30, "max": 200, "einheit": "mm", "info": "Außenlänge"},
+    "breite": {"wert": 50, "min": 20, "max": 200, "einheit": "mm", "info": "Außenbreite"},
+    "hoehe":  {"wert": 30, "min": 10, "max": 150, "einheit": "mm", "info": "Höhe"},
     "wand":   {"wert": 2.4, "min": 1.2, "max": 6, "einheit": "mm", "info": "Wandstärke"},
-    "loecher": {"wert": True, "info": "Schraublöcher"},
+    "loecher": {"wert": True, "info": "Schraublöcher im Boden"},
 }
 
 def build(p):
-    b, w = p["breite"], p["wand"]
-    teil = box(b, 40, 20).cut(box(b - 2 * w, 40 - 2 * w, 20, w, w, w))   # oben offene Schale
-    return teil                       # oder {"unterteil": a, "deckel": b} für mehrere Teile
+    l, b, h, w = p["laenge"], p["breite"], p["hoehe"], p["wand"]
+    schale = Box(l, b, h, align=(Align.CENTER, Align.CENTER, Align.MIN))            # steht auf z = 0
+    schale = fillet(schale.edges().filter_by(Axis.Z), radius=4)                       # senkrechte Kanten runden
+    schale = offset(schale, amount=-w, openings=schale.faces().sort_by(Axis.Z)[-1])   # aushöhlen, oben offen
+    if p["loecher"]:
+        for x in (-l / 2 + 10, l / 2 - 10):
+            schale -= Pos(x, 0, 0) * Cylinder(1.7, 2 * w, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return schale              # oder {"unterteil": a, "deckel": d} für mehrere Teile
 ```
 
 Regeln:
-- PARAMS: jedes wichtige Maß als Parameter (wert, min, max, einheit, info) – der Besitzer kann sie im Dashboard
-  per Schieberegler ändern, ohne dass neu konstruiert werden muss. Auch true/false und Zahlen ohne Einheit gehen.
-- build(p) bekommt die Werte und gibt eine Part.Shape zurück, oder ein dict Name → Shape (jedes Teil wird einzeln
-  gedruckt; Namen kurz, deutsch, ohne Leerzeichen).
-- Jedes Teil liegt in Druckausrichtung: flache, große Seite unten auf z = 0, möglichst ohne Stützen druckbar.
-- Verfügbar ohne Import: Part, App/FreeCAD, Vector, Rotation, Placement, math und diese Helfer:
-  box(l, b, h, x=0, y=0, z=0) · zylinder(r, h, x=0, y=0, z=0, richtung=(0, 0, 1)) · kegel(r1, r2, h, x, y, z)
-  kugel(r, x, y, z) · verschoben(s, x, y, z) · gedreht(s, winkel, achse=(0, 0, 1), zentrum=(0, 0, 0))
-  profil([(x, y), …], hoehe) (geschlossenes Polygon in xy, nach z extrudiert)
-  gerundet(s, r, auswahl=None) · gefast(s, r, auswahl=None)   (auswahl: Funktion edge → bool; schlägt das
-  Runden fehl, kommt die Form unverändert zurück)
-  rohr(r_aussen, r_innen, h, x, y, z) · langloch(l, b, h, x, y, z) (Langloch in x-Richtung, Mitte bei x, y)
-- Imports nur: FreeCAD, Part, Mesh, MeshPart, BOPTools, math, itertools, functools, collections, random.
-  Keine Dateien, kein Netzwerk, kein open/eval/exec. Nach cut/fuse ist .removeSplitter() oft hilfreich.
-- Part-API: Part.makeBox, makeCylinder(r, h, pos, dir), makeCone, makeSphere, makeTorus, Part.makePolygon(punkte,
-  True) → Part.Face(wire) → .extrude(Vector(0, 0, h)), face.revolve(Vector(), Vector(0, 0, 1), 360),
-  shape.fuse/cut/common, shape.makeFillet(r, kanten), shape.makeChamfer(r, kanten), shape.makeThickness(...),
-  shape.mirror(Vector(), Vector(1, 0, 0)), Part.makeCompound([...]).
+- PARAMS: jedes wichtige Maß als Parameter (wert, min, max, einheit, info). Der Besitzer kann sie im Dashboard per
+  Schieberegler ändern, ohne neue Konstruktion. Auch true/false geht.
+- build(p) bekommt die Werte und gibt ein Teil zurück – oder ein dict Name → Teil (jedes wird einzeln gedruckt;
+  Namen kurz, deutsch, ohne Leerzeichen). BuildPart-Objekte gehen auch (es zählt .part).
+- Jedes Teil liegt in Druckausrichtung: große flache Seite unten auf z = 0, möglichst ohne Stützen druckbar.
+  Mehrere Teile nebeneinander platzieren (Pos), nicht übereinander.
+- Erlaubte Imports: build123d, math, itertools, functools, collections, random, copy. Keine Dateien (import_*/export_*
+  sind gesperrt), kein Netzwerk, kein open/eval/exec, keine __dunder__-Attribute.
+
+build123d (Algebra-Stil, empfohlen):
+- Körper: Box(l, b, h), Cylinder(r, h), Cone(r_unten, r_oben, h), Sphere(r), Torus(R, r).
+  align=(Align.CENTER, Align.CENTER, Align.MIN) setzt den Körper auf z = 0 (Standard: um den Ursprung zentriert).
+- Platzieren: Pos(x, y, z) * teil, Rot(0, 0, 45) * teil (Grad um x, y, z).
+- Verknüpfen: a + b (vereinigen), a - b (abziehen), a & b (Schnitt). Mehrere Löcher:
+  teil -= [Pos(x, y, 0) * Cylinder(1.7, 10) for x, y in punkte]
+- Kanten: fillet(kanten, radius=…), chamfer(kanten, length=…). Auswahl: teil.edges().filter_by(Axis.Z) (senkrechte),
+  teil.edges().group_by(Axis.Z)[-1] (oberste), teil.edges().group_by(Axis.Z)[0] (unterste),
+  teil.faces().sort_by(Axis.Z)[-1] (Deckfläche). Runden scheitert bei zu großen Radien – dann kleiner wählen.
+- Aushöhlen: offset(teil, amount=-wand, openings=fläche) – Schale mit offener Fläche.
+- 2D → 3D: Rectangle(l, b), RectangleRounded(l, b, r), Circle(r), Ellipse(rx, ry), RegularPolygon(r, n),
+  SlotCenterToCenter(abstand, breite), Polygon((x, y), …), Text("Fabian", font_size=8); dann extrude(skizze, amount=h).
+  Auf anderer Ebene: Plane.XZ * Rectangle(…). Drehkörper: revolve(Plane.XZ * skizze, axis=Axis.Z).
+- Schrift: Gravur = teil - Pos(x, y, h - 0.6) * extrude(Text("…", font_size=6), amount=1); erhabene Schrift
+  mindestens 0,6 mm hoch, Buchstaben ≥ 5 mm.
+- Spiegeln: mirror(teil, about=Plane.YZ). Builder-Stil (with BuildPart() as bp: …) geht auch; dann bp.part zurückgeben.
 
 Gut druckbar konstruieren:
 - Wände mindestens 1,6 mm, für Festigkeit 2–3 mm. Böden 1,2–2 mm.
@@ -52,63 +67,10 @@ Gut druckbar konstruieren:
 - Überhänge höchstens 45°, Brücken höchstens ~30 mm. Untere Außenkanten 0,4–0,6 mm anfasen (Elefantenfuß),
   sichtbare Außenkanten runden (1–2 mm).
 - Größer als 256 mm: in Teile aufteilen, mit Verbindung (Schwalbenschwanz, Stifte 5 mm in 5,3-mm-Löchern,
-  Schrauben). Klemm-/Schnapphaken mindestens 1,5 mm dick, mit Spiel.
+  Schrauben). Schnapphaken mindestens 1,5 mm dick, mit Spiel.
 - Maße aus Fotos sind auf etwa 1–3 % genau: bei passgenauen Teilen großzügig Spiel geben oder erst ein kleines
   Probestück vorschlagen (z. B. nur die Ecke mit dem Ausschnitt).
-- Kein Text/Gravur möglich (keine Schriften); stattdessen einfache Symbole aus Formen.
 """
-
-HELPERS = '''
-def box(l, b, h, x=0, y=0, z=0):
-    return Part.makeBox(l, b, h, Vector(x, y, z))
-
-def zylinder(r, h, x=0, y=0, z=0, richtung=(0, 0, 1)):
-    return Part.makeCylinder(r, h, Vector(x, y, z), Vector(*richtung))
-
-def kegel(r1, r2, h, x=0, y=0, z=0, richtung=(0, 0, 1)):
-    return Part.makeCone(r1, r2, h, Vector(x, y, z), Vector(*richtung))
-
-def kugel(r, x=0, y=0, z=0):
-    return Part.makeSphere(r, Vector(x, y, z))
-
-def verschoben(s, x=0, y=0, z=0):
-    c = s.copy()
-    c.translate(Vector(x, y, z))
-    return c
-
-def gedreht(s, winkel, achse=(0, 0, 1), zentrum=(0, 0, 0)):
-    c = s.copy()
-    c.rotate(Vector(*zentrum), Vector(*achse), winkel)
-    return c
-
-def profil(punkte, hoehe):
-    pts = [Vector(x, y, 0) for x, y in punkte]
-    if pts[0] != pts[-1]:
-        pts.append(pts[0])
-    return Part.Face(Part.makePolygon(pts)).extrude(Vector(0, 0, hoehe))
-
-def gerundet(s, r, auswahl=None):
-    kanten = [e for e in s.Edges if auswahl is None or auswahl(e)]
-    try:
-        return s.makeFillet(r, kanten) if kanten else s
-    except Exception:
-        return s
-
-def gefast(s, r, auswahl=None):
-    kanten = [e for e in s.Edges if auswahl is None or auswahl(e)]
-    try:
-        return s.makeChamfer(r, kanten) if kanten else s
-    except Exception:
-        return s
-
-def rohr(r_aussen, r_innen, h, x=0, y=0, z=0):
-    return zylinder(r_aussen, h, x, y, z).cut(zylinder(r_innen, h + 2, x, y, z - 1))
-
-def langloch(l, b, h, x=0, y=0, z=0):
-    r = b / 2
-    mitte = box(max(l - b, 0.01), b, h, x - (l - b) / 2, y - r, z)
-    return mitte.fuse(zylinder(r, h, x - (l - b) / 2, y, z)).fuse(zylinder(r, h, x + (l - b) / 2, y, z)).removeSplitter()
-'''
 
 CHAT_SCHEMA = {"type": "object", "properties": {
     "antwort": {"type": "string", "description": "German answer to the owner: what you built or what you need to know"},
@@ -148,9 +110,9 @@ def prompt_for(project: dict, message: str, script: str, version: dict | None, e
         stats = json.dumps({k: version.get(k) for k in ("gesamt", "teile", "werte")}, ensure_ascii=False)[:2500] if version else ""
         current = f"\nCurrent script (version {version['n'] if version else '?'}):\n```python\n{script}\n```\nResult: {stats}\n"
     retry = f"\nYOUR LAST SCRIPT FAILED – fix it and answer again with the full script:\n{error}\n" if error else ""
-    return f"""You are the design engineer of "Werkbank", a FreeCAD add-on in the owner's Home Assistant. The owner
-describes a part; you write a parametric FreeCAD script that the add-on runs, checks, renders and can send to the
-Bambu Lab P1S 3D printer (printing only ever starts after the owner confirms). Answer in German.
+    return f"""You are the design engineer of "Werkbank", a CAD add-on (Python, build123d) in the owner's Home Assistant.
+The owner describes a part; you write a parametric build123d script that the add-on runs, checks, renders and can
+send to the Bambu Lab P1S 3D printer (printing only ever starts after the owner confirms). Answer in German.
 
 {GUIDE}
 

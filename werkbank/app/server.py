@@ -1,4 +1,4 @@
-"""Fabians-HA-Werkbank: Claude designs parts in FreeCAD, the add-on builds, checks and renders them and hands
+"""Fabians-HA-Werkbank: Claude designs parts with build123d, the add-on builds, checks and renders them and hands
 them to Fabians-HA-3D-Druck – printing only after the owner confirms (on the phone or in the dashboard).
 
 Two ways in: the assistant writes the scripts itself (command `werkbank`, via Fabians-HA-Master), or the owner
@@ -111,7 +111,7 @@ def store(request: web.Request) -> Store:
 
 # -- building versions ----------------------------------------------------------------------------------------------
 async def build_version(app: web.Application, p: dict, source: str, values: dict | None, by: str, note: str) -> dict:
-    """Runs the script in FreeCAD (one at a time), renders the preview and stores it as the next version."""
+    """Builds the script (one at a time), renders the preview and stores it as the next version."""
     st: Store = app["store"]
     async with app["cad_lock"]:
         p = st.get(p["id"])                         # fresh, another request may have added a version meanwhile
@@ -265,7 +265,7 @@ async def chat_job(app: web.Application, pid: str, text: str) -> None:
                 st.chat(p, "claude", str(answer.get("antwort") or "…"))
                 st.save(p)
                 return
-            busy[pid] = "FreeCAD rechnet …"
+            busy[pid] = "Wird berechnet …"
             try:
                 v = await build_version(app, p, source, {}, "claude", text)
             except cad.ScriptError as err:

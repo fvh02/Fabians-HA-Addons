@@ -1,6 +1,6 @@
 # Fabians-HA-Werkbank
 
-Du beschreibst ein Teil, Claude konstruiert es in **FreeCAD**, du bekommst ein Bild davon aufs Handy,
+Du beschreibst ein Teil, Claude konstruiert es (Python-CAD mit **build123d**), du bekommst ein Bild davon aufs Handy,
 und nach deinem „Ja“ druckt dein Bambu Lab P1S es aus.
 
 > Du: „Ich brauch einen Halter für meine Kopfhörer unter der Schreibtischplatte, Platte 25 mm dick“
@@ -11,10 +11,10 @@ und nach deinem „Ja“ druckt dein Bambu Lab P1S es aus.
 
 ## Zwei Wege
 
-- **Per iMessage** über Fabians-HA-Assistent (ab 0.19.0). Der Assistent schreibt das FreeCAD-Skript selbst,
+- **Per iMessage** über Fabians-HA-Assistent (ab 0.19.1). Der Assistent schreibt das CAD-Skript selbst,
   sieht sich die Vorschau an, bevor er sie dir schickt, und kennt das Gespräch.
 - **Im Dashboard** (Seitenleiste **Werkbank**): Chat mit Claude, drehbare 3D-Ansicht, Versionen, Parameter
-  per Schieberegler, Maße und Fotos, Download als STEP (zum Weiterbearbeiten in FreeCAD am PC) oder STL.
+  per Schieberegler, Maße und Fotos, Download als STEP (zum Weiterbearbeiten z. B. in FreeCAD oder Fusion am PC) oder STL.
 
 Beide Wege arbeiten mit denselben Projekten. Was du per iMessage angefangen hast, kannst du im Dashboard
 weiterbearbeiten und umgekehrt.
@@ -49,20 +49,21 @@ Dafür muss **Fabians-HA-3D-Druck** installiert und eingerichtet sein (nur auf a
 ## Was Claude konstruieren kann (und was nicht)
 
 Gut: Halter, Boxen, Deckel, Gehäuse, Abdeckungen, Adapter, Ständer, Kabelführungen, Wandhalterungen,
-Ersatzteile, also technische Teile aus Grundformen mit Löchern, Rundungen und Fasen.
+Ersatzteile, Namensschilder, also technische Teile aus Grundformen mit Löchern, Rundungen, Fasen und Schrift.
 
-Schwierig: organische Formen (Figuren, ergonomische Griffe), Schriften und Gravuren (FreeCAD hat hier keine
-Schriften). Alles wird parametrisch gebaut: Die wichtigen Maße sind Parameter, die du ohne Claude ändern kannst.
+Schwierig: organische Formen (Figuren, ergonomische Griffe). Alles wird parametrisch gebaut: Die wichtigen Maße
+sind Parameter, die du ohne Claude ändern kannst.
 
 ## Technik und Sicherheit
 
-- FreeCAD 1.1 läuft ohne Oberfläche im Add-on. Jedes Skript wird vorher geprüft (keine Dateien, kein Netzwerk,
-  keine fremden Module) und läuft in einem eigenen Prozess als unprivilegierter Benutzer, mit Zeit- (3 Minuten)
-  und Speicherlimit. Es wird immer nur ein Modell gleichzeitig berechnet.
+- Die Teile werden mit [build123d](https://github.com/gumyr/build123d) (Python, OpenCASCADE-Kern) gebaut. Jedes
+  Skript wird vorher geprüft (keine Dateien, kein Netzwerk, keine fremden Module) und läuft in einem eigenen
+  Prozess als unprivilegierter Benutzer, mit Zeit- (3 Minuten) und Speicherlimit. Es wird immer nur ein Modell
+  gleichzeitig berechnet; ein Durchlauf dauert einige Sekunden.
 - Prüfungen nach dem Bau: geschlossener Körper, gültige Geometrie, Größe gegen den P1S-Bauraum, sehr dünne
   Teile. Warnungen stehen im Bild und im Dashboard.
 - Jede Änderung ist eine eigene Version (Skript, STEP, STL, Vorschau) in `/data/projekte`. Sie sind Teil deiner
   Backups.
-- Das Image ist groß (FreeCAD, etwa 2–3 GB). Ein einfaches Teil braucht beim Berechnen kurz etwa 0,5–1 GB RAM.
+- Das Image ist etwa 1 GB groß. Ein einfaches Teil braucht beim Berechnen kurz einige hundert MB RAM.
 - Claude im Dashboard läuft über Fabians-HA-Master (ab 1.2.8) mit der Anmeldung des Assistenten.
 - Die 3D-Ansicht nutzt [three.js](https://threejs.org) (MIT), direkt im Add-on mitgeliefert.
